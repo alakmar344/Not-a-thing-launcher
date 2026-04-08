@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nothing_black">#000000</color>
+    <color name="nothing_white">#FFFFFF</color>
+    <color name="nothing_gray">#1A1A1A</color>
+    <color name="nothing_accent">#FFFFFF</color>
+    <color name="dot_active">#FFFFFF</color>
+    <color name="dot_inactive">#333333</color>
+    <color name="search_bar_bg">#1A1A1A</color>
+    <color name="folder_bg">#2A2A2A</color>
+    <color name="dock_bg">#00000000</color>
+</resources>
