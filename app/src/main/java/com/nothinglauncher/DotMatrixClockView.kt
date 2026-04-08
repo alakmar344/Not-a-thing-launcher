@@ -173,7 +173,7 @@ class DotMatrixClockView @JvmOverloads constructor(
         val dotSpacing = dotSize * 1.4f
         val totalWidth = totalCols * dotSpacing
         var startX = (width.toFloat() - totalWidth) / 2f
-        val startY = (height - 7 * dotSpacing) / 2f
+        val startY = (height.toFloat() - 7 * dotSpacing) / 2f
 
         for (c in chars) {
             val pattern = digitPatterns[c] ?: continue
