@@ -54,11 +54,14 @@ class MainActivity : AppCompatActivity() {
             )
         }
         try {
-            val controller = window.insetsController
-            controller?.setSystemBarsAppearance(
-                WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
-                0
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val controller = window.insetsController
+                // Clear APPEARANCE_LIGHT_STATUS_BARS so status bar icons are white (dark theme)
+                controller?.setSystemBarsAppearance(
+                    0,
+                    WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+                )
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
