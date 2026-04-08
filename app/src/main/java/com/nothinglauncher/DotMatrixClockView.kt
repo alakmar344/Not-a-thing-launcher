@@ -163,17 +163,16 @@ class DotMatrixClockView @JvmOverloads constructor(
             updateTime()
         }
         val chars = currentTime.toList()
-        val totalCols = chars.sumOf { c ->
-            when (c) {
-                ':' -> 3
-                else -> 5
-            }
-        } + (chars.size - 1)
+        var totalCols = 0
+        for (c in chars) {
+            totalCols += if (c == ':') 3 else 5
+        }
+        totalCols += (chars.size - 1)
 
         val dotSize = height / 9f
         val dotSpacing = dotSize * 1.4f
         val totalWidth = totalCols * dotSpacing
-        var startX = (width - totalWidth) / 2f
+        var startX = (width.toFloat() - totalWidth) / 2f
         val startY = (height - 7 * dotSpacing) / 2f
 
         for (c in chars) {
