@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.View
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.nothinglauncher.databinding.ActivityMainBinding
@@ -24,6 +25,19 @@ class MainActivity : AppCompatActivity() {
 
         setupStatusBar()
         setupFragments()
+        setupBackHandler()
+    }
+
+    private fun setupBackHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (isDrawerOpen) {
+                    closeAppDrawer()
+                } else {
+                    homeFragment?.exitEditMode()
+                }
+            }
+        })
     }
 
     private fun setupStatusBar() {
@@ -88,14 +102,5 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.drawerContainer.visibility = View.GONE
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        if (isDrawerOpen) {
-            closeAppDrawer()
-        } else {
-            homeFragment?.exitEditMode()
-        }
     }
 }

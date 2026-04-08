@@ -27,8 +27,7 @@ class WidgetHostManager(private val context: Context) : AppWidgetHost(context, H
     }
 
     fun updateWidget(widgetId: Int) {
-        val providerInfo = appWidgetManager.getAppWidgetInfo(widgetId) ?: return
-        appWidgetManager.getAppWidgetViews(widgetId)
+        appWidgetManager.getAppWidgetInfo(widgetId) ?: return
     }
 
     override fun onCreateView(
