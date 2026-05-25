@@ -2,12 +2,12 @@ package com.nothinglauncher
 
 import android.content.Context
 import android.graphics.Canvas
-import android.graphics.Color
 import android.graphics.Paint
 import android.os.Handler
 import android.os.Looper
 import android.util.AttributeSet
 import android.view.View
+import androidx.core.content.ContextCompat
 import java.util.Calendar
 
 class DotMatrixClockView @JvmOverloads constructor(
@@ -16,18 +16,25 @@ class DotMatrixClockView @JvmOverloads constructor(
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private val glowRadius = 12f * resources.displayMetrics.density
+
     private val activePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.WHITE
+        color = ContextCompat.getColor(context, R.color.dot_active)
         style = Paint.Style.FILL
+        setShadowLayer(glowRadius, 0f, 0f, ContextCompat.getColor(context, R.color.dot_glow))
     }
 
     private val inactivePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#222222")
+        color = ContextCompat.getColor(context, R.color.dot_inactive)
         style = Paint.Style.FILL
     }
 
     private val handler = Handler(Looper.getMainLooper())
     private var currentTime = ""
+
+    init {
+        setLayerType(LAYER_TYPE_SOFTWARE, null)
+    }
 
     // 5x7 dot matrix font patterns for digits 0-9 and colon
     private val digitPatterns = mapOf(

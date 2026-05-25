@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/nothing_black">
+    android:background="@drawable/home_background">
 
     <com.nothinglauncher.DotMatrixClockView
         android:id="@+id/clockView"
@@ -14,6 +14,18 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
+    <ImageView
+        android:id="@+id/clockGlyph"
+        android:layout_width="@dimen/glyph_icon_size"
+        android:layout_height="@dimen/glyph_icon_size"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="18dp"
+        android:contentDescription="@string/clock_glyph"
+        android:src="@drawable/ic_glyph_clock"
+        android:tint="@color/nothing_accent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/clockView" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/homeGrid"
@@ -31,7 +43,7 @@
         android:id="@+id/dockDivider"
         android:layout_width="match_parent"
         android:layout_height="1dp"
-        android:background="#333333"
+        android:background="@color/glyph_stroke"
         android:layout_marginBottom="8dp"
         app:layout_constraintBottom_toTopOf="@id/dock" />
 
@@ -39,8 +51,15 @@
         android:id="@+id/dock"
         android:layout_width="match_parent"
         android:layout_height="@dimen/dock_height"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/dock_background"
+        android:clipToOutline="true"
+        android:outlineProvider="background"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
+        android:paddingTop="8dp"
         android:paddingBottom="8dp"
         android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"

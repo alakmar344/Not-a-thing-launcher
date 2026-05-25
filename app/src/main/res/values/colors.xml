@@ -1,12 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="nothing_black">#000000</color>
-    <color name="nothing_white">#FFFFFF</color>
-    <color name="nothing_gray">#1A1A1A</color>
-    <color name="nothing_accent">#FFFFFF</color>
-    <color name="dot_active">#FFFFFF</color>
-    <color name="dot_inactive">#333333</color>
-    <color name="search_bar_bg">#1A1A1A</color>
-    <color name="folder_bg">#2A2A2A</color>
-    <color name="dock_bg">#00000000</color>
+    <color name="nothing_black">#0A0A10</color>
+    <color name="nothing_white">#F7F7F7</color>
+    <color name="nothing_gray">#14141D</color>
+    <color name="nothing_accent">#FF4D6D</color>
+    <color name="nothing_accent_secondary">#6AE4FF</color>
+    <color name="nothing_surface">#101016</color>
+    <color name="nothing_surface_alt">#1A1A24</color>
+    <color name="dot_active">#F7F7F7</color>
+    <color name="dot_inactive">#2B2B36</color>
+    <color name="dot_glow">#FF4D6D</color>
+    <color name="search_bar_bg">#15151E</color>
+    <color name="folder_bg">#1B1B26</color>
+    <color name="dock_bg">#0F0F16</color>
+    <color name="glyph_stroke">#2A2A38</color>
+    <color name="glyph_fill">#111118</color>
+    <color name="home_gradient_start">#09090F</color>
+    <color name="home_gradient_end">#151521</color>
+    <color name="drawer_gradient_start">#0B0B12</color>
+    <color name="drawer_gradient_end">#1B1B28</color>
+    <color name="accent_glow">#33FF4D6D</color>
 </resources>

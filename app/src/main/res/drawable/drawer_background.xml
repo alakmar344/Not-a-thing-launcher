@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:startColor="@color/drawer_gradient_start"
+                android:endColor="@color/drawer_gradient_end"
+                android:angle="270" />
+        </shape>
+    </item>
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.2"
+                android:centerY="0.1"
+                android:gradientRadius="360dp"
+                android:startColor="@color/accent_glow"
+                android:endColor="@android:color/transparent" />
+        </shape>
+    </item>
+</layer-list>
