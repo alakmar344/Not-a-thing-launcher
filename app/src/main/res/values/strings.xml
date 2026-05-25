@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">Not a Thing Launcher</string>
     <string name="search_apps">Search apps…</string>
+    <string name="clock_glyph">Clock glyph</string>
     <string name="app_icon">App icon</string>
     <string name="add_widget">Add widget</string>
     <string name="wallpaper">Wallpaper</string>

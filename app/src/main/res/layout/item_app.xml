@@ -11,6 +11,8 @@
         android:id="@+id/appIcon"
         android:layout_width="@dimen/icon_size"
         android:layout_height="@dimen/icon_size"
+        android:background="@drawable/icon_glyph_ring"
+        android:padding="@dimen/icon_glyph_padding"
         android:scaleType="fitCenter"
         android:contentDescription="@string/app_icon" />
 
@@ -21,6 +23,7 @@
         android:layout_marginTop="4dp"
         android:textColor="@color/nothing_white"
         android:textSize="@dimen/text_label_size"
+        android:letterSpacing="0.06"
         android:maxLines="1"
         android:ellipsize="end"
         android:gravity="center" />

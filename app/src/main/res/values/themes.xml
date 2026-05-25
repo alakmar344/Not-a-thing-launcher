@@ -2,10 +2,10 @@
 <resources>
     <style name="Theme.NothingLauncher" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/nothing_black</item>
-        <item name="colorPrimaryVariant">@color/nothing_gray</item>
+        <item name="colorPrimaryVariant">@color/nothing_surface</item>
         <item name="colorOnPrimary">@color/nothing_white</item>
-        <item name="colorSecondary">@color/nothing_white</item>
-        <item name="colorSecondaryVariant">@color/nothing_gray</item>
+        <item name="colorSecondary">@color/nothing_accent</item>
+        <item name="colorSecondaryVariant">@color/nothing_accent_secondary</item>
         <item name="colorOnSecondary">@color/nothing_black</item>
         <item name="android:colorBackground">@color/nothing_black</item>
         <item name="android:windowBackground">@color/nothing_black</item>
