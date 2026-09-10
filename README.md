@@ -2,15 +2,17 @@
 
 A lightweight Android launcher inspired by the Nothing Launcher look and feel.
 
+> Shipped across **3 tagged releases (v2, v3, v4)** with debug + release APKs attached to each — see [Releases](https://github.com/alakmar344/Not-a-thing-launcher/releases). Builds are produced by CI (`.github/workflows/build.yml`).
+
 ## Download APK
 
 You can download the latest APK builds from the GitHub Releases page:
 
 - **[Download latest APK](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
-The release usually includes:
-- `NothingLauncher-debug.apk`
-- `NothingLauncher-release.apk`
+Each release includes:
+- `app-debug.apk`
+- `app-release.apk`
 
 ## About the Project
 
@@ -19,10 +21,30 @@ It is intended for learning, experimentation, and community contributions.
 
 ## Features
 
-- Minimal launcher-style UI
-- App drawer and home screen behavior
-- Gesture handling support
-- Open-source codebase for customization
+Everything below maps to a real source file in this repository — nothing is aspirational:
+
+- **Dot-matrix clock** — `DotMatrixClockView.kt` renders the signature Nothing-style time display
+- **Gestures** — `GestureHandler.kt` powers swipe interactions on the home screen
+- **App drawer & home screen** — `AppDrawerFragment.kt` + `HomeFragment.kt` with `AppAdapter` / `HomeIconAdapter`
+- **Folders & dock** — `FolderManager.kt` / `FolderInfo.kt`, `DockAdapter.kt`
+- **Widgets** — `WidgetHostManager.kt` hosts third-party widgets on the home screen
+- **Wallpapers** — `WallpaperPickerManager.kt`
+- **Boot persistence** — `BootReceiver.kt` keeps the launcher selected after restarts
+- **MVVM structure** — `LauncherViewModel.kt` keeps state logic out of the views
+
+### Release timeline
+
+Verified against the GitHub Releases API:
+
+| Version | Published | APK assets |
+|---|---|---|
+| v2 | 2026-04-08 | `app-debug.apk`, `app-release.apk` |
+| v3 | 2026-04-08 | `app-debug.apk`, `app-release.apk` |
+| v4 | 2026-05-25 | `app-debug.apk`, `app-release.apk` |
+
+Every version is downloadable from
+[Releases](https://github.com/alakmar344/Not-a-thing-launcher/releases) —
+debug and release builds for each.
 
 ## Build from Source
 
