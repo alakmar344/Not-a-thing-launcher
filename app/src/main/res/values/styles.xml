@@ -10,10 +10,6 @@
         <item name="android:includeFontPadding">false</item>
     </style>
 
-    <style name="Text.Label.Ink">
-        <item name="android:textColor">@color/ink_secondary</item>
-    </style>
-
     <style name="Text.Body" parent="">
         <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="android:textSize">15sp</item>

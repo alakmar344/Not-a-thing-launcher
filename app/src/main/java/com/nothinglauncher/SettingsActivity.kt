@@ -137,6 +137,9 @@ class SettingsActivity : AppCompatActivity() {
             SettingsUi.actionRow(card, getString(R.string.setting_reset), getString(R.string.setting_reset_sub), destructive = true, trailingIcon = R.drawable.ic_refresh) {
                 dialog?.dismiss()
                 dialog = Sheets.showConfirm(this, R.string.reset_confirm_title, R.string.reset_confirm_body, R.string.reset) {
+                    // Release the hosted widgets so their ids don't leak in the system.
+                    val host = WidgetHostManager(this)
+                    prefs.widgetIds.forEach { id -> try { host.deleteAppWidgetId(id) } catch (_: Exception) {} }
                     prefs.resetLayout()
                 }
             }

@@ -82,11 +82,10 @@ class AppAdapter(
                 else -> false
             }
 
-            override fun areContentsTheSame(oldItem: DrawerItem, newItem: DrawerItem): Boolean = when {
-                oldItem is DrawerItem.App && newItem is DrawerItem.App ->
-                    oldItem.app.label == newItem.app.label && oldItem.app.icon === newItem.app.icon
-                else -> oldItem == newItem
-            }
+            // AppInfo is a data class; its icon is compared by reference, so a re-rendered
+            // icon (e.g. after switching icon style) correctly counts as a change.
+            override fun areContentsTheSame(oldItem: DrawerItem, newItem: DrawerItem): Boolean =
+                oldItem == newItem
         }
     }
 }

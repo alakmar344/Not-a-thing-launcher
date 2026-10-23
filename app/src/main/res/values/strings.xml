@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Not a Thing Launcher</string>
-    <string name="app_short_name">Not a Thing</string>
 
     <!-- Home -->
     <string name="local_time">Local time</string>
@@ -19,14 +18,11 @@
     <string name="calendar_widget">Calendar. Opens your calendar.</string>
 
     <!-- Drawer -->
-    <string name="apps">Apps</string>
     <string name="search_apps">Search apps</string>
     <string name="clear_search">Clear search</string>
     <string name="recent">Recent</string>
     <string name="all_apps">All apps</string>
-    <string name="no_match">No match</string>
     <string name="search_web_for">Search the web for “%1$s”</string>
-    <string name="search_web">Search the web</string>
     <string name="settings">Settings</string>
 
     <!-- App actions -->
@@ -44,12 +40,10 @@
     <string name="app_icon">App icon</string>
 
     <!-- Customize sheet -->
-    <string name="customize">Customize</string>
     <string name="wallpaper">Wallpaper</string>
     <string name="widgets">Widgets</string>
 
     <!-- Widgets -->
-    <string name="add_widget">Add widget</string>
     <string name="no_widgets">No widgets available</string>
     <string name="widget_size">%1$d × %2$d</string>
     <string name="widget_failed">That widget couldn’t be added</string>

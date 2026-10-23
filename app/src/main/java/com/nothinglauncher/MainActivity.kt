@@ -9,6 +9,7 @@ import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Intent
+import android.graphics.PixelFormat
 import android.graphics.RenderEffect
 import android.graphics.Shader
 import android.graphics.drawable.ColorDrawable
@@ -48,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     private var dragStartProgress = 0f
     private var drawerAnimator: ValueAnimator? = null
     private var pendingFocusSearch = false
+    private var focusRequested = false
     private val settleInterpolator = PathInterpolator(0.2f, 0.8f, 0.2f, 1f)
 
     val isDrawerOpen: Boolean get() = drawerProgress > 0.5f
@@ -132,6 +134,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        openDialog?.dismiss()
+        openDialog = null
+        popup.dismiss()
+        super.onDestroy()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         // Home button pressed while we're already in front.
@@ -168,6 +177,7 @@ class MainActivity : AppCompatActivity() {
         val density = resources.displayMetrics.density
         when (prefs.background) {
             LauncherPrefs.Background.WALLPAPER -> {
+                window.setFormat(PixelFormat.TRANSLUCENT)
                 window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
                 window.setBackgroundDrawable(ColorDrawable(0))
                 binding.root.background = GradientDrawable(
@@ -181,11 +191,13 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             LauncherPrefs.Background.BLACK -> {
+                window.setFormat(PixelFormat.OPAQUE)
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
                 window.setBackgroundDrawable(ColorDrawable(0xFF000000.toInt()))
                 binding.root.background = ColorDrawable(0xFF000000.toInt())
             }
             LauncherPrefs.Background.DOTS -> {
+                window.setFormat(PixelFormat.OPAQUE)
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
                 window.setBackgroundDrawable(ColorDrawable(0xFF000000.toInt()))
                 binding.root.background = DotGridDrawable(density)
@@ -203,7 +215,7 @@ class MainActivity : AppCompatActivity() {
     fun openDrawer(focusSearch: Boolean) {
         dismissPopup()
         pendingFocusSearch = focusSearch || prefs.autoKeyboard
-        drawerFragment?.onDrawerOpening(pendingFocusSearch)
+        focusRequested = false
         animateDrawerTo(1f, 0f)
     }
 
@@ -233,9 +245,9 @@ class MainActivity : AppCompatActivity() {
             opening -> if (drawerProgress > 0.3f) 1f else 0f
             else -> if (drawerProgress < 0.7f) 0f else 1f
         }
-        if (target == 1f) {
+        if (target == 1f && dragStartProgress < 0.5f) {
             pendingFocusSearch = prefs.autoKeyboard
-            if (pendingFocusSearch) drawerFragment?.onDrawerOpening(true)
+            focusRequested = false
         }
         animateDrawerTo(target, velocityY)
     }
@@ -276,6 +288,7 @@ class MainActivity : AppCompatActivity() {
         if (p == 0f) {
             drawerFragment?.onDrawerClosed()
             pendingFocusSearch = false
+            focusRequested = false
         }
     }
 
@@ -287,6 +300,11 @@ class MainActivity : AppCompatActivity() {
         drawer.translationY = (1f - drawerProgress) * h * 0.92f
         drawer.alpha = (drawerProgress * 1.6f).coerceAtMost(1f)
         drawer.visibility = if (drawerProgress > 0f) View.VISIBLE else View.INVISIBLE
+        // Focus can only land once the drawer is actually visible.
+        if (pendingFocusSearch && !focusRequested && drawerProgress > 0f) {
+            focusRequested = true
+            drawerFragment?.onDrawerOpening(true)
+        }
 
         val scale = 1f - 0.06f * drawerProgress
         home.scaleX = scale
@@ -308,7 +326,7 @@ class MainActivity : AppCompatActivity() {
         dismissPopup()
         if (AppLauncher.launch(this, app, source)) {
             // Record after the launch animation so the drawer doesn't reshuffle under the finger.
-            source.postDelayed({ viewModel.recordLaunch(app) }, 450)
+            binding.root.postDelayed({ viewModel.recordLaunch(app) }, 450)
         }
     }
 
@@ -416,7 +434,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun configureOrAddWidget(id: Int, info: AppWidgetProviderInfo) {
-        val optional = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P &&
+        val optional = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
             (info.widgetFeatures and AppWidgetProviderInfo.WIDGET_FEATURE_CONFIGURATION_OPTIONAL) != 0
         if (info.configure != null && !optional) {
             try {

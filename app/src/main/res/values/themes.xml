@@ -29,10 +29,14 @@
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
-        <item name="android:windowShowWallpaper">false</item>
+        <!-- Lets the window composite over the system wallpaper; MainActivity turns this
+             off (and makes the surface opaque) for the dot-grid and black backgrounds. -->
+        <item name="android:windowShowWallpaper">true</item>
     </style>
 
-    <style name="Theme.NothingLauncher.Settings" />
+    <style name="Theme.NothingLauncher.Settings">
+        <item name="android:windowShowWallpaper">false</item>
+    </style>
 
     <!-- Floating sheets & dialogs: we draw our own card, the window stays transparent. -->
     <style name="Theme.NothingLauncher.Sheet" parent="Theme.MaterialComponents.Dialog">

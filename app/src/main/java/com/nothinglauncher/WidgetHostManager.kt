@@ -66,6 +66,9 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
             removeCallbacks(longPressRunnable)
             longPressed = false
         }
+        // Claim the gesture even on non-interactive widgets so the home screen's own
+        // long-press (customize sheet) doesn't fire underneath ours.
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) return true
         return super.onTouchEvent(event) || longPressed
     }
 

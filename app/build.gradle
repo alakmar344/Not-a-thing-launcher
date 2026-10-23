@@ -40,6 +40,13 @@ android {
     kotlinOptions {
         jvmTarget = '17'
     }
+
+    lint {
+        // android:tint is fully supported on ImageView from API 21; minSdk is 26.
+        disable 'UseAppTint'
+        // Launcher is intentionally portrait-only, like the system launcher.
+        disable 'LockedOrientationActivity'
+    }
 }
 
 dependencies {

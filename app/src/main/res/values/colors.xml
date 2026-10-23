@@ -4,13 +4,10 @@
     <color name="nothing_black">#000000</color>
     <color name="nothing_white">#FFFFFF</color>
     <color name="nothing_red">#D71921</color>
-    <color name="nothing_red_soft">#33D71921</color>
 
     <!-- Dark surfaces, from deepest to most raised -->
     <color name="surface">#0E0E10</color>
     <color name="surface_raised">#161618</color>
-    <color name="surface_icon">#1C1C1F</color>
-    <color name="surface_pressed">#222226</color>
     <color name="hairline">#232327</color>
     <color name="hairline_strong">#34343A</color>
 
@@ -28,7 +25,6 @@
     <!-- Dot matrix -->
     <color name="dot_on">#F4F4F2</color>
     <color name="dot_off">#1D1D21</color>
-    <color name="dot_grid">#161619</color>
 
     <!-- Overlays -->
     <color name="drawer_bg">#EB050506</color>
