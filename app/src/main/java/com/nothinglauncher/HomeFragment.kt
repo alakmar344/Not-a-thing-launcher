@@ -3,7 +3,9 @@ package com.nothinglauncher
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.GestureDetector
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.view.ViewCompat
@@ -110,6 +112,21 @@ class HomeFragment : Fragment() {
 
     private fun setupGestures() {
         val density = resources.displayMetrics.density
+        val doubleTapDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                if (viewModel.prefs.doubleTapToSleep) {
+                    host?.lockScreen()
+                    return true
+                }
+                return false
+            }
+        })
+
+        binding.workspaceRecycler.setOnTouchListener { _, event ->
+            doubleTapDetector.onTouchEvent(event)
+            false
+        }
+
         binding.homeRoot.listener = object : SwipeGestureLayout.Listener {
             override fun canStartDrag(direction: Int, downX: Float, downY: Float): Boolean {
                 if (host?.isPopupShowing() == true) return false
@@ -174,6 +191,7 @@ class HomeFragment : Fragment() {
         if (_binding == null) return
         val prefs = viewModel.prefs
         binding.pageIndicator.accentColor = prefs.accentColor()
+        binding.dock.showLabels = prefs.showDockLabels
         workspaceAdapter.notifyDataSetChanged()
     }
 

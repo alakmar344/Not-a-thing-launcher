@@ -13,11 +13,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.GridLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
+import com.nothinglauncher.databinding.ItemFolderTileBinding
+import com.nothinglauncher.databinding.ItemMaxAppBinding
 import com.nothinglauncher.databinding.ItemWorkspacePageBinding
 import com.nothinglauncher.databinding.WidgetBatteryBinding
 import com.nothinglauncher.databinding.WidgetCalendarBinding
@@ -25,7 +30,10 @@ import com.nothinglauncher.databinding.WidgetClockBinding
 import com.nothinglauncher.databinding.WidgetCompassBinding
 import com.nothinglauncher.databinding.WidgetPedometerBinding
 import com.nothinglauncher.databinding.WidgetQuickTogglesBinding
+import com.nothinglauncher.databinding.WidgetScreenTimeBinding
+import com.nothinglauncher.databinding.WidgetStorageBinding
 import com.nothinglauncher.databinding.WidgetWeatherBinding
+import com.nothinglauncher.databinding.WidgetWorldClockBinding
 import java.util.Calendar
 import kotlin.math.hypot
 
@@ -67,6 +75,7 @@ class WorkspacePageAdapter(
             val prefs = viewModel.prefs
             val accent = prefs.accentColor()
             val density = ctx.resources.displayMetrics.density
+            val allAppsMap = viewModel.allApps.value.orEmpty().associateBy { it.key }
 
             // 1. Inflate Elements
             b.elementsContainer.removeAllViews()
@@ -177,6 +186,46 @@ class WorkspacePageAdapter(
                         }
                         b.elementsContainer.addView(compB.root, elementLp(density))
                     }
+                    BespokeElement.SCREEN_TIME.id -> {
+                        val stB = WidgetScreenTimeBinding.inflate(inflater, b.elementsContainer, false)
+                        stB.screenTimeView.accentColor = accent
+                        stB.root.setOnClickListener {
+                            if (!AppLauncher.start(ctx, Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS), showError = false)) {
+                                AppLauncher.start(ctx, Intent("android.settings.DIGITAL_WELLBEING"), showError = false)
+                            }
+                        }
+                        stB.root.setOnLongClickListener {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            host.showElementPopup(pageIndex, BespokeElement.SCREEN_TIME, it)
+                            true
+                        }
+                        b.elementsContainer.addView(stB.root, elementLp(density))
+                    }
+                    BespokeElement.STORAGE.id -> {
+                        val storB = WidgetStorageBinding.inflate(inflater, b.elementsContainer, false)
+                        storB.storageView.accentColor = accent
+                        storB.root.setOnClickListener {
+                            AppLauncher.start(ctx, Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS), showError = false)
+                        }
+                        storB.root.setOnLongClickListener {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            host.showElementPopup(pageIndex, BespokeElement.STORAGE, it)
+                            true
+                        }
+                        b.elementsContainer.addView(storB.root, elementLp(density))
+                    }
+                    BespokeElement.WORLD_CLOCK.id -> {
+                        val wcB = WidgetWorldClockBinding.inflate(inflater, b.elementsContainer, false)
+                        wcB.worldClockView.accentColor = accent
+                        wcB.worldClockView.updateTimes()
+                        wcB.root.setOnClickListener { AppLauncher.openAlarms(ctx) }
+                        wcB.root.setOnLongClickListener {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            host.showElementPopup(pageIndex, BespokeElement.WORLD_CLOCK, it)
+                            true
+                        }
+                        b.elementsContainer.addView(wcB.root, elementLp(density))
+                    }
                 }
             }
 
@@ -203,7 +252,55 @@ class WorkspacePageAdapter(
                 updateWidgetSize(hostView, height, density)
             }
 
-            // 3. Setup App Grid
+            // 3. Max / Enlarged 2x2 Apps
+            b.enlargedContainer.removeAllViews()
+            page.enlargedApps.forEach { key ->
+                val app = allAppsMap[key] ?: return@forEach
+                val maxB = ItemMaxAppBinding.inflate(inflater, b.enlargedContainer, false)
+                maxB.maxAppIcon.setImageDrawable(app.icon)
+                maxB.maxAppLabel.text = app.label
+                maxB.maxAppDot.background.mutate().setTint(accent)
+                maxB.root.setOnClickListener { host.launchApp(app, it) }
+                maxB.root.setOnLongClickListener {
+                    it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    host.showAppPopup(app, it, MainActivity.PopupOrigin.HOME)
+                    true
+                }
+                b.enlargedContainer.addView(maxB.root)
+            }
+
+            // 4. App Folders
+            b.foldersContainer.removeAllViews()
+            page.folders.forEach { folder ->
+                val fTile = ItemFolderTileBinding.inflate(inflater, b.foldersContainer, false)
+                fTile.folderTileName.text = folder.name
+                fTile.folderTileCount.text = "${folder.appKeys.size} APPS"
+                fTile.folderMiniGrid.removeAllViews()
+                val folderApps = folder.appKeys.mapNotNull { allAppsMap[it] }
+                folderApps.take(4).forEach { fApp ->
+                    val mini = ImageView(ctx).apply {
+                        setImageDrawable(fApp.icon)
+                        val sz = (20 * density).toInt()
+                        layoutParams = GridLayout.LayoutParams().apply {
+                            width = sz
+                            height = sz
+                            setMargins((1 * density).toInt(), (1 * density).toInt(), (1 * density).toInt(), (1 * density).toInt())
+                        }
+                    }
+                    fTile.folderMiniGrid.addView(mini)
+                }
+                fTile.root.setOnClickListener {
+                    host.showFolderSheet(pageIndex, folder)
+                }
+                fTile.root.setOnLongClickListener {
+                    it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    host.showFolderSheet(pageIndex, folder)
+                    true
+                }
+                b.foldersContainer.addView(fTile.root)
+            }
+
+            // 5. Setup App Grid
             gridAdapter = HomeIconAdapter(
                 onAppClick = { app, v -> host.launchApp(app, v) },
                 onAppLongClick = { app, v ->
@@ -212,9 +309,15 @@ class WorkspacePageAdapter(
                 }
             )
             val columns = prefs.gridColumns
-            gridAdapter.iconSizePx = ctx.resources.getDimensionPixelSize(
+            val baseIconSize = ctx.resources.getDimensionPixelSize(
                 if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
             )
+            val scale = when (prefs.iconSize) {
+                LauncherPrefs.IconSize.SMALL -> 0.82f
+                LauncherPrefs.IconSize.MEDIUM -> 1.0f
+                LauncherPrefs.IconSize.LARGE -> 1.18f
+            }
+            gridAdapter.iconSizePx = (baseIconSize * scale).toInt()
             gridAdapter.showLabels = prefs.showHomeLabels
             gridAdapter.labelShadow = prefs.background == LauncherPrefs.Background.WALLPAPER
 
@@ -256,8 +359,8 @@ class WorkspacePageAdapter(
             })
             touchHelper.attachToRecyclerView(b.homeGrid)
 
-            // 4. Empty State
-            val isEmpty = page.elements.isEmpty() && page.widgetIds.isEmpty() && page.appKeys.isEmpty()
+            // 6. Empty State
+            val isEmpty = page.elements.isEmpty() && page.widgetIds.isEmpty() && page.appKeys.isEmpty() && page.enlargedApps.isEmpty() && page.folders.isEmpty()
             b.homeEmpty.isVisible = isEmpty
 
             // Customize sheet on long press empty area
@@ -266,54 +369,59 @@ class WorkspacePageAdapter(
                 host.showCustomizeSheet()
                 true
             }
-            b.pageContent.setOnLongClickListener(onCustomize)
             b.homeEmpty.setOnLongClickListener(onCustomize)
+            b.pageContent.setOnLongClickListener(onCustomize)
+            b.pageScroll.setOnLongClickListener(onCustomize)
         }
 
-        private fun elementLp(density: Float) = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply {
-            topMargin = (10 * density).toInt()
-        }
-
-        private fun toggleTorch(ctx: Context, togB: WidgetQuickTogglesBinding) {
-            val cam = ctx.getSystemService(CameraManager::class.java)
-            val camId = try { cam?.cameraIdList?.firstOrNull() } catch (e: Exception) { null } ?: return
+        private fun toggleTorch(context: Context, binding: WidgetQuickTogglesBinding) {
+            val cm = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
+            val id = cm.cameraIdList.firstOrNull() ?: return
+            torchEnabled = !torchEnabled
             try {
-                torchEnabled = !torchEnabled
-                cam.setTorchMode(camId, torchEnabled)
-                togB.torchDisc.background.mutate().setTint(if (torchEnabled) host.prefs.accentColor() else 0xFF1C1C1F.toInt())
-            } catch (_: Exception) {}
-        }
-
-        private fun cycleSoundMode(ctx: Context, togB: WidgetQuickTogglesBinding) {
-            val am = ctx.getSystemService(AudioManager::class.java) ?: return
-            val next = when (am.ringerMode) {
-                AudioManager.RINGER_MODE_NORMAL -> AudioManager.RINGER_MODE_VIBRATE
-                AudioManager.RINGER_MODE_VIBRATE -> AudioManager.RINGER_MODE_SILENT
-                else -> AudioManager.RINGER_MODE_NORMAL
-            }
-            try { am.ringerMode = next } catch (_: Exception) {}
-            togB.soundLabel.text = when (am.ringerMode) {
-                AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.sound_vibrate)
-                AudioManager.RINGER_MODE_SILENT -> ctx.getString(R.string.sound_silent)
-                else -> ctx.getString(R.string.sound_normal)
+                cm.setTorchMode(id, torchEnabled)
+                binding.torchLabel.text = if (torchEnabled) "ON" else "TORCH"
+                binding.torchDisc.background.mutate().setTint(
+                    if (torchEnabled) viewModel.prefs.accentColor() else ContextCompat.getColor(context, R.color.surface_raised)
+                )
+            } catch (e: Exception) {
+                AppLauncher.start(context, Intent(Settings.ACTION_SETTINGS))
             }
         }
 
-        @Suppress("DEPRECATION")
-        private fun updateWidgetSize(view: android.appwidget.AppWidgetHostView, heightPx: Int, density: Float) {
-            view.post {
-                val wDp = (view.width / density).toInt().coerceAtLeast(1)
-                val hDp = (heightPx / density).toInt()
-                try {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        view.updateAppWidgetSize(Bundle(), listOf(android.util.SizeF(wDp.toFloat(), hDp.toFloat())))
-                    } else {
-                        view.updateAppWidgetSize(null, wDp, hDp, wDp, hDp)
-                    }
-                } catch (_: Exception) {}
+        private fun cycleSoundMode(context: Context, binding: WidgetQuickTogglesBinding) {
+            val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            when (am.ringerMode) {
+                AudioManager.RINGER_MODE_NORMAL -> {
+                    try { am.ringerMode = AudioManager.RINGER_MODE_VIBRATE } catch (_: Exception) {}
+                    binding.soundLabel.text = context.getString(R.string.sound_vibrate)
+                }
+                AudioManager.RINGER_MODE_VIBRATE -> {
+                    try { am.ringerMode = AudioManager.RINGER_MODE_SILENT } catch (_: Exception) {}
+                    binding.soundLabel.text = context.getString(R.string.sound_silent)
+                }
+                else -> {
+                    try { am.ringerMode = AudioManager.RINGER_MODE_NORMAL } catch (_: Exception) {}
+                    binding.soundLabel.text = context.getString(R.string.sound_normal)
+                }
+            }
+        }
+
+        private fun elementLp(density: Float): LinearLayout.LayoutParams =
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = (10 * density).toInt()
+            }
+
+        private fun updateWidgetSize(view: View, height: Int, density: Float) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val opts = Bundle().apply {
+                    putInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, (height / density).toInt())
+                    putInt(android.appwidget.AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, (height / density).toInt())
+                }
+                (view as? android.appwidget.AppWidgetHostView)?.updateAppWidgetOptions(opts)
             }
         }
     }

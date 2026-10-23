@@ -1,5 +1,6 @@
 package com.nothinglauncher
 
+import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -16,19 +17,23 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 
 /**
- * Turns any app icon into a consistent circular launcher icon.
+ * Turns any app icon into a consistent circular launcher icon in the Nothing OS design language.
  *
  * MONO (the Nothing look):
- *  1. Android 13+ themed icon (monochrome layer) → light glyph on a dark disc.
- *  2. Adaptive icon with a sparse foreground → its foreground as a light grey glyph.
- *  3. Anything else → the whole icon in high-key greyscale.
+ *  1. Android 13+ themed icon (monochrome layer) → monochrome glyph on themed disc.
+ *  2. Adaptive icon with a sparse foreground → its foreground as themed glyph.
+ *  3. Anything else → the whole icon rendered in sleek monochrome with contrast boost.
  * COLOR: the original artwork, uniformly clipped to a circle.
  */
 object IconFactory {
 
-    private const val DISC_COLOR = 0xFF1C1C1F.toInt()
-    private const val GLYPH_COLOR = 0xFFF2F2F0.toInt()
-    private const val RIM_COLOR = 0xFF2C2C31.toInt()
+    private const val DISC_COLOR_DARK = 0xFF1C1C1F.toInt()
+    private const val GLYPH_COLOR_DARK = 0xFFF2F2F0.toInt()
+    private const val RIM_COLOR_DARK = 0xFF2C2C31.toInt()
+
+    private const val DISC_COLOR_LIGHT = 0xFFECECE8.toInt()
+    private const val GLYPH_COLOR_LIGHT = 0xFF0E0E10.toInt()
+    private const val RIM_COLOR_LIGHT = 0xFFD8D8D4.toInt()
 
     /** The three layers of an adaptive icon (monochrome only exists on Android 13+). */
     class Layers(val background: Drawable?, val foreground: Drawable?, val monochrome: Drawable?)
@@ -41,28 +46,32 @@ object IconFactory {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) source.monochrome else null
             )
         } else null
-        return renderInternal(resources, source, layers, style, sizePx)
+        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+        return renderInternal(resources, source, layers, style, sizePx, isLight)
     }
 
     /** Renders from explicit adaptive layers (used directly by previews/tests). */
-    fun renderLayers(resources: Resources, layers: Layers, style: LauncherPrefs.IconStyle, sizePx: Int): Drawable =
-        renderInternal(resources, layers.foreground ?: layers.background ?: ColorDrawable(0), layers, style, sizePx)
+    fun renderLayers(resources: Resources, layers: Layers, style: LauncherPrefs.IconStyle, sizePx: Int): Drawable {
+        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+        return renderInternal(resources, layers.foreground ?: layers.background ?: ColorDrawable(0), layers, style, sizePx, isLight)
+    }
 
     private fun renderInternal(
         resources: Resources,
         source: Drawable,
         layers: Layers?,
         style: LauncherPrefs.IconStyle,
-        sizePx: Int
+        sizePx: Int,
+        isLight: Boolean
     ): Drawable {
         val bitmap = try {
             when (style) {
-                LauncherPrefs.IconStyle.MONO -> renderMono(source, layers, sizePx)
-                LauncherPrefs.IconStyle.COLOR -> renderColor(source, layers, sizePx)
+                LauncherPrefs.IconStyle.MONO -> renderMono(source, layers, sizePx, isLight)
+                LauncherPrefs.IconStyle.COLOR -> renderColor(source, layers, sizePx, isLight)
             }
         } catch (e: Exception) {
             // Some icons misbehave when drawn off-screen; never let that break the launcher.
-            renderFallback(source, sizePx)
+            renderFallback(source, sizePx, isLight)
         }
         return BitmapDrawable(resources, bitmap)
     }
@@ -71,13 +80,15 @@ object IconFactory {
         addCircle(size / 2f, size / 2f, size / 2f, Path.Direction.CW)
     }
 
-    private fun drawDisc(canvas: Canvas, size: Int) {
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = DISC_COLOR }
+    private fun drawDisc(canvas: Canvas, size: Int, isLight: Boolean) {
+        val discColor = if (isLight) DISC_COLOR_LIGHT else DISC_COLOR_DARK
+        val rimColor = if (isLight) RIM_COLOR_LIGHT else RIM_COLOR_DARK
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = discColor }
         canvas.drawCircle(size / 2f, size / 2f, size / 2f, paint)
         val rim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
             strokeWidth = size / 56f
-            color = RIM_COLOR
+            color = rimColor
         }
         canvas.drawCircle(size / 2f, size / 2f, size / 2f - rim.strokeWidth / 2f, rim)
     }
@@ -97,40 +108,41 @@ object IconFactory {
         }
     }
 
-    private fun renderMono(source: Drawable, layers: Layers?, size: Int): Bitmap {
+    private fun renderMono(source: Drawable, layers: Layers?, size: Int, isLight: Boolean): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        drawDisc(canvas, size)
+        drawDisc(canvas, size, isLight)
         canvas.save()
         canvas.clipPath(circlePath(size))
 
+        val glyphColor = if (isLight) GLYPH_COLOR_LIGHT else GLYPH_COLOR_DARK
         val monochrome = layers?.monochrome
         val foreground = layers?.foreground
         when {
             monochrome != null -> {
                 val tint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
-                    colorFilter = PorterDuffColorFilter(GLYPH_COLOR, PorterDuff.Mode.SRC_IN)
+                    colorFilter = PorterDuffColorFilter(glyphColor, PorterDuff.Mode.SRC_IN)
                 }
                 drawLayer(canvas, monochrome, size, tint)
             }
             foreground != null && isSparse(foreground, size) -> {
-                drawLayer(canvas, foreground, size, highKeyGreyPaint())
+                drawLayer(canvas, foreground, size, monochromeGlyphPaint(isLight))
             }
             layers != null -> {
                 val tmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
                 val tc = Canvas(tmp)
                 layers.background?.let { drawLayer(tc, it, size) }
                 layers.foreground?.let { drawLayer(tc, it, size) }
-                canvas.drawBitmap(tmp, 0f, 0f, greyPaint(contrast = 0.85f, lift = 10f))
+                canvas.drawBitmap(tmp, 0f, 0f, greyPaint(contrast = 0.85f, lift = if (isLight) -10f else 10f))
                 tmp.recycle()
             }
-            else -> drawLegacy(canvas, source, size, greyPaint(contrast = 0.9f, lift = 20f))
+            else -> drawLegacy(canvas, source, size, greyPaint(contrast = 0.9f, lift = if (isLight) -15f else 20f))
         }
         canvas.restore()
         return bmp
     }
 
-    private fun renderColor(source: Drawable, layers: Layers?, size: Int): Bitmap {
+    private fun renderColor(source: Drawable, layers: Layers?, size: Int, isLight: Boolean): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
         if (layers != null) {
@@ -140,7 +152,7 @@ object IconFactory {
             layers.foreground?.let { drawLayer(canvas, it, size) }
             canvas.restore()
         } else {
-            drawDisc(canvas, size)
+            drawDisc(canvas, size, isLight)
             canvas.save()
             canvas.clipPath(circlePath(size))
             drawLegacy(canvas, source, size, null)
@@ -149,10 +161,10 @@ object IconFactory {
         return bmp
     }
 
-    private fun renderFallback(source: Drawable, size: Int): Bitmap {
+    private fun renderFallback(source: Drawable, size: Int, isLight: Boolean): Bitmap {
         val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
-        drawDisc(canvas, size)
+        drawDisc(canvas, size, isLight)
         try {
             drawLegacy(canvas, source, size, null)
         } catch (_: Exception) {
@@ -196,14 +208,15 @@ object IconFactory {
         return inside > 0 && opaque.toFloat() / inside < 0.55f
     }
 
-    /** Greyscale lifted towards white so glyph details stay visible on the dark disc. */
-    private fun highKeyGreyPaint(): Paint {
+    private fun monochromeGlyphPaint(isLight: Boolean): Paint {
         val m = ColorMatrix().apply { setSaturation(0f) }
+        val liftVal = if (isLight) -50f else 140f
+        val factor = if (isLight) 0.85f else 0.45f
         val lift = ColorMatrix(
             floatArrayOf(
-                0.45f, 0f, 0f, 0f, 140f,
-                0f, 0.45f, 0f, 0f, 140f,
-                0f, 0f, 0.45f, 0f, 140f,
+                factor, 0f, 0f, 0f, liftVal,
+                0f, factor, 0f, 0f, liftVal,
+                0f, 0f, factor, 0f, liftVal,
                 0f, 0f, 0f, 1f, 0f
             )
         )

@@ -93,6 +93,7 @@
     <string name="reset_confirm_body">Your pinned apps, dock and widgets will go back to the defaults.</string>
     <string name="reset">Reset</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
     <string name="unhide">Unhide</string>
     <string name="done">Done</string>
     <string name="back">Back</string>
@@ -140,4 +141,48 @@
     <string name="pedometer_goal">GOAL 10,000 · 74%</string>
     <string name="compass_heading_default">042° NE</string>
     <string name="compass_label">HEADING</string>
+
+    <!-- v7.5 Complete Launcher features -->
+    <string name="element_screen_time">Screen Time</string>
+    <string name="element_screen_time_sub">Digital wellbeing dot usage bar</string>
+    <string name="element_storage">Storage &amp; RAM</string>
+    <string name="element_storage_sub">Device capacity &amp; memory gauge</string>
+    <string name="element_world_clock">World Clock</string>
+    <string name="element_world_clock_sub">Dual time-zone dot matrix</string>
+
+    <string name="screen_time_label">SCREEN TIME</string>
+    <string name="screen_time_default">3h 42m</string>
+    <string name="screen_time_sub">TODAY · 18 UNLOCKS</string>
+    <string name="storage_label">INTERNAL STORAGE</string>
+    <string name="storage_default">128 GB</string>
+    <string name="storage_sub">FREE OF 256 GB · 50%</string>
+    <string name="world_clock_label">WORLD TIME</string>
+    <string name="world_clock_city1">LOCAL</string>
+    <string name="world_clock_city2">UTC / LON</string>
+
+    <string name="setting_theme">Theme Mode</string>
+    <string name="setting_theme_sub">OLED dark, clean light, or follow system</string>
+    <string name="theme_system">SYSTEM</string>
+    <string name="theme_dark">DARK</string>
+    <string name="theme_light">LIGHT</string>
+
+    <string name="setting_icon_size">Icon Size</string>
+    <string name="setting_icon_size_sub">Small, standard or enlarged</string>
+    <string name="icon_size_small">SMALL</string>
+    <string name="icon_size_med">NORMAL</string>
+    <string name="icon_size_large">LARGE</string>
+
+    <string name="setting_dock_labels">Dock Labels</string>
+    <string name="setting_dock_labels_sub">Show text labels in persistent dock</string>
+    <string name="setting_double_tap">Double-Tap to Sleep</string>
+    <string name="setting_double_tap_sub">Double tap empty space to lock screen</string>
+
+    <string name="action_enlarge">Enlarge (2x2)</string>
+    <string name="action_shrink">Shrink (1x1)</string>
+    <string name="action_add_to_folder">Add to Folder</string>
+    <string name="action_new_folder">New Folder</string>
+    <string name="folder_name_default">FOLDER</string>
+    <string name="folder_rename">Rename Folder</string>
+    <string name="folder_ungroup">Dissolve Folder</string>
+    <string name="folder_add_apps">Add Apps</string>
 </resources>

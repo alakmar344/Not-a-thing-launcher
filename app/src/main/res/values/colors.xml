@@ -4,33 +4,40 @@
     <color name="nothing_black">#000000</color>
     <color name="nothing_white">#FFFFFF</color>
     <color name="nothing_red">#D71921</color>
+    <color name="nothing_bg">#F6F6F4</color>
 
-    <!-- Dark surfaces, from deepest to most raised -->
-    <color name="surface">#0E0E10</color>
-    <color name="surface_raised">#161618</color>
-    <color name="hairline">#232327</color>
-    <color name="hairline_strong">#34343A</color>
+    <!-- Surfaces, light bone-white to soft grey -->
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_raised">#ECECE8</color>
+    <color name="surface_sheet">#F8F8F6</color>
+    <color name="surface_popup">#FFFFFF</color>
+    <color name="hairline">#DCDCD8</color>
+    <color name="hairline_strong">#BEBEB8</color>
 
-    <!-- Text on dark -->
-    <color name="text_primary">#F4F4F2</color>
-    <color name="text_secondary">#9C9CA1</color>
-    <color name="text_tertiary">#5C5C62</color>
+    <!-- Text on light -->
+    <color name="text_primary">#0C0C0E</color>
+    <color name="text_secondary">#68686C</color>
+    <color name="text_tertiary">#94949A</color>
 
     <!-- Light "paper" tile -->
-    <color name="paper">#EFEFEC</color>
+    <color name="paper">#FFFFFF</color>
     <color name="ink">#0B0B0C</color>
     <color name="ink_secondary">#6E6E72</color>
     <color name="paper_dot_off">#D5D5D1</color>
 
     <!-- Dot matrix -->
-    <color name="dot_on">#F4F4F2</color>
-    <color name="dot_off">#1D1D21</color>
+    <color name="dot_on">#0C0C0E</color>
+    <color name="dot_off">#D8D8D2</color>
+
+    <!-- Active pills & controls -->
+    <color name="pill_active_bg">#0C0C0E</color>
+    <color name="pill_active_text">#FFFFFF</color>
 
     <!-- Overlays -->
-    <color name="drawer_bg">#EB050506</color>
-    <color name="wallpaper_scrim_top">#8C000000</color>
-    <color name="wallpaper_scrim_bottom">#B3000000</color>
-    <color name="ripple_light">#1FFFFFFF</color>
+    <color name="drawer_bg">#F2F4F4F2</color>
+    <color name="wallpaper_scrim_top">#40000000</color>
+    <color name="wallpaper_scrim_bottom">#70000000</color>
+    <color name="ripple_light">#18000000</color>
     <color name="ripple_dark">#14000000</color>
-    <color name="text_highlight">#55D71921</color>
+    <color name="text_highlight">#40D71921</color>
 </resources>

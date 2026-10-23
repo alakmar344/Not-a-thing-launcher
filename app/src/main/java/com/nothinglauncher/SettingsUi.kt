@@ -87,7 +87,7 @@ object SettingsUi {
             views.forEachIndexed { i, tv ->
                 val on = i == sel
                 tv.setBackgroundResource(if (on) R.drawable.bg_pill_white else 0)
-                tv.setTextColor(ContextCompat.getColor(ctx, if (on) R.color.ink else R.color.text_secondary))
+                tv.setTextColor(ContextCompat.getColor(ctx, if (on) R.color.pill_active_text else R.color.text_secondary))
                 tv.isSelected = on
             }
         }

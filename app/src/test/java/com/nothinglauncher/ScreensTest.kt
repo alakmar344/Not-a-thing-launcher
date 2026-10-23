@@ -28,8 +28,13 @@ import com.nothinglauncher.databinding.SheetCustomizeBinding
 import com.nothinglauncher.databinding.WidgetBatteryBinding
 import com.nothinglauncher.databinding.WidgetCalendarBinding
 import com.nothinglauncher.databinding.WidgetClockBinding
+import com.nothinglauncher.databinding.WidgetCompassBinding
+import com.nothinglauncher.databinding.WidgetPedometerBinding
 import com.nothinglauncher.databinding.WidgetQuickTogglesBinding
+import com.nothinglauncher.databinding.WidgetScreenTimeBinding
+import com.nothinglauncher.databinding.WidgetStorageBinding
 import com.nothinglauncher.databinding.WidgetWeatherBinding
+import com.nothinglauncher.databinding.WidgetWorldClockBinding
 import org.junit.Rule
 import org.junit.Test
 
@@ -225,6 +230,45 @@ class ScreensTest {
 
         b.pageIndicator.pageCount = 3
         b.pageIndicator.setPageImmediately(1)
+        b.dock.setApps(all.subList(8, 12))
+        paparazzi.snapshot(screen(b.root))
+    }
+
+    @Test fun homePageWithScreenTimeAndStorage() {
+        val b = FragmentHomeBinding.inflate(LayoutInflater.from(context))
+        b.workspaceRecycler.updatePadding(top = dp(24))
+        b.bottomBar.updatePadding(bottom = dp(16 + 12))
+
+        val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        val density = context.resources.displayMetrics.density
+        val elLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = (10 * density).toInt()
+        }
+
+        val stB = WidgetScreenTimeBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        pageB.elementsContainer.addView(stB.root, elLp)
+
+        val storB = WidgetStorageBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        pageB.elementsContainer.addView(storB.root, elLp)
+
+        val wcB = WidgetWorldClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        pageB.elementsContainer.addView(wcB.root, elLp)
+
+        val all = apps()
+        val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
+        adapter.iconSizePx = context.resources.getDimensionPixelSize(R.dimen.icon_size)
+        pageB.homeGrid.layoutManager = GridLayoutManager(context, 4)
+        pageB.homeGrid.adapter = adapter
+        adapter.setItems(all.take(8))
+
+        b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = 1
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int) = object : RecyclerView.ViewHolder(pageB.root) {}
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {}
+        }
+        b.pageIndicator.pageCount = 3
+        b.pageIndicator.setPageImmediately(2)
         b.dock.setApps(all.subList(8, 12))
         paparazzi.snapshot(screen(b.root))
     }

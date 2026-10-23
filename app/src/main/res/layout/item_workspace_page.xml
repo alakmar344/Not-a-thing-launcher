@@ -33,6 +33,20 @@
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
+        <!-- Max / Enlarged 2x2 App Tiles -->
+        <LinearLayout
+            android:id="@+id/enlargedContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <!-- App Folders -->
+        <LinearLayout
+            android:id="@+id/foldersContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
         <!-- Pinned App Grid for this page -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/homeGrid"

@@ -76,7 +76,8 @@ class AppDrawerFragment : Fragment() {
             onAppClick = { app, v -> host?.launchApp(app, v) },
             onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DRAWER) }
         )
-        layoutManager = GridLayoutManager(requireContext(), 4).apply {
+        val cols = viewModel.prefs.gridColumns
+        layoutManager = GridLayoutManager(requireContext(), cols).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                     if (appAdapter.getItemViewType(position) == AppAdapter.TYPE_HEADER) spanCount else 1
@@ -195,9 +196,15 @@ class AppDrawerFragment : Fragment() {
         layoutManager.spanCount = columns
         val accent = prefs.accentColor()
         appAdapter.accentColor = accent
-        appAdapter.iconSizePx = resources.getDimensionPixelSize(
+        val baseSize = resources.getDimensionPixelSize(
             if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
         )
+        val scale = when (prefs.iconSize) {
+            LauncherPrefs.IconSize.SMALL -> 0.82f
+            LauncherPrefs.IconSize.MEDIUM -> 1.0f
+            LauncherPrefs.IconSize.LARGE -> 1.18f
+        }
+        appAdapter.iconSizePx = (baseSize * scale).toInt()
         binding.alphabetScroller.accentColor = accent
         rebuild(force = true)
     }
