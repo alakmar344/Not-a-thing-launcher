@@ -20,11 +20,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.Collator
+import java.util.UUID
 
 /**
- * Single source of truth for apps and the home layout.
- * Apps are loaded through [LauncherApps] (the API launchers are meant to use) and refreshed
- * automatically when packages are installed, updated or removed.
+ * Single source of truth for apps, multi-page workspace, elements and dock layout.
+ * Apps are loaded through [LauncherApps] and refreshed automatically when packages change.
  */
 class LauncherViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -33,6 +33,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val _allApps = MutableLiveData<List<AppInfo>>(emptyList())
     /** Every visible (non-hidden) app, alphabetically. */
     val allApps: LiveData<List<AppInfo>> = _allApps
+
+    private val _workspacePages = MutableLiveData<List<WorkspacePage>>(emptyList())
+    /** Ordered workspace pages. */
+    val workspacePages: LiveData<List<WorkspacePage>> = _workspacePages
 
     private val _homeApps = MutableLiveData<List<AppInfo>>(emptyList())
     val homeApps: LiveData<List<AppInfo>> = _homeApps
@@ -85,7 +89,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
     /** Re-applies settings that affect the data (icon style, hidden apps). */
     fun onSettingsChanged() {
-        val rendered = renderedIconStyle ?: return // first load still running; it reads prefs itself
+        val rendered = renderedIconStyle ?: return
         if (prefs.iconStyle != rendered) loadApps() else publish()
     }
 
@@ -126,7 +130,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val byKey = installed.associateBy { it.key }
         _allApps.value = visible
 
-        // Dock: saved → legacy (package names) → sensible defaults.
+        // Dock: saved -> legacy -> sensible defaults
         var dockKeys = prefs.dockItems
         if (dockKeys == null) {
             dockKeys = prefs.legacyDockPackages?.mapNotNull { pkg -> installed.firstOrNull { it.packageName == pkg }?.key }
@@ -134,39 +138,166 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             if (installed.isNotEmpty()) prefs.dockItems = dockKeys
         }
         val dock = dockKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }.take(MAX_DOCK)
-
-        var homeKeys = prefs.homeItems
-        if (homeKeys == null) {
-            homeKeys = prefs.legacyHomePackages?.mapNotNull { pkg -> installed.firstOrNull { it.packageName == pkg }?.key }
-                ?: defaultHome(visible, dock).map { it.key }
-            if (installed.isNotEmpty()) prefs.homeItems = homeKeys
-        }
-        val home = homeKeys.distinct().mapNotNull { byKey[it] }.filter { it.key !in hidden }
-
         _dockApps.value = dock
-        _homeApps.value = home
+
+        // Pages: saved -> migrated -> sensible defaults (2 pages out of the box)
+        var savedPages = prefs.pages
+        if (savedPages == null || savedPages.isEmpty()) {
+            val legacyHome = prefs.legacyHomePackages?.mapNotNull { pkg -> installed.firstOrNull { it.packageName == pkg }?.key }
+                ?: prefs.homeItems
+            val homeKeys = legacyHome ?: defaultHome(visible, dock).map { it.key }
+            val page0 = WorkspacePage(
+                id = "page_0",
+                appKeys = homeKeys,
+                elements = listOf(BespokeElement.CLOCK.id, BespokeElement.BATTERY_CALENDAR.id),
+                widgetIds = prefs.widgetIds
+            )
+            val page1Apps = defaultPage1(visible, dock, homeKeys.toSet()).map { it.key }
+            val page1 = WorkspacePage(
+                id = "page_1",
+                appKeys = page1Apps,
+                elements = listOf(BespokeElement.WEATHER.id, BespokeElement.QUICK_TOGGLES.id),
+                widgetIds = emptyList()
+            )
+            savedPages = listOf(page0, page1)
+            if (installed.isNotEmpty()) prefs.pages = savedPages
+        }
+
+        val sanitizedPages = savedPages.map { page ->
+            page.copy(
+                appKeys = if (installed.isEmpty()) page.appKeys else page.appKeys.filter { it !in hidden && it in byKey }
+            )
+        }
+        _workspacePages.value = sanitizedPages
+
+        // All apps on the workspace
+        val allHomeKeys = sanitizedPages.flatMap { it.appKeys }.distinct()
+        _homeApps.value = allHomeKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
         _recentApps.value = prefs.recents.mapNotNull { byKey[it] }.filter { it.key !in hidden }
     }
 
-    // ---- Layout mutations ---------------------------------------------------------------
+    // ---- Workspace & Page Mutations ------------------------------------------------------
 
-    fun isOnHome(app: AppInfo) = _homeApps.value.orEmpty().any { it.key == app.key }
+    fun getAppsForPage(page: WorkspacePage): List<AppInfo> {
+        val byKey = installed.associateBy { it.key }
+        val hidden = prefs.hiddenApps
+        return page.appKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+    }
+
+    fun isOnHome(app: AppInfo): Boolean =
+        _workspacePages.value.orEmpty().any { page -> page.appKeys.contains(app.key) }
+
+    fun pageIndexForApp(app: AppInfo): Int =
+        _workspacePages.value.orEmpty().indexOfFirst { page -> page.appKeys.contains(app.key) }
+
     fun isInDock(app: AppInfo) = _dockApps.value.orEmpty().any { it.key == app.key }
     fun isDockFull() = _dockApps.value.orEmpty().size >= MAX_DOCK
 
-    fun pinToHome(app: AppInfo) {
-        if (isOnHome(app)) return
-        saveHome(_homeApps.value.orEmpty() + app)
+    fun addPage(): Int {
+        val current = _workspacePages.value.orEmpty()
+        val newPage = WorkspacePage(
+            id = "page_" + UUID.randomUUID().toString().take(8),
+            appKeys = emptyList(),
+            elements = emptyList(),
+            widgetIds = emptyList()
+        )
+        val updated = current + newPage
+        savePages(updated)
+        return updated.size - 1
     }
 
-    fun removeFromHome(app: AppInfo) = saveHome(_homeApps.value.orEmpty().filterNot { it.key == app.key })
-
-    fun saveHome(apps: List<AppInfo>) {
-        prefs.homeItems = apps.map { it.key }
-        _homeApps.value = apps
+    fun removePage(pageIndex: Int): Boolean {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (current.size <= 1 || pageIndex !in current.indices) return false
+        val removed = current.removeAt(pageIndex)
+        // Move any leftover apps to page 0
+        if (removed.appKeys.isNotEmpty()) {
+            val p0 = current[0]
+            val merged = (p0.appKeys + removed.appKeys).distinct()
+            current[0] = p0.copy(appKeys = merged)
+        }
+        savePages(current)
+        return true
     }
 
-    /** Returns false if the dock is already full. */
+    fun addElementToPage(pageIndex: Int, elementId: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val target = current[pageIndex]
+        if (elementId in target.elements) return
+        current[pageIndex] = target.copy(elements = target.elements + elementId)
+        savePages(current)
+    }
+
+    fun removeElementFromPage(pageIndex: Int, elementId: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val target = current[pageIndex]
+        current[pageIndex] = target.copy(elements = target.elements - elementId)
+        savePages(current)
+    }
+
+    fun addWidgetToPage(pageIndex: Int, widgetId: Int) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        val idx = pageIndex.coerceIn(0, (current.size - 1).coerceAtLeast(0))
+        if (idx in current.indices) {
+            val target = current[idx]
+            current[idx] = target.copy(widgetIds = target.widgetIds + widgetId)
+            savePages(current)
+        }
+    }
+
+    fun removeWidget(widgetId: Int) {
+        val current = _workspacePages.value.orEmpty().map { page ->
+            page.copy(widgetIds = page.widgetIds - widgetId)
+        }
+        savePages(current)
+    }
+
+    fun pinToPage(pageIndex: Int, app: AppInfo) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (current.isEmpty()) addPage()
+        val idx = pageIndex.coerceIn(0, current.size - 1)
+        val page = current[idx]
+        if (app.key in page.appKeys) return
+        current[idx] = page.copy(appKeys = page.appKeys + app.key)
+        savePages(current)
+    }
+
+    fun moveAppBetweenPages(app: AppInfo, fromIndex: Int, toIndex: Int) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
+        val fromPage = current[fromIndex]
+        val toPage = current[toIndex]
+        current[fromIndex] = fromPage.copy(appKeys = fromPage.appKeys - app.key)
+        current[toIndex] = toPage.copy(appKeys = (toPage.appKeys + app.key).distinct())
+        savePages(current)
+    }
+
+    fun removeFromHome(app: AppInfo) {
+        val current = _workspacePages.value.orEmpty().map { page ->
+            page.copy(appKeys = page.appKeys - app.key)
+        }
+        savePages(current)
+    }
+
+    fun savePageApps(pageIndex: Int, apps: List<AppInfo>) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        current[pageIndex] = current[pageIndex].copy(appKeys = apps.map { it.key })
+        savePages(current)
+    }
+
+    private fun savePages(pages: List<WorkspacePage>) {
+        prefs.pages = pages
+        _workspacePages.value = pages
+        val byKey = installed.associateBy { it.key }
+        val hidden = prefs.hiddenApps
+        _homeApps.value = pages.flatMap { it.appKeys }.distinct().mapNotNull { byKey[it] }.filter { it.key !in hidden }
+    }
+
+    // ---- Dock mutations ------------------------------------------------------------------
+
     fun addToDock(app: AppInfo): Boolean {
         if (isInDock(app)) return true
         if (isDockFull()) return false
@@ -229,12 +360,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val preferred = listOf(
             "com.google.android.apps.photos", "com.google.android.gm", "com.google.android.apps.maps",
             "com.google.android.youtube", "com.google.android.calendar", "com.google.android.deskclock",
-            "com.android.vending", "com.spotify.music", "com.whatsapp", "com.google.android.apps.docs",
-            "com.android.settings", "com.google.android.apps.nbu.files"
+            "com.android.vending", "com.spotify.music"
         )
         val picked = preferred.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg && it.key !in dockKeys } }
         val filler = apps.filter { it.key !in dockKeys && picked.none { p -> p.key == it.key } }
         return (picked + filler).take(DEFAULT_HOME_COUNT)
+    }
+
+    private fun defaultPage1(apps: List<AppInfo>, dock: List<AppInfo>, page0Keys: Set<String>): List<AppInfo> {
+        val dockKeys = dock.map { it.key }.toSet()
+        val secondary = listOf(
+            "com.whatsapp", "com.google.android.apps.docs", "com.android.settings", "com.google.android.apps.nbu.files",
+            "com.netflix.mediaclient", "com.slack", "com.discord"
+        )
+        val picked = secondary.mapNotNull { pkg -> apps.firstOrNull { it.packageName == pkg && it.key !in dockKeys && it.key !in page0Keys } }
+        val filler = apps.filter { it.key !in dockKeys && it.key !in page0Keys && picked.none { p -> p.key == it.key } }
+        return (picked + filler).take(4)
     }
 
     override fun onCleared() {

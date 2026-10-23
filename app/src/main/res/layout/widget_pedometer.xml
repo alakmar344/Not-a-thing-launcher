@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.nothinglauncher.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tile_dark"
+    android:clickable="true"
+    android:contentDescription="@string/element_pedometer"
+    android:focusable="true"
+    android:foreground="@drawable/fg_ripple_tile">
+
+    <com.nothinglauncher.PedometerDotsView
+        android:id="@+id/pedometer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="14dp" />
+
+    <ImageView
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="18dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_walk"
+        android:tint="@color/text_secondary" />
+</com.nothinglauncher.SquareFrameLayout>

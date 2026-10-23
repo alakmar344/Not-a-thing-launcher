@@ -30,17 +30,18 @@
             app:dmDotScale="0.42"
             app:dmText="CUSTOMIZE" />
 
+        <!-- Row 1: Elements & Widgets, Add Page, Remove Page -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="16dp"
             android:orientation="horizontal">
 
             <include
-                android:id="@+id/tileWallpaper"
+                android:id="@+id/tileWidgets"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="108dp"
+                android:layout_height="100dp"
                 android:layout_weight="1" />
 
             <Space
@@ -48,10 +49,36 @@
                 android:layout_height="1dp" />
 
             <include
-                android:id="@+id/tileWidgets"
+                android:id="@+id/tileAddPage"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="108dp"
+                android:layout_height="100dp"
+                android:layout_weight="1" />
+
+            <Space
+                android:layout_width="10dp"
+                android:layout_height="1dp" />
+
+            <include
+                android:id="@+id/tileRemovePage"
+                layout="@layout/item_sheet_tile"
+                android:layout_width="0dp"
+                android:layout_height="100dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <!-- Row 2: Wallpaper, Settings -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <include
+                android:id="@+id/tileWallpaper"
+                layout="@layout/item_sheet_tile"
+                android:layout_width="0dp"
+                android:layout_height="100dp"
                 android:layout_weight="1" />
 
             <Space
@@ -62,7 +89,7 @@
                 android:id="@+id/tileSettings"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="108dp"
+                android:layout_height="100dp"
                 android:layout_weight="1" />
         </LinearLayout>
     </LinearLayout>
