@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tile_dark"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="@drawable/fg_ripple_tile"
+    android:orientation="vertical">
+
+    <com.nothinglauncher.QuoteDotsView
+        android:id="@+id/quoteDotsView"
+        android:layout_width="match_parent"
+        android:layout_height="96dp"
+        android:padding="14dp" />
+</LinearLayout>

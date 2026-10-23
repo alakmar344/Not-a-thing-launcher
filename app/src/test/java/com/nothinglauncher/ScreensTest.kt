@@ -34,6 +34,9 @@ import com.nothinglauncher.databinding.WidgetQuickTogglesBinding
 import com.nothinglauncher.databinding.WidgetScreenTimeBinding
 import com.nothinglauncher.databinding.WidgetStorageBinding
 import com.nothinglauncher.databinding.WidgetWeatherBinding
+import com.nothinglauncher.databinding.DialogWallpaperStyleBinding
+import com.nothinglauncher.databinding.WidgetBatteryDotsBinding
+import com.nothinglauncher.databinding.WidgetQuoteBinding
 import com.nothinglauncher.databinding.WidgetWorldClockBinding
 import org.junit.Rule
 import org.junit.Test
@@ -428,5 +431,42 @@ class ScreensTest {
         }
         column.addView(launcherIcon, LinearLayout.LayoutParams(dp(108), dp(108)))
         paparazzi.snapshot(screen(column, ColorDrawable(Color.BLACK)))
+    }
+
+    @Test fun customizeSheet() {
+        val b = SheetCustomizeBinding.inflate(LayoutInflater.from(context))
+        fun tile(t: com.nothinglauncher.databinding.ItemSheetTileBinding, icon: Int, label: Int, enabled: Boolean = true) {
+            t.tileIcon.setImageResource(icon)
+            t.tileLabel.setText(label)
+            t.root.alpha = if (enabled) 1f else 0.4f
+        }
+        tile(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets)
+        tile(b.tileAddPage, R.drawable.ic_add, R.string.add_page)
+        tile(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page, enabled = true)
+        tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper_style)
+        tile(b.tileSettings, R.drawable.ic_tune, R.string.settings)
+        paparazzi.snapshot(screen(b.root))
+    }
+
+    @Test fun wallpaperStyleDialog() {
+        val b = DialogWallpaperStyleBinding.inflate(LayoutInflater.from(context))
+        b.btnBgDots.setBackgroundResource(R.drawable.bg_pill_white)
+        b.btnBgDots.setTextColor(ContextCompat.getColor(context, R.color.pill_active_text))
+        b.btnThemeSystem.setBackgroundResource(R.drawable.bg_pill_white)
+        b.btnThemeSystem.setTextColor(ContextCompat.getColor(context, R.color.pill_active_text))
+        paparazzi.snapshot(screen(b.root))
+    }
+
+    @Test fun widgetBatteryDots() {
+        val b = WidgetBatteryDotsBinding.inflate(LayoutInflater.from(context))
+        b.batteryDotsView.batteryLevel = 82
+        b.batteryDotsView.isCharging = true
+        paparazzi.snapshot(screen(b.root))
+    }
+
+    @Test fun widgetQuote() {
+        val b = WidgetQuoteBinding.inflate(LayoutInflater.from(context))
+        b.quoteDotsView.quoteText = "NOTHING BUT TIME"
+        paparazzi.snapshot(screen(b.root))
     }
 }

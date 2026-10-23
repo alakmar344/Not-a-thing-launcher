@@ -43,6 +43,8 @@ pick **Not a Thing Launcher**, or open the launcher's *Settings → Default home
 - **Screen Time tile** — digital wellbeing daily active time in dot-matrix typography with a 7-segment dot usage bar.
 - **Storage & RAM tile** — device capacity meter with DotFont free GB readout and circular dot fullness ring.
 - **World Clock tile** — dual time-zone dot clock showing local and UTC/London times.
+- **Battery Gauge tile** — full-width live battery % readout in DotFont with a 28-dot circular capacity meter and charging bolt indicator.
+- **Quick Note / Quote tile** — customizable dot-matrix scratchpad on your home screen; tap to edit note or inspirational quote with live dot accent.
 - **Third-party widgets** — add any standard Android widget to any page. Long-press to remove.
 
 ### Theming & Appearance (Dark & Light Mode)
@@ -61,9 +63,16 @@ pick **Not a Thing Launcher**, or open the launcher's *Settings → Default home
 - **Recent apps** row, **A–Z dot scroller** with a dot-matrix letter bubble, and
   **hidden apps** (restore them in Settings).
 
-### Long-press menu
-App **shortcuts** (when set as default home), plus *Pin to home*, *Move to next/prev page*, *Add to dock*,
-*App info*, *Hide* and *Uninstall* (system apps can't be uninstalled, so it's not offered).
+### Long-Press Home Screen & App Menus
+- **Home Screen Long-Press Menu** — long-pressing any empty space triggers tactile haptic feedback and displays the **Home Customisation** sheet:
+  - **Wallpaper & Style** — direct access to system wallpaper picker, Nothing Dot Matrix background, or Solid Minimalist (pure OLED black / clean white).
+  - **Widgets & Bespoke Elements** — opens the categorized Nothing Elements & System AppWidgets library.
+  - **Page Manager** — 1-tap to add new workspace pages or remove current page.
+  - **Home Settings** — instant access to launcher settings.
+- **App Long-Press Actions** — 2×2 Hero Enlarge/Shrink, Add to Folder / Create Folder, App Info (deep link to Android settings), Uninstall (with system prompt), Pin to Home, Dock/Undock, and dynamic App Shortcuts.
+- **Haptic Feedback Engine** — tactile ticks when scrubbing the A–Z alphabet drawer, snapping pages, tapping quick toggles, or opening folders.
+
+
 
 ### Icons
 - **Mono** (default) — uses Android 13+ themed (monochrome) icons when apps provide them.

@@ -16,6 +16,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.DialogConfirmBinding
 import com.nothinglauncher.databinding.DialogListBinding
 import com.nothinglauncher.databinding.ItemHiddenAppBinding
+import android.widget.TextView
+import androidx.core.content.ContextCompat
+import com.nothinglauncher.databinding.DialogEditNoteBinding
+import com.nothinglauncher.databinding.DialogWallpaperStyleBinding
 import com.nothinglauncher.databinding.SheetCustomizeBinding
 
 /** Floating bottom sheets & dialogs in the launcher's own visual language. */
@@ -70,8 +74,103 @@ object Sheets {
         tile(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets, action = onWidgets)
         tile(b.tileAddPage, R.drawable.ic_add, R.string.add_page, action = onAddPage)
         tile(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page, enabled = canRemovePage, action = onRemovePage)
-        tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper, action = onWallpaper)
+        tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper_style, action = onWallpaper)
         tile(b.tileSettings, R.drawable.ic_tune, R.string.settings, action = onSettings)
+        dialog.show()
+        return dialog
+    }
+
+    fun showWallpaperStyle(
+        context: Context,
+        prefs: LauncherPrefs,
+        onWallpaperPicker: () -> Unit,
+        onChanged: () -> Unit
+    ): Dialog {
+        val b = DialogWallpaperStyleBinding.inflate(LayoutInflater.from(context))
+        val dialog = create(context, b.root)
+
+        b.wallpaperClose.setOnClickListener { dialog.dismiss() }
+        b.cardSystemWallpaper.setOnClickListener {
+            dialog.dismiss()
+            onWallpaperPicker()
+        }
+
+        fun updateBgPills() {
+            val bg = prefs.background
+            fun stylePill(btn: TextView, active: Boolean) {
+                btn.setBackgroundResource(if (active) R.drawable.bg_pill_white else R.drawable.bg_pill)
+                btn.setTextColor(ContextCompat.getColor(context, if (active) R.color.pill_active_text else R.color.text_primary))
+            }
+            stylePill(b.btnBgDots, bg == LauncherPrefs.Background.DOTS)
+            stylePill(b.btnBgSolid, bg == LauncherPrefs.Background.BLACK)
+            stylePill(b.btnBgWallpaper, bg == LauncherPrefs.Background.WALLPAPER)
+        }
+
+        fun updateThemePills() {
+            val tm = prefs.themeMode
+            fun stylePill(btn: TextView, active: Boolean) {
+                btn.setBackgroundResource(if (active) R.drawable.bg_pill_white else R.drawable.bg_pill)
+                btn.setTextColor(ContextCompat.getColor(context, if (active) R.color.pill_active_text else R.color.text_primary))
+            }
+            stylePill(b.btnThemeSystem, tm == LauncherPrefs.ThemeMode.SYSTEM)
+            stylePill(b.btnThemeDark, tm == LauncherPrefs.ThemeMode.DARK)
+            stylePill(b.btnThemeLight, tm == LauncherPrefs.ThemeMode.LIGHT)
+        }
+
+        updateBgPills()
+        updateThemePills()
+
+        b.btnBgDots.setOnClickListener {
+            prefs.background = LauncherPrefs.Background.DOTS
+            updateBgPills()
+            onChanged()
+        }
+        b.btnBgSolid.setOnClickListener {
+            prefs.background = LauncherPrefs.Background.BLACK
+            updateBgPills()
+            onChanged()
+        }
+        b.btnBgWallpaper.setOnClickListener {
+            prefs.background = LauncherPrefs.Background.WALLPAPER
+            updateBgPills()
+            onChanged()
+        }
+
+        b.btnThemeSystem.setOnClickListener {
+            prefs.themeMode = LauncherPrefs.ThemeMode.SYSTEM
+            updateThemePills()
+            onChanged()
+        }
+        b.btnThemeDark.setOnClickListener {
+            prefs.themeMode = LauncherPrefs.ThemeMode.DARK
+            updateThemePills()
+            onChanged()
+        }
+        b.btnThemeLight.setOnClickListener {
+            prefs.themeMode = LauncherPrefs.ThemeMode.LIGHT
+            updateThemePills()
+            onChanged()
+        }
+
+        dialog.show()
+        return dialog
+    }
+
+    fun showEditNote(
+        context: Context,
+        currentNote: String,
+        onSave: (String) -> Unit
+    ): Dialog {
+        val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
+        val dialog = create(context, b.root)
+        b.noteInput.setText(currentNote)
+        b.noteInput.setSelection(currentNote.length)
+        b.noteCancel.setOnClickListener { dialog.dismiss() }
+        b.noteSave.setOnClickListener {
+            dialog.dismiss()
+            val text = b.noteInput.text.toString().trim()
+            onSave(text.ifEmpty { "NOTHING BUT TIME" })
+        }
         dialog.show()
         return dialog
     }

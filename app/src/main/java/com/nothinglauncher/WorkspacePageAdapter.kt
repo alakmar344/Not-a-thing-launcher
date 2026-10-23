@@ -33,6 +33,10 @@ import com.nothinglauncher.databinding.WidgetQuickTogglesBinding
 import com.nothinglauncher.databinding.WidgetScreenTimeBinding
 import com.nothinglauncher.databinding.WidgetStorageBinding
 import com.nothinglauncher.databinding.WidgetWeatherBinding
+import android.view.GestureDetector
+import android.view.MotionEvent
+import com.nothinglauncher.databinding.WidgetBatteryDotsBinding
+import com.nothinglauncher.databinding.WidgetQuoteBinding
 import com.nothinglauncher.databinding.WidgetWorldClockBinding
 import java.util.Calendar
 import kotlin.math.hypot
@@ -226,6 +230,29 @@ class WorkspacePageAdapter(
                         }
                         b.elementsContainer.addView(wcB.root, elementLp(density))
                     }
+                    BespokeElement.BATTERY_DOTS.id -> {
+                        val batDotsB = WidgetBatteryDotsBinding.inflate(inflater, b.elementsContainer, false)
+                        batDotsB.batteryDotsView.accentColor = accent
+                        batDotsB.root.setOnClickListener { AppLauncher.openBatterySettings(ctx) }
+                        batDotsB.root.setOnLongClickListener {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            host.showElementPopup(pageIndex, BespokeElement.BATTERY_DOTS, it)
+                            true
+                        }
+                        b.elementsContainer.addView(batDotsB.root, elementLp(density))
+                    }
+                    BespokeElement.QUICK_NOTE.id -> {
+                        val quoteB = WidgetQuoteBinding.inflate(inflater, b.elementsContainer, false)
+                        quoteB.quoteDotsView.accentColor = accent
+                        quoteB.quoteDotsView.quoteText = prefs.quickNote
+                        quoteB.root.setOnClickListener { host.showEditNoteDialog() }
+                        quoteB.root.setOnLongClickListener {
+                            it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            host.showElementPopup(pageIndex, BespokeElement.QUICK_NOTE, it)
+                            true
+                        }
+                        b.elementsContainer.addView(quoteB.root, elementLp(density))
+                    }
                 }
             }
 
@@ -372,6 +399,31 @@ class WorkspacePageAdapter(
             b.homeEmpty.setOnLongClickListener(onCustomize)
             b.pageContent.setOnLongClickListener(onCustomize)
             b.pageScroll.setOnLongClickListener(onCustomize)
+            b.homeGrid.setOnLongClickListener(onCustomize)
+            b.elementsContainer.setOnLongClickListener(onCustomize)
+            b.widgetContainer.setOnLongClickListener(onCustomize)
+            b.enlargedContainer.setOnLongClickListener(onCustomize)
+            b.foldersContainer.setOnLongClickListener(onCustomize)
+
+            val pageGestureDetector = GestureDetector(ctx, object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    if (prefs.doubleTapToSleep) {
+                        host.lockScreen()
+                        return true
+                    }
+                    return false
+                }
+                override fun onLongPress(e: MotionEvent) {
+                    if (!host.isPopupShowing()) {
+                        b.root.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        host.showCustomizeSheet()
+                    }
+                }
+            })
+            b.pageScroll.setOnTouchListener { _, event ->
+                pageGestureDetector.onTouchEvent(event)
+                false
+            }
         }
 
         private fun toggleTorch(context: Context, binding: WidgetQuickTogglesBinding) {

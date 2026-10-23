@@ -593,6 +593,18 @@ class MainActivity : AppCompatActivity() {
             },
             canRemovePage = pagesCount > 1,
             onWallpaper = {
+                showWallpaperStyleSheet()
+            },
+            onSettings = { openSettings() }
+        )
+    }
+
+    fun showWallpaperStyleSheet() {
+        openDialog?.dismiss()
+        openDialog = Sheets.showWallpaperStyle(
+            this,
+            prefs,
+            onWallpaperPicker = {
                 if (prefs.background != LauncherPrefs.Background.WALLPAPER) {
                     prefs.background = LauncherPrefs.Background.WALLPAPER
                     appliedSettingsVersion = prefs.settingsVersion
@@ -600,8 +612,20 @@ class MainActivity : AppCompatActivity() {
                 }
                 AppLauncher.openWallpaperPicker(this)
             },
-            onSettings = { openSettings() }
+            onChanged = {
+                appliedSettingsVersion = prefs.settingsVersion
+                applyThemeMode()
+                applyAllPrefs()
+            }
         )
+    }
+
+    fun showEditNoteDialog() {
+        openDialog?.dismiss()
+        openDialog = Sheets.showEditNote(this, prefs.quickNote) { newNote ->
+            prefs.quickNote = newNote
+            homeFragment?.renderWidgets()
+        }
     }
 
     // ---- Elements & Widgets -----------------------------------------------------------------

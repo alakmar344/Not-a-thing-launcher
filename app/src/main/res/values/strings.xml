@@ -185,4 +185,26 @@
     <string name="folder_rename">Rename Folder</string>
     <string name="folder_ungroup">Dissolve Folder</string>
     <string name="folder_add_apps">Add Apps</string>
+    <string name="action_remove_folder_app">Remove from Folder</string>
+
+    <!-- v7.6 Macro and Micro features -->
+    <string name="wallpaper_style">Wallpaper &amp; Style</string>
+    <string name="choose_wallpaper">Choose Wallpaper</string>
+    <string name="wallpaper_sys_desc">Select from photos or live wallpapers</string>
+    <string name="bg_style_dots">Nothing Dot Matrix</string>
+    <string name="bg_style_solid">Solid Minimalist</string>
+    <string name="bg_style_wallpaper">System Wallpaper</string>
+    <string name="dot_grid_overlay">Dot Matrix Grid</string>
+    <string name="dot_grid_overlay_sub">Signature Nothing dot pattern</string>
+    <string name="element_battery_dots">Battery Gauge</string>
+    <string name="element_battery_dots_sub">Live battery % &amp; dot ring meter</string>
+    <string name="element_quick_note">Quick Note</string>
+    <string name="element_quick_note_sub">Dot-matrix scratchpad &amp; daily quote</string>
+    <string name="quick_note_default">NOTHING BUT TIME</string>
+    <string name="quick_note_hint">Enter note or quote…</string>
+    <string name="quick_note_save">Save</string>
+    <string name="battery_dots_label">BATTERY GAUGE</string>
+    <string name="battery_charging_label">CHARGING</string>
+    <string name="action_quick_settings">Home Settings</string>
+    <string name="action_manage_pages">Manage Pages</string>
 </resources>
