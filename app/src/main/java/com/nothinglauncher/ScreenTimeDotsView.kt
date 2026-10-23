@@ -101,9 +101,9 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         val startY = 22f * density
         val startX = 0f
 
-        for (r in 0 until raster.rows) {
+        for (r in 0 until DotFont.ROWS) {
             for (c in 0 until raster.columns) {
-                if (raster.get(r, c)) {
+                if (raster.lit[r][c]) {
                     val cx = startX + c * dotPitch + dotRadius
                     val cy = startY + r * dotPitch + dotRadius
                     canvas.drawCircle(cx, cy, dotRadius, onPaint)
@@ -112,7 +112,7 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         }
 
         // 3. Draw Subtitle
-        canvas.drawText(subtitleText, 0f, startY + raster.rows * dotPitch + 15f * density, textPaint)
+        canvas.drawText(subtitleText, 0f, startY + DotFont.ROWS * dotPitch + 15f * density, textPaint)
 
         // 4. Draw 7-Segment Dot Bar Chart on the right
         val barAreaRight = w - 4f * density

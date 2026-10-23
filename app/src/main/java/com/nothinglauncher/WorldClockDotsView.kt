@@ -83,9 +83,9 @@ class WorldClockDotsView @JvmOverloads constructor(
         val dotRadius = dotPitch * 0.38f
         val startY = 34f * density
 
-        for (r in 0 until raster1.rows) {
+        for (r in 0 until DotFont.ROWS) {
             for (c in 0 until raster1.columns) {
-                if (raster1.get(r, c)) {
+                if (raster1.lit[r][c]) {
                     val cx = c * dotPitch + dotRadius
                     val cy = startY + r * dotPitch + dotRadius
                     canvas.drawCircle(cx, cy, dotRadius, onPaint)
@@ -99,9 +99,9 @@ class WorldClockDotsView @JvmOverloads constructor(
         canvas.drawText(city2, rightX, 28f * density, textPaint)
 
         val raster2 = DotFont.rasterize(utcTime, 1)
-        for (r in 0 until raster2.rows) {
+        for (r in 0 until DotFont.ROWS) {
             for (c in 0 until raster2.columns) {
-                if (raster2.get(r, c)) {
+                if (raster2.lit[r][c]) {
                     val cx = rightX + c * dotPitch + dotRadius
                     val cy = startY + r * dotPitch + dotRadius
                     canvas.drawCircle(cx, cy, dotRadius, onPaint)

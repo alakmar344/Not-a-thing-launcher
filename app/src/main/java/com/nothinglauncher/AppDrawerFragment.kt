@@ -196,9 +196,15 @@ class AppDrawerFragment : Fragment() {
         layoutManager.spanCount = columns
         val accent = prefs.accentColor()
         appAdapter.accentColor = accent
-        appAdapter.iconSizePx = resources.getDimensionPixelSize(
+        val baseSize = resources.getDimensionPixelSize(
             if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
         )
+        val scale = when (prefs.iconSize) {
+            LauncherPrefs.IconSize.SMALL -> 0.82f
+            LauncherPrefs.IconSize.MEDIUM -> 1.0f
+            LauncherPrefs.IconSize.LARGE -> 1.18f
+        }
+        appAdapter.iconSizePx = (baseSize * scale).toInt()
         binding.alphabetScroller.accentColor = accent
         rebuild(force = true)
     }
@@ -287,22 +293,6 @@ class AppDrawerFragment : Fragment() {
         val b = _binding ?: return
         val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(b.searchBar.windowToken, 0)
-    }
-
-    fun applyPrefs() {
-        if (_binding == null) return
-        val cols = viewModel.prefs.gridColumns
-        layoutManager.spanCount = cols
-        val baseSize = resources.getDimensionPixelSize(
-            if (cols >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
-        )
-        val scale = when (viewModel.prefs.iconSize) {
-            LauncherPrefs.IconSize.SMALL -> 0.82f
-            LauncherPrefs.IconSize.MEDIUM -> 1.0f
-            LauncherPrefs.IconSize.LARGE -> 1.18f
-        }
-        appAdapter.iconSizePx = (baseSize * scale).toInt()
-        rebuild()
     }
 
     override fun onDestroyView() {

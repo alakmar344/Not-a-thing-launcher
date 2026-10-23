@@ -16,6 +16,7 @@ import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -365,7 +366,7 @@ class WorkspacePageAdapter(
             // Customize sheet on long press empty area
             val onCustomize = View.OnLongClickListener {
                 it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                host.openCustomizeSheet()
+                host.showCustomizeSheet()
                 true
             }
             b.homeEmpty.setOnLongClickListener(onCustomize)
