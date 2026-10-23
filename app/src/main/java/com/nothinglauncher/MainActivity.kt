@@ -23,9 +23,16 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import android.view.ViewGroup
+import android.widget.ImageView
+import android.widget.TextView
 import com.nothinglauncher.databinding.ActivityMainBinding
 import kotlin.math.abs
 
@@ -73,6 +80,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applyThemeMode()
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -163,7 +171,19 @@ class MainActivity : AppCompatActivity() {
 
     // ---- Settings ------------------------------------------------------------------------
 
+    private fun applyThemeMode() {
+        val target = when (prefs.themeMode) {
+            LauncherPrefs.ThemeMode.DARK -> AppCompatDelegate.MODE_NIGHT_YES
+            LauncherPrefs.ThemeMode.LIGHT -> AppCompatDelegate.MODE_NIGHT_NO
+            LauncherPrefs.ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
+        if (AppCompatDelegate.getDefaultNightMode() != target) {
+            AppCompatDelegate.setDefaultNightMode(target)
+        }
+    }
+
     private fun applyAllPrefs() {
+        applyThemeMode()
         viewModel.onSettingsChanged()
         applyBackground()
         homeFragment?.applyPrefs()
@@ -191,14 +211,17 @@ class MainActivity : AppCompatActivity() {
             LauncherPrefs.Background.BLACK -> {
                 window.setFormat(PixelFormat.OPAQUE)
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
-                window.setBackgroundDrawable(ColorDrawable(0xFF000000.toInt()))
-                binding.root.background = ColorDrawable(0xFF000000.toInt())
+                val bg = ContextCompat.getColor(this, R.color.nothing_bg)
+                window.setBackgroundDrawable(ColorDrawable(bg))
+                binding.root.background = ColorDrawable(bg)
             }
             LauncherPrefs.Background.DOTS -> {
                 window.setFormat(PixelFormat.OPAQUE)
                 window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
-                window.setBackgroundDrawable(ColorDrawable(0xFF000000.toInt()))
-                binding.root.background = DotGridDrawable(density)
+                val bg = ContextCompat.getColor(this, R.color.nothing_bg)
+                val dot = ContextCompat.getColor(this, R.color.dot_off)
+                window.setBackgroundDrawable(ColorDrawable(bg))
+                binding.root.background = DotGridDrawable(density, backgroundColor = bg, dotColor = dot)
             }
         }
     }
@@ -335,6 +358,24 @@ class MainActivity : AppCompatActivity() {
         if (viewModel.isOnHome(app)) {
             val pageIdx = viewModel.pageIndexForApp(app)
             val pagesCount = viewModel.workspacePages.value?.size ?: 1
+
+            // Max Icon Enlarge / Shrink
+            val isEnlarged = viewModel.isAppEnlarged(pageIdx, app.key)
+            if (isEnlarged) {
+                actions += AppPopup.Action(R.drawable.ic_minimize, getString(R.string.action_shrink)) {
+                    viewModel.toggleEnlargeApp(pageIdx, app.key)
+                }
+            } else {
+                actions += AppPopup.Action(R.drawable.ic_maximize, getString(R.string.action_enlarge)) {
+                    viewModel.toggleEnlargeApp(pageIdx, app.key)
+                }
+            }
+
+            // Add to folder
+            actions += AppPopup.Action(R.drawable.ic_folder, getString(R.string.action_add_to_folder)) {
+                showAddToFolderDialog(pageIdx, app)
+            }
+
             if (pageIdx > 0) {
                 actions += AppPopup.Action(R.drawable.ic_back, getString(R.string.move_to_prev_page)) {
                     viewModel.moveAppBetweenPages(app, pageIdx, pageIdx - 1)
@@ -393,6 +434,141 @@ class MainActivity : AppCompatActivity() {
             LauncherPrefs.SwipeDown.NOTIFICATIONS -> AppLauncher.expandNotifications(this)
             LauncherPrefs.SwipeDown.SEARCH -> openDrawer(focusSearch = true)
         }
+    }
+
+    fun lockScreen() {
+        if (!prefs.doubleTapToSleep) return
+        try {
+            val lockIntent = Intent(Intent.ACTION_SCREEN_OFF)
+            sendBroadcast(lockIntent)
+        } catch (_: Exception) {
+        }
+    }
+
+    fun showFolderSheet(pageIndex: Int, folder: WorkspaceFolder) {
+        dismissPopup()
+        openDialog?.dismiss()
+        val allAppsMap = viewModel.allApps.value.orEmpty().associateBy { it.key }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_folder, null)
+        val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.82f)
+
+        val folderTitle = dialogView.findViewById<TextView>(R.id.folderTitle)
+        val folderDot = dialogView.findViewById<View>(R.id.folderDot)
+        val folderClose = dialogView.findViewById<View>(R.id.folderClose)
+        val folderRecycler = dialogView.findViewById<RecyclerView>(R.id.folderRecycler)
+        val folderAddApp = dialogView.findViewById<View>(R.id.folderAddApp)
+        val folderDissolve = dialogView.findViewById<View>(R.id.folderDissolve)
+
+        folderDot.background.mutate().setTint(prefs.accentColor())
+        folderTitle.text = folder.name
+        folderClose.setOnClickListener { dialog.dismiss() }
+
+        val folderAdapter = HomeIconAdapter(
+            onAppClick = { app, v -> dialog.dismiss(); launchApp(app, v) },
+            onAppLongClick = { app, v ->
+                dialog.dismiss()
+                showAppPopup(app, v, PopupOrigin.HOME)
+            }
+        )
+        val columns = prefs.gridColumns
+        folderAdapter.iconSizePx = resources.getDimensionPixelSize(
+            if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
+        )
+        folderAdapter.showLabels = true
+        folderRecycler.layoutManager = GridLayoutManager(this, columns)
+        folderRecycler.adapter = folderAdapter
+        folderAdapter.setItems(folder.appKeys.mapNotNull { allAppsMap[it] })
+
+        folderAddApp.setOnClickListener {
+            dialog.dismiss()
+            showAddAppToFolderPicker(pageIndex, folder)
+        }
+
+        folderDissolve.setOnClickListener {
+            dialog.dismiss()
+            viewModel.dissolveFolder(pageIndex, folder.id)
+            AppLauncher.toast(this, R.string.folder_ungroup)
+        }
+
+        openDialog = dialog
+        dialog.show()
+    }
+
+    private fun showAddAppToFolderPicker(pageIndex: Int, folder: WorkspaceFolder) {
+        val page = viewModel.workspacePages.value?.getOrNull(pageIndex) ?: return
+        val available = viewModel.getAppsForPage(page).filterNot { it.key in folder.appKeys }
+        if (available.isEmpty()) {
+            AppLauncher.toast(this, R.string.no_widgets)
+            return
+        }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
+        val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.75f)
+        dialogView.findViewById<TextView>(R.id.listTitle).text = getString(R.string.folder_add_apps)
+        dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
+        val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
+        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = available.size
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val row = layoutInflater.inflate(R.layout.item_app_row, parent, false)
+                return object : RecyclerView.ViewHolder(row) {}
+            }
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val app = available[position]
+                holder.itemView.findViewById<TextView>(R.id.appLabel).text = app.label
+                holder.itemView.findViewById<ImageView>(R.id.appIcon).setImageDrawable(app.icon)
+                holder.itemView.setOnClickListener {
+                    dialog.dismiss()
+                    viewModel.addAppToFolder(pageIndex, folder.id, app.key)
+                }
+            }
+        }
+        openDialog = dialog
+        dialog.show()
+    }
+
+    private fun showAddToFolderDialog(pageIndex: Int, app: AppInfo) {
+        val page = viewModel.workspacePages.value?.getOrNull(pageIndex) ?: return
+        if (page.folders.isEmpty()) {
+            viewModel.createFolder(pageIndex, "FOLDER", app.key)
+            AppLauncher.toast(this, R.string.action_new_folder)
+            return
+        }
+        val options = listOf(getString(R.string.action_new_folder)) + page.folders.map { it.name }
+        val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
+        val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.6f)
+        dialogView.findViewById<TextView>(R.id.listTitle).text = getString(R.string.action_add_to_folder)
+        dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
+        val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
+        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = options.size
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val row = layoutInflater.inflate(R.layout.item_app_row, parent, false)
+                return object : RecyclerView.ViewHolder(row) {}
+            }
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val label = options[position]
+                holder.itemView.findViewById<TextView>(R.id.appLabel).text = label
+                val iconView = holder.itemView.findViewById<ImageView>(R.id.appIcon)
+                if (position == 0) {
+                    iconView.setImageResource(R.drawable.ic_add)
+                } else {
+                    iconView.setImageResource(R.drawable.ic_folder)
+                }
+                holder.itemView.setOnClickListener {
+                    dialog.dismiss()
+                    if (position == 0) {
+                        viewModel.createFolder(pageIndex, "FOLDER", app.key)
+                    } else {
+                        val folder = page.folders[position - 1]
+                        viewModel.addAppToFolder(pageIndex, folder.id, app.key)
+                    }
+                }
+            }
+        }
+        openDialog = dialog
+        dialog.show()
     }
 
     fun showCustomizeSheet() {

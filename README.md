@@ -25,6 +25,8 @@ pick **Not a Thing Launcher**, or open the launcher's *Settings → Default home
 - **Minimalist dot page indicator** — active page dot elongates smoothly, tap to jump to any page.
 - **Dynamic page management** — add blank pages or remove pages directly from *Customize*.
 - **Move apps across pages** — long-press an app on home to move it to the next or previous page.
+- **Max Icons (Enlarge 2×2)** — expand any app icon into a prominent 2×2 hero tile, matching Nothing OS 2.5/3.0.
+- **Workspace App Folders** — group apps into clean Nothing dot folders with mini-icon previews and full folder manager modal.
 
 ### Bespoke Nothing Elements
 - **LED-panel clock** — the time is lit on a full grid of unlit dots, like a real dot-matrix
@@ -38,12 +40,22 @@ pick **Not a Thing Launcher**, or open the launcher's *Settings → Default home
 - **Quick toggles tile** — 4 system controls (Wi-Fi, Bluetooth, Flashlight/Torch with camera hardware control, and Sound mode cycler).
 - **Step counter (Pedometer)** — 36-dot progress ring tracking daily steps with live count in dot-matrix typography.
 - **Heading compass** — procedural dot-matrix compass rose with accent North indicator and degrees heading.
+- **Screen Time tile** — digital wellbeing daily active time in dot-matrix typography with a 7-segment dot usage bar.
+- **Storage & RAM tile** — device capacity meter with DotFont free GB readout and circular dot fullness ring.
+- **World Clock tile** — dual time-zone dot clock showing local and UTC/London times.
 - **Third-party widgets** — add any standard Android widget to any page. Long-press to remove.
 
-### App drawer
-- **Follows your finger** — swipe up anywhere on home and the drawer tracks the gesture,
-  then settles with a fling-aware animation. Home blurs behind it on Android 12+.
-  Swipe down (from the top of the list) to close.
+### Theming & Appearance (Dark & Light Mode)
+- **Dark & Light Mode** — toggle between pure OLED dark (`#000000`), clean bone-white light mode (`#F6F6F4` with jet-black ink), or follow system default.
+- **Dynamic Contrast Bars** — status bar and navigation bar contrast adapt dynamically across themes.
+- **Nothing Monochrome Icon Engine** — converts third-party apps into high-contrast Nothing OS monochrome discs.
+- **Icon Sizing** — small (80%), standard (100%), or large (120%) icon scales.
+- **App Labels & Grid** — separate toggles for home and dock labels; 3, 4, or 5 column grids.
+
+### Gestures & Navigation
+- **Double-Tap to Sleep** — double-tap any empty workspace area to turn off the screen.
+- **Swipe-Down Action** — configurable action to pull down notification shade, open search, or open quick settings.
+- **Follows your finger drawer** — fluid drawer drag physics with background blur.
 - **Ranked search** — prefix, then word-start, then substring, then initials ("gm" → Google
   Maps). Press enter to open the top hit. No match offers a one-tap web search.
 - **Recent apps** row, **A–Z dot scroller** with a dot-matrix letter bubble, and

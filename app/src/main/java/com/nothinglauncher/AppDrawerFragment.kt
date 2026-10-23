@@ -76,7 +76,8 @@ class AppDrawerFragment : Fragment() {
             onAppClick = { app, v -> host?.launchApp(app, v) },
             onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DRAWER) }
         )
-        layoutManager = GridLayoutManager(requireContext(), 4).apply {
+        val cols = viewModel.prefs.gridColumns
+        layoutManager = GridLayoutManager(requireContext(), cols).apply {
             spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
                 override fun getSpanSize(position: Int): Int =
                     if (appAdapter.getItemViewType(position) == AppAdapter.TYPE_HEADER) spanCount else 1
@@ -286,6 +287,22 @@ class AppDrawerFragment : Fragment() {
         val b = _binding ?: return
         val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(b.searchBar.windowToken, 0)
+    }
+
+    fun applyPrefs() {
+        if (_binding == null) return
+        val cols = viewModel.prefs.gridColumns
+        layoutManager.spanCount = cols
+        val baseSize = resources.getDimensionPixelSize(
+            if (cols >= 5) R.dimen.icon_size_compact else R.dimen.icon_size
+        )
+        val scale = when (viewModel.prefs.iconSize) {
+            LauncherPrefs.IconSize.SMALL -> 0.82f
+            LauncherPrefs.IconSize.MEDIUM -> 1.0f
+            LauncherPrefs.IconSize.LARGE -> 1.18f
+        }
+        appAdapter.iconSizePx = (baseSize * scale).toInt()
+        rebuild()
     }
 
     override fun onDestroyView() {

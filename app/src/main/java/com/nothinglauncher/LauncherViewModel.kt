@@ -288,6 +288,100 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         savePages(current)
     }
 
+    // ---- Max Icons (Enlarge 2x2) --------------------------------------------------------
+
+    fun toggleEnlargeApp(pageIndex: Int, appKey: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val enlarged = if (appKey in page.enlargedApps) page.enlargedApps - appKey else page.enlargedApps + appKey
+        current[pageIndex] = page.copy(enlargedApps = enlarged)
+        savePages(current)
+    }
+
+    fun isAppEnlarged(pageIndex: Int, appKey: String): Boolean {
+        val page = _workspacePages.value?.getOrNull(pageIndex) ?: return false
+        return appKey in page.enlargedApps
+    }
+
+    // ---- Workspace Folders -------------------------------------------------------------
+
+    fun createFolder(pageIndex: Int, name: String, initialAppKey: String): String? {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return null
+        val page = current[pageIndex]
+        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
+        val newFolder = WorkspaceFolder(id = folderId, name = name, appKeys = listOf(initialAppKey))
+        current[pageIndex] = page.copy(
+            appKeys = page.appKeys - initialAppKey,
+            folders = page.folders + newFolder
+        )
+        savePages(current)
+        return folderId
+    }
+
+    fun addAppToFolder(pageIndex: Int, folderId: String, appKey: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val fIdx = page.folders.indexOfFirst { it.id == folderId }
+        if (fIdx == -1) return
+        val folder = page.folders[fIdx]
+        val updatedFolder = folder.copy(appKeys = (folder.appKeys + appKey).distinct())
+        val updatedFolders = page.folders.toMutableList().apply { set(fIdx, updatedFolder) }
+        current[pageIndex] = page.copy(
+            appKeys = page.appKeys - appKey,
+            folders = updatedFolders
+        )
+        savePages(current)
+    }
+
+    fun removeAppFromFolder(pageIndex: Int, folderId: String, appKey: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val fIdx = page.folders.indexOfFirst { it.id == folderId }
+        if (fIdx == -1) return
+        val folder = page.folders[fIdx]
+        val updatedApps = folder.appKeys - appKey
+        val updatedFolders = page.folders.toMutableList()
+        if (updatedApps.isEmpty()) {
+            updatedFolders.removeAt(fIdx)
+        } else {
+            updatedFolders[fIdx] = folder.copy(appKeys = updatedApps)
+        }
+        current[pageIndex] = page.copy(
+            appKeys = (page.appKeys + appKey).distinct(),
+            folders = updatedFolders
+        )
+        savePages(current)
+    }
+
+    fun dissolveFolder(pageIndex: Int, folderId: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val folder = page.folders.firstOrNull { it.id == folderId } ?: return
+        current[pageIndex] = page.copy(
+            appKeys = (page.appKeys + folder.appKeys).distinct(),
+            folders = page.folders.filterNot { it.id == folderId }
+        )
+        savePages(current)
+    }
+
+    fun renameFolder(pageIndex: Int, folderId: String, newName: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val fIdx = page.folders.indexOfFirst { it.id == folderId }
+        if (fIdx == -1) return
+        val updatedFolders = page.folders.toMutableList().apply {
+            set(fIdx, get(fIdx).copy(name = newName))
+        }
+        current[pageIndex] = page.copy(folders = updatedFolders)
+        savePages(current)
+    }
+
     private fun savePages(pages: List<WorkspacePage>) {
         prefs.pages = pages
         _workspacePages.value = pages

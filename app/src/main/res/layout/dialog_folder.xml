@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_sheet"
+    android:clipToPadding="false"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
+
+    <!-- Handle -->
+    <View
+        android:layout_width="36dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="18dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/folderDot"
+            android:layout_width="6dp"
+            android:layout_height="6dp"
+            android:background="@drawable/dot_red" />
+
+        <TextView
+            android:id="@+id/folderTitle"
+            style="@style/Text.Title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:layout_weight="1"
+            android:text="@string/folder_name_default" />
+
+        <ImageView
+            android:id="@+id/folderClose"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/fg_ripple_oval"
+            android:contentDescription="@string/close"
+            android:padding="6dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/text_secondary" />
+    </LinearLayout>
+
+    <!-- Apps in folder -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/folderRecycler"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:overScrollMode="never" />
+
+    <!-- Actions Row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="18dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/folderAddApp"
+            style="@style/Text.Label"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tile_dark"
+            android:foreground="@drawable/fg_ripple_tile"
+            android:gravity="center"
+            android:text="@string/folder_add_apps"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/folderDissolve"
+            style="@style/Text.Label"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tile_dark"
+            android:foreground="@drawable/fg_ripple_tile"
+            android:gravity="center"
+            android:text="@string/folder_ungroup"
+            android:textColor="@color/nothing_red" />
+    </LinearLayout>
+</LinearLayout>

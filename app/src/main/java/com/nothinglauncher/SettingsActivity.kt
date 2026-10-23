@@ -36,7 +36,9 @@ class SettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
         prefs = LauncherPrefs(this)
 
-        binding.settingsRoot.background = DotGridDrawable(resources.displayMetrics.density)
+        val bg = androidx.core.content.ContextCompat.getColor(this, R.color.nothing_bg)
+        val dot = androidx.core.content.ContextCompat.getColor(this, R.color.dot_off)
+        binding.settingsRoot.background = DotGridDrawable(resources.displayMetrics.density, backgroundColor = bg, dotColor = dot)
         binding.backButton.setOnClickListener { finish() }
 
         val density = resources.displayMetrics.density
@@ -65,11 +67,17 @@ class SettingsActivity : AppCompatActivity() {
 
         SettingsUi.section(list, getString(R.string.section_home), accent)
         SettingsUi.card(list).also { card ->
+            SettingsUi.choiceRow(card, getString(R.string.setting_columns), getString(R.string.setting_columns_sub), listOf("3", "4", "5"), prefs.gridColumns - 3) {
+                prefs.gridColumns = it + 3
+            }
             SettingsUi.switchRow(card, getString(R.string.setting_labels), getString(R.string.setting_labels_sub), prefs.showHomeLabels) {
                 prefs.showHomeLabels = it
             }
-            SettingsUi.choiceRow(card, getString(R.string.setting_columns), getString(R.string.setting_columns_sub), listOf("4", "5"), prefs.gridColumns - 4) {
-                prefs.gridColumns = it + 4
+            SettingsUi.switchRow(card, getString(R.string.setting_dock_labels), getString(R.string.setting_dock_labels_sub), prefs.showDockLabels) {
+                prefs.showDockLabels = it
+            }
+            SettingsUi.switchRow(card, getString(R.string.setting_double_tap), getString(R.string.setting_double_tap_sub), prefs.doubleTapToSleep) {
+                prefs.doubleTapToSleep = it
             }
             SettingsUi.switchRow(card, getString(R.string.setting_seconds), getString(R.string.setting_seconds_sub), prefs.showSeconds) {
                 prefs.showSeconds = it
@@ -79,10 +87,29 @@ class SettingsActivity : AppCompatActivity() {
         SettingsUi.section(list, getString(R.string.section_look), accent)
         SettingsUi.card(list).also { card ->
             SettingsUi.choiceRow(
+                card, getString(R.string.setting_theme), getString(R.string.setting_theme_sub),
+                listOf(getString(R.string.theme_system), getString(R.string.theme_dark), getString(R.string.theme_light)),
+                prefs.themeMode.ordinal
+            ) {
+                prefs.themeMode = LauncherPrefs.ThemeMode.values()[it]
+                val target = when (prefs.themeMode) {
+                    LauncherPrefs.ThemeMode.DARK -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_YES
+                    LauncherPrefs.ThemeMode.LIGHT -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_NO
+                    LauncherPrefs.ThemeMode.SYSTEM -> androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+                androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode(target)
+                recreate()
+            }
+            SettingsUi.choiceRow(
                 card, getString(R.string.setting_icons), getString(R.string.setting_icons_sub),
                 listOf(getString(R.string.icons_mono), getString(R.string.icons_color)),
                 prefs.iconStyle.ordinal
             ) { prefs.iconStyle = LauncherPrefs.IconStyle.values()[it] }
+            SettingsUi.choiceRow(
+                card, getString(R.string.setting_icon_size), getString(R.string.setting_icon_size_sub),
+                listOf(getString(R.string.icon_size_small), getString(R.string.icon_size_med), getString(R.string.icon_size_large)),
+                prefs.iconSize.ordinal
+            ) { prefs.iconSize = LauncherPrefs.IconSize.values()[it] }
             SettingsUi.choiceRow(
                 card, getString(R.string.setting_background), getString(R.string.setting_background_sub),
                 listOf(getString(R.string.bg_dots), getString(R.string.bg_black), getString(R.string.bg_wallpaper)),

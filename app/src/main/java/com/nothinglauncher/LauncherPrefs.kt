@@ -19,6 +19,8 @@ class LauncherPrefs(context: Context) {
     enum class Background { DOTS, BLACK, WALLPAPER }
     enum class SwipeDown { NOTIFICATIONS, SEARCH }
     enum class Accent { RED, WHITE }
+    enum class ThemeMode { SYSTEM, DARK, LIGHT }
+    enum class IconSize { SMALL, MEDIUM, LARGE }
 
     private val appContext = context.applicationContext
     private val sp: SharedPreferences =
@@ -26,9 +28,17 @@ class LauncherPrefs(context: Context) {
 
     // ---- Settings -----------------------------------------------------------------------
 
+    var themeMode: ThemeMode
+        get() = enumOf(sp.getString(K_THEME_MODE, null), ThemeMode.SYSTEM)
+        set(value) = putSetting(K_THEME_MODE, value.name)
+
     var iconStyle: IconStyle
         get() = enumOf(sp.getString(K_ICON_STYLE, null), IconStyle.MONO)
         set(value) = putSetting(K_ICON_STYLE, value.name)
+
+    var iconSize: IconSize
+        get() = enumOf(sp.getString(K_ICON_SIZE, null), IconSize.MEDIUM)
+        set(value) = putSetting(K_ICON_SIZE, value.name)
 
     var background: Background
         get() = enumOf(sp.getString(K_BACKGROUND, null), Background.DOTS)
@@ -46,9 +56,17 @@ class LauncherPrefs(context: Context) {
         get() = sp.getBoolean(K_LABELS, true)
         set(value) = putSetting(K_LABELS, value)
 
+    var showDockLabels: Boolean
+        get() = sp.getBoolean(K_DOCK_LABELS, false)
+        set(value) = putSetting(K_DOCK_LABELS, value)
+
+    var doubleTapToSleep: Boolean
+        get() = sp.getBoolean(K_DOUBLE_TAP, true)
+        set(value) = putSetting(K_DOUBLE_TAP, value)
+
     var gridColumns: Int
-        get() = sp.getInt(K_COLUMNS, 4).coerceIn(4, 5)
-        set(value) = putSetting(K_COLUMNS, value.coerceIn(4, 5))
+        get() = sp.getInt(K_COLUMNS, 4).coerceIn(3, 5)
+        set(value) = putSetting(K_COLUMNS, value.coerceIn(3, 5))
 
     var showSeconds: Boolean
         get() = sp.getBoolean(K_SECONDS, true)
@@ -150,7 +168,19 @@ class LauncherPrefs(context: Context) {
             val apps = obj.optJSONArray("apps")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
             val elements = obj.optJSONArray("elements")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
             val widgets = obj.optJSONArray("widgets")?.let { a -> List(a.length()) { a.getInt(it) } } ?: emptyList()
-            WorkspacePage(id, apps, elements, widgets)
+            val enlarged = obj.optJSONArray("enlarged")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+            val foldersArr = obj.optJSONArray("folders")
+            val folders = if (foldersArr != null) {
+                List(foldersArr.length()) { fIdx ->
+                    val fObj = foldersArr.getJSONObject(fIdx)
+                    val fId = fObj.optString("id", "f_$fIdx")
+                    val fName = fObj.optString("name", "FOLDER")
+                    val fApps = fObj.optJSONArray("apps")?.let { fa -> List(fa.length()) { fa.getString(it) } } ?: emptyList()
+                    val fEnlarged = fObj.optBoolean("isEnlarged", false)
+                    WorkspaceFolder(fId, fName, fApps, fEnlarged)
+                }
+            } else emptyList()
+            WorkspacePage(id, apps, elements, widgets, enlarged, folders)
         }
     } catch (e: Exception) {
         null
@@ -164,6 +194,18 @@ class LauncherPrefs(context: Context) {
                 put("apps", JSONArray(p.appKeys))
                 put("elements", JSONArray(p.elements))
                 put("widgets", JSONArray(p.widgetIds))
+                put("enlarged", JSONArray(p.enlargedApps))
+                val fArr = JSONArray()
+                p.folders.forEach { f ->
+                    val fObj = JSONObject().apply {
+                        put("id", f.id)
+                        put("name", f.name)
+                        put("apps", JSONArray(f.appKeys))
+                        put("isEnlarged", f.isEnlarged)
+                    }
+                    fArr.put(fObj)
+                }
+                put("folders", fArr)
             }
             arr.put(obj)
         }
@@ -177,11 +219,15 @@ class LauncherPrefs(context: Context) {
         const val PREFS_NAME = "launcher_prefs"
         const val MAX_RECENTS = 10
 
+        private const val K_THEME_MODE = "theme_mode"
         private const val K_ICON_STYLE = "icon_style"
+        private const val K_ICON_SIZE = "icon_size"
         private const val K_BACKGROUND = "background"
         private const val K_SWIPE_DOWN = "swipe_down"
         private const val K_ACCENT = "accent"
         private const val K_LABELS = "show_labels"
+        private const val K_DOCK_LABELS = "show_dock_labels"
+        private const val K_DOUBLE_TAP = "double_tap_to_sleep"
         private const val K_COLUMNS = "grid_columns"
         private const val K_SECONDS = "show_seconds"
         private const val K_RECENTS = "show_recents"

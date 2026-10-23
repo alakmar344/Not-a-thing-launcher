@@ -11,10 +11,10 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="colorControlNormal">@color/text_secondary</item>
-        <item name="colorControlActivated">@color/nothing_white</item>
+        <item name="colorControlActivated">@color/text_primary</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
-        <item name="android:colorBackground">@color/nothing_black</item>
-        <item name="android:windowBackground">@color/nothing_black</item>
+        <item name="android:colorBackground">@color/nothing_bg</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:textColorHint">@color/text_tertiary</item>
@@ -24,8 +24,8 @@
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
-        <item name="android:windowLightStatusBar">false</item>
-        <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
         <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
         <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
         <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>

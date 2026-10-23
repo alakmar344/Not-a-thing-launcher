@@ -6,16 +6,28 @@ enum class BespokeElement(val id: String, val titleRes: Int, val subRes: Int, va
     WEATHER("weather", R.string.element_weather, R.string.element_weather_sub, R.drawable.ic_weather),
     QUICK_TOGGLES("quick_toggles", R.string.element_toggles, R.string.element_toggles_sub, R.drawable.ic_tune),
     PEDOMETER("pedometer", R.string.element_pedometer, R.string.element_pedometer_sub, R.drawable.ic_walk),
-    COMPASS("compass", R.string.element_compass, R.string.element_compass_sub, R.drawable.ic_compass);
+    COMPASS("compass", R.string.element_compass, R.string.element_compass_sub, R.drawable.ic_compass),
+    SCREEN_TIME("screen_time", R.string.element_screen_time, R.string.element_screen_time_sub, R.drawable.ic_time),
+    STORAGE("storage", R.string.element_storage, R.string.element_storage_sub, R.drawable.ic_storage),
+    WORLD_CLOCK("world_clock", R.string.element_world_clock, R.string.element_world_clock_sub, R.drawable.ic_globe);
 
     companion object {
         fun fromId(id: String): BespokeElement? = values().firstOrNull { it.id == id }
     }
 }
 
+data class WorkspaceFolder(
+    val id: String,
+    val name: String,
+    val appKeys: List<String> = emptyList(),
+    val isEnlarged: Boolean = false
+)
+
 data class WorkspacePage(
     val id: String,
     val appKeys: List<String> = emptyList(),
     val elements: List<String> = emptyList(),
-    val widgetIds: List<Int> = emptyList()
+    val widgetIds: List<Int> = emptyList(),
+    val enlargedApps: List<String> = emptyList(),
+    val folders: List<WorkspaceFolder> = emptyList()
 )
