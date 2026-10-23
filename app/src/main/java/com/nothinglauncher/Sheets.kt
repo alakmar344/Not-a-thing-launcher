@@ -128,8 +128,7 @@ object Sheets {
                 val itemBinding = ItemHiddenAppBinding.bind(holder.itemView)
                 itemBinding.hiddenIcon.setImageDrawable(item.icon)
                 itemBinding.hiddenLabel.text = item.label
-                itemBinding.hiddenSub.text = item.key.substringBefore('/')
-                itemBinding.unhideButton.setOnClickListener {
+                itemBinding.hiddenUnhide.setOnClickListener {
                     prefs.hiddenApps = prefs.hiddenApps - item.key
                     dialog.dismiss()
                     onChanged()

@@ -119,7 +119,7 @@ class ScreensTest {
         val density = context.resources.displayMetrics.density
         val row = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
-            baselineAligned = false
+            isBaselineAligned = false
         }
         val batB = WidgetBatteryBinding.inflate(LayoutInflater.from(context), row, false)
         batB.battery.level = 78

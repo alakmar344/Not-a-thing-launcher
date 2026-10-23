@@ -92,7 +92,7 @@ class WorkspacePageAdapter(
                     BespokeElement.BATTERY_CALENDAR.id -> {
                         val row = LinearLayout(ctx).apply {
                             orientation = LinearLayout.HORIZONTAL
-                            baselineAligned = false
+                            isBaselineAligned = false
                         }
                         val batB = WidgetBatteryBinding.inflate(inflater, row, false)
                         batB.battery.accentColor = accent
