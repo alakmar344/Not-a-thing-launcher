@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.nothinglauncher.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tile_dark"
+    android:clickable="true"
+    android:contentDescription="@string/calendar_widget"
+    android:focusable="true"
+    android:foreground="@drawable/fg_ripple_tile">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="@dimen/tile_padding">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/calMonth"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textColor="@color/text_primary" />
+
+            <View
+                android:id="@+id/calDot"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:background="@drawable/dot_red" />
+        </LinearLayout>
+
+        <com.nothinglauncher.DotMatrixView
+            android:id="@+id/calDay"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:layout_weight="1"
+            app:dmDotColor="@color/dot_on"
+            app:dmDotScale="0.4"
+            app:dmGravity="start" />
+
+        <TextView
+            android:id="@+id/calWeekday"
+            style="@style/Text.Body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:fontFamily="@font/space_grotesk_medium"
+            android:maxLines="1"
+            android:textSize="16sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="12dp"
+                android:layout_height="12dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_alarm"
+                android:tint="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/calAlarm"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+</com.nothinglauncher.SquareFrameLayout>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="0dp"
+    android:layout_height="108dp"
+    android:layout_weight="1"
+    android:background="@drawable/bg_tile_dark"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="@drawable/fg_ripple_tile"
+    android:gravity="center"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/tileIcon"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:importantForAccessibility="no"
+        android:tint="@color/text_primary" />
+
+    <TextView
+        android:id="@+id/tileLabel"
+        style="@style/Text.Label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:textColor="@color/text_primary" />
+</LinearLayout>

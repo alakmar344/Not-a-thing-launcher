@@ -1,18 +1,38 @@
 package com.nothinglauncher
 
+import android.annotation.SuppressLint
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
-import com.nothinglauncher.databinding.ItemHomeIconBinding
+import com.nothinglauncher.databinding.ItemAppBinding
 
+/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper. */
 class HomeIconAdapter(
-    private val onAppClick: (AppInfo) -> Unit,
-    private val onAppLongClick: (AppInfo, Int) -> Boolean
+    private val onAppClick: (AppInfo, View) -> Unit,
+    private val onAppLongClick: (AppInfo, View) -> Unit
 ) : RecyclerView.Adapter<HomeIconAdapter.IconViewHolder>() {
 
     private val items = mutableListOf<AppInfo>()
 
+    var showLabels: Boolean = true
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) { if (field != value) { field = value; notifyDataSetChanged() } }
+
+    var iconSizePx: Int = 0
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) { if (field != value) { field = value; notifyDataSetChanged() } }
+
+    var labelShadow: Boolean = false
+        @SuppressLint("NotifyDataSetChanged")
+        set(value) { if (field != value) { field = value; notifyDataSetChanged() } }
+
+    @SuppressLint("NotifyDataSetChanged")
     fun setItems(newItems: List<AppInfo>) {
+        if (newItems == items) return
         items.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
@@ -20,45 +40,43 @@ class HomeIconAdapter(
 
     fun getItems(): List<AppInfo> = items.toList()
 
-    fun moveItem(from: Int, to: Int) {
-        if (from < 0 || to < 0 || from >= items.size || to >= items.size) return
+    fun moveItem(from: Int, to: Int): Boolean {
+        if (from !in items.indices || to !in items.indices || from == to) return false
         val item = items.removeAt(from)
         items.add(to, item)
         notifyItemMoved(from, to)
+        return true
     }
 
-    fun mergeItems(draggedPos: Int, targetPos: Int): Pair<AppInfo, AppInfo>? {
-        if (draggedPos < 0 || targetPos < 0 || draggedPos >= items.size || targetPos >= items.size) return null
-        val dragged = items[draggedPos]
-        val target = items[targetPos]
-        items.removeAt(draggedPos)
-        notifyItemRemoved(draggedPos)
-        return Pair(dragged, target)
-    }
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IconViewHolder =
+        IconViewHolder(ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false))
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IconViewHolder {
-        val binding = ItemHomeIconBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-        return IconViewHolder(binding)
-    }
-
-    override fun onBindViewHolder(holder: IconViewHolder, position: Int) {
-        holder.bind(items[position])
-    }
+    override fun onBindViewHolder(holder: IconViewHolder, position: Int) = holder.bind(items[position])
 
     override fun getItemCount(): Int = items.size
 
-    inner class IconViewHolder(private val binding: ItemHomeIconBinding) :
-        RecyclerView.ViewHolder(binding.root) {
-
-        fun bind(appInfo: AppInfo) {
-            binding.appIcon.setImageDrawable(appInfo.icon)
-            binding.appLabel.text = appInfo.label
-            binding.root.setOnClickListener {
-                onAppClick(appInfo)
-            }
+    inner class IconViewHolder(private val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
+        fun bind(app: AppInfo) {
+            binding.appIcon.setImageDrawable(app.icon)
+            binding.appIcon.contentDescription = app.label
+            if (iconSizePx > 0) binding.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
+            binding.appLabel.text = app.label
+            binding.appLabel.isVisible = showLabels
+            applyLabelShadow(binding, labelShadow)
+            binding.root.setOnClickListener { onAppClick(app, binding.appIcon) }
             binding.root.setOnLongClickListener {
-                onAppLongClick(appInfo, bindingAdapterPosition)
+                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                onAppLongClick(app, binding.appIcon)
+                true
             }
+        }
+    }
+
+    companion object {
+        /** Wallpaper backgrounds can be bright, so labels get a soft shadow there. */
+        fun applyLabelShadow(binding: ItemAppBinding, enabled: Boolean) {
+            if (enabled) binding.appLabel.setShadowLayer(6f, 0f, 1f, 0xCC000000.toInt())
+            else binding.appLabel.setShadowLayer(0f, 0f, 0f, 0)
         }
     }
 }
