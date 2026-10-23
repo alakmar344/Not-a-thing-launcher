@@ -76,6 +76,14 @@ class LauncherPrefs(context: Context) {
         get() = sp.getBoolean(K_RECENTS, true)
         set(value) = putSetting(K_RECENTS, value)
 
+    var quickNote: String
+        get() = sp.getString(K_QUICK_NOTE, "NOTHING BUT TIME") ?: "NOTHING BUT TIME"
+        set(value) = putSetting(K_QUICK_NOTE, value)
+
+    var showDotGrid: Boolean
+        get() = sp.getBoolean(K_SHOW_DOT_GRID, true)
+        set(value) = putSetting(K_SHOW_DOT_GRID, value)
+
     var autoKeyboard: Boolean
         get() = sp.getBoolean(K_KEYBOARD, false)
         set(value) = putSetting(K_KEYBOARD, value)
@@ -242,5 +250,7 @@ class LauncherPrefs(context: Context) {
         private const val K_WIDGETS = "widget_ids"
         private const val K_PAGES_V3 = "workspace_pages_v3"
         private const val K_ACTIVE_PAGE = "active_page_index"
+        private const val K_QUICK_NOTE = "quick_note_text"
+        private const val K_SHOW_DOT_GRID = "show_dot_grid"
     }
 }

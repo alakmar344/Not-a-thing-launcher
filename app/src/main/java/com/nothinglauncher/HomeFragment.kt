@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.GestureDetector
+import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -112,7 +113,13 @@ class HomeFragment : Fragment() {
 
     private fun setupGestures() {
         val density = resources.displayMetrics.density
-        val doubleTapDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+        val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onLongPress(e: MotionEvent) {
+                if (host?.isPopupShowing() != true) {
+                    binding.workspaceRecycler.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    host?.showCustomizeSheet()
+                }
+            }
             override fun onDoubleTap(e: MotionEvent): Boolean {
                 if (viewModel.prefs.doubleTapToSleep) {
                     host?.lockScreen()
@@ -123,7 +130,7 @@ class HomeFragment : Fragment() {
         })
 
         binding.workspaceRecycler.setOnTouchListener { _, event ->
-            doubleTapDetector.onTouchEvent(event)
+            gestureDetector.onTouchEvent(event)
             false
         }
 

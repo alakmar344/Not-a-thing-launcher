@@ -9,7 +9,9 @@ enum class BespokeElement(val id: String, val titleRes: Int, val subRes: Int, va
     COMPASS("compass", R.string.element_compass, R.string.element_compass_sub, R.drawable.ic_compass),
     SCREEN_TIME("screen_time", R.string.element_screen_time, R.string.element_screen_time_sub, R.drawable.ic_time),
     STORAGE("storage", R.string.element_storage, R.string.element_storage_sub, R.drawable.ic_storage),
-    WORLD_CLOCK("world_clock", R.string.element_world_clock, R.string.element_world_clock_sub, R.drawable.ic_globe);
+    WORLD_CLOCK("world_clock", R.string.element_world_clock, R.string.element_world_clock_sub, R.drawable.ic_globe),
+    BATTERY_DOTS("battery_dots", R.string.element_battery_dots, R.string.element_battery_dots_sub, R.drawable.ic_bolt),
+    QUICK_NOTE("quick_note", R.string.element_quick_note, R.string.element_quick_note_sub, R.drawable.ic_pin);
 
     companion object {
         fun fromId(id: String): BespokeElement? = values().firstOrNull { it.id == id }

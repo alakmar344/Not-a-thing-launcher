@@ -123,7 +123,10 @@ class AppDrawerFragment : Fragment() {
     private fun setupScroller() {
         binding.letterBubbleText.panel = false
         binding.alphabetScroller.onLetterChanged = { letter, centerY ->
-            letterPositions[letter]?.let { layoutManager.scrollToPositionWithOffset(it, 0) }
+            letterPositions[letter]?.let {
+                layoutManager.scrollToPositionWithOffset(it, 0)
+                binding.alphabetScroller.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+            }
             binding.letterBubbleText.text = letter.toString()
             val bubble = binding.letterBubble
             bubble.translationY = binding.alphabetScroller.top + centerY - bubble.height / 2f
@@ -267,7 +270,7 @@ class AppDrawerFragment : Fragment() {
 
     fun onDrawerOpening(focusSearch: Boolean) {
         if (_binding == null) return
-        if (focusSearch) showKeyboard()
+        if (focusSearch || viewModel.prefs.autoKeyboard) showKeyboard()
     }
 
     fun onDrawerClosed() {
