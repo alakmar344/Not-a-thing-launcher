@@ -93,6 +93,7 @@
     <string name="reset_confirm_body">Your pinned apps, dock and widgets will go back to the defaults.</string>
     <string name="reset">Reset</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
     <string name="unhide">Unhide</string>
     <string name="done">Done</string>
     <string name="back">Back</string>
