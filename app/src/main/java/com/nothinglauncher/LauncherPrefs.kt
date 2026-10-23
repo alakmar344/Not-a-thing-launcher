@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Typed access to every persisted launcher setting and layout list.
@@ -70,9 +71,17 @@ class LauncherPrefs(context: Context) {
 
     // ---- Layout data --------------------------------------------------------------------
 
-    /** Ordered component keys pinned to home, or null if the user never customised it. */
+    var pages: List<WorkspacePage>?
+        get() = sp.getString(K_PAGES_V3, null)?.let(::parsePages)
+        set(value) = putData(K_PAGES_V3, value?.let(::serializePages))
+
+    var activePageIndex: Int
+        get() = sp.getInt(K_ACTIVE_PAGE, 0)
+        set(value) = sp.edit().putInt(K_ACTIVE_PAGE, value).apply()
+
+    /** Ordered component keys pinned to home page 0 (backward-compatible). */
     var homeItems: List<String>?
-        get() = sp.getString(K_HOME, null)?.let(::parseStrings)
+        get() = pages?.firstOrNull()?.appKeys ?: sp.getString(K_HOME, null)?.let(::parseStrings)
         set(value) = putData(K_HOME, value?.let { JSONArray(it).toString() })
 
     var dockItems: List<String>?
@@ -95,13 +104,17 @@ class LauncherPrefs(context: Context) {
         }
 
     var widgetIds: List<Int>
-        get() = sp.getString(K_WIDGETS, null)?.let(::parseStrings)?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+        get() {
+            val fromPages = pages?.flatMap { it.widgetIds }
+            if (fromPages != null && fromPages.isNotEmpty()) return fromPages
+            return sp.getString(K_WIDGETS, null)?.let(::parseStrings)?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+        }
         set(value) = putData(K_WIDGETS, JSONArray(value.map { it.toString() }).toString())
 
     fun resetLayout() {
         sp.edit()
             .remove(K_HOME).remove(K_DOCK).remove(K_LEGACY_HOME).remove(K_LEGACY_DOCK)
-            .remove(K_WIDGETS)
+            .remove(K_WIDGETS).remove(K_PAGES_V3).remove(K_ACTIVE_PAGE)
             .putInt(K_VERSION, settingsVersion + 1)
             .apply()
     }
@@ -129,6 +142,34 @@ class LauncherPrefs(context: Context) {
         null
     }
 
+    private fun parsePages(json: String): List<WorkspacePage>? = try {
+        val arr = JSONArray(json)
+        List(arr.length()) { i ->
+            val obj = arr.getJSONObject(i)
+            val id = obj.optString("id", "page_$i")
+            val apps = obj.optJSONArray("apps")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+            val elements = obj.optJSONArray("elements")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+            val widgets = obj.optJSONArray("widgets")?.let { a -> List(a.length()) { a.getInt(it) } } ?: emptyList()
+            WorkspacePage(id, apps, elements, widgets)
+        }
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun serializePages(pages: List<WorkspacePage>): String {
+        val arr = JSONArray()
+        pages.forEach { p ->
+            val obj = JSONObject().apply {
+                put("id", p.id)
+                put("apps", JSONArray(p.appKeys))
+                put("elements", JSONArray(p.elements))
+                put("widgets", JSONArray(p.widgetIds))
+            }
+            arr.put(obj)
+        }
+        return arr.toString()
+    }
+
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
         name?.let { n -> enumValues<T>().firstOrNull { it.name == n } } ?: default
 
@@ -153,5 +194,7 @@ class LauncherPrefs(context: Context) {
         private const val K_RECENT_LIST = "recent_items"
         private const val K_HIDDEN = "hidden_items"
         private const val K_WIDGETS = "widget_ids"
+        private const val K_PAGES_V3 = "workspace_pages_v3"
+        private const val K_ACTIVE_PAGE = "active_page_index"
     }
 }

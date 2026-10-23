@@ -45,21 +45,33 @@ object Sheets {
 
     fun showCustomize(
         context: Context,
-        onWallpaper: () -> Unit,
         onWidgets: () -> Unit,
+        onAddPage: () -> Unit,
+        onRemovePage: () -> Unit,
+        canRemovePage: Boolean,
+        onWallpaper: () -> Unit,
         onSettings: () -> Unit
     ): Dialog {
         val b = SheetCustomizeBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root)
-        fun tile(t: com.nothinglauncher.databinding.ItemSheetTileBinding, icon: Int, label: Int, action: () -> Unit) {
+        fun tile(t: com.nothinglauncher.databinding.ItemSheetTileBinding, icon: Int, label: Int, enabled: Boolean = true, action: () -> Unit) {
             t.tileIcon.setImageResource(icon)
             t.tileLabel.setText(label)
             t.root.contentDescription = context.getString(label)
-            t.root.setOnClickListener { dialog.dismiss(); action() }
+            t.root.alpha = if (enabled) 1f else 0.4f
+            t.root.isEnabled = enabled
+            t.root.setOnClickListener {
+                if (enabled) {
+                    dialog.dismiss()
+                    action()
+                }
+            }
         }
-        tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper, onWallpaper)
-        tile(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets, onWidgets)
-        tile(b.tileSettings, R.drawable.ic_tune, R.string.settings, onSettings)
+        tile(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets, action = onWidgets)
+        tile(b.tileAddPage, R.drawable.ic_add, R.string.add_page, action = onAddPage)
+        tile(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page, enabled = canRemovePage, action = onRemovePage)
+        tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper, action = onWallpaper)
+        tile(b.tileSettings, R.drawable.ic_tune, R.string.settings, action = onSettings)
         dialog.show()
         return dialog
     }
@@ -98,44 +110,31 @@ object Sheets {
                 null
             } else {
                 val icon = try { IconFactory.render(context.resources, info.getIcon(density), prefs.iconStyle, sizePx) } catch (e: Exception) { null }
-                Row(key, info.label.toString(), icon)
+                Row(key, info.label?.toString().orEmpty().ifEmpty { info.componentName.className }, icon)
             }
-        }.sortedBy { it.label.lowercase() }.toMutableList()
+        }.sortedBy { it.label.lowercase() }
 
-        fun refreshEmpty() {
-            b.listEmpty.isVisible = rows.isEmpty()
-            b.listRecycler.isVisible = rows.isNotEmpty()
-        }
-
+        b.listEmpty.isVisible = rows.isEmpty()
+        b.listRecycler.isVisible = rows.isNotEmpty()
         b.listRecycler.layoutManager = LinearLayoutManager(context)
         b.listRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
-                val ib = ItemHiddenAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
-                return object : RecyclerView.ViewHolder(ib.root) {}.also { it.itemView.tag = ib }
-            }
-
             override fun getItemCount() = rows.size
-
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val row = ItemHiddenAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
+                return object : RecyclerView.ViewHolder(row.root) {}
+            }
             override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-                val ib = holder.itemView.tag as ItemHiddenAppBinding
-                val row = rows[position]
-                ib.hiddenIcon.setImageDrawable(row.icon)
-                ib.hiddenLabel.text = row.label
-                ib.hiddenUnhide.setOnClickListener {
-                    val pos = holder.bindingAdapterPosition
-                    if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
-                    prefs.hiddenApps = prefs.hiddenApps - rows[pos].key
-                    rows.removeAt(pos)
-                    notifyItemRemoved(pos)
-                    refreshEmpty()
+                val item = rows[position]
+                val itemBinding = ItemHiddenAppBinding.bind(holder.itemView)
+                itemBinding.hiddenIcon.setImageDrawable(item.icon)
+                itemBinding.hiddenLabel.text = item.label
+                itemBinding.hiddenUnhide.setOnClickListener {
+                    prefs.hiddenApps = prefs.hiddenApps - item.key
+                    dialog.dismiss()
                     onChanged()
                 }
             }
         }
-        // Clean up keys for apps that no longer exist.
-        val stale = prefs.hiddenApps - rows.map { it.key }.toSet()
-        if (stale.isNotEmpty()) prefs.hiddenApps = prefs.hiddenApps - stale
-        refreshEmpty()
         dialog.show()
         return dialog
     }

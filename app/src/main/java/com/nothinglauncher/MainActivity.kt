@@ -34,8 +34,8 @@ class MainActivity : AppCompatActivity() {
     enum class PopupOrigin { HOME, DOCK, DRAWER }
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: LauncherViewModel by viewModels()
-    private val prefs: LauncherPrefs get() = viewModel.prefs
+    val viewModel: LauncherViewModel by viewModels()
+    val prefs: LauncherPrefs get() = viewModel.prefs
 
     private lateinit var widgetHost: WidgetHostManager
     private lateinit var appWidgetManager: AppWidgetManager
@@ -127,7 +127,6 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        // Coming back to the launcher should always land on a clean home screen.
         if (!isChangingConfigurations) {
             dismissPopup()
             if (drawerProgress > 0f) setDrawerProgressImmediately(0f)
@@ -143,7 +142,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        // Home button pressed while we're already in front.
         if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
             dismissPopup()
             openDialog?.dismiss()
@@ -241,7 +239,6 @@ class MainActivity : AppCompatActivity() {
         val target = when {
             velocityY < -flingThreshold -> 1f
             velocityY > flingThreshold -> 0f
-            // A deliberate pull of ~30% commits in either direction.
             opening -> if (drawerProgress > 0.3f) 1f else 0f
             else -> if (drawerProgress < 0.7f) 0f else 1f
         }
@@ -300,7 +297,7 @@ class MainActivity : AppCompatActivity() {
         drawer.translationY = (1f - drawerProgress) * h * 0.92f
         drawer.alpha = (drawerProgress * 1.6f).coerceAtMost(1f)
         drawer.visibility = if (drawerProgress > 0f) View.VISIBLE else View.INVISIBLE
-        // Focus can only land once the drawer is actually visible.
+
         if (pendingFocusSearch && !focusRequested && drawerProgress > 0f) {
             focusRequested = true
             drawerFragment?.onDrawerOpening(true)
@@ -325,7 +322,6 @@ class MainActivity : AppCompatActivity() {
     fun launchApp(app: AppInfo, source: View) {
         dismissPopup()
         if (AppLauncher.launch(this, app, source)) {
-            // Record after the launch animation so the drawer doesn't reshuffle under the finger.
             binding.root.postDelayed({ viewModel.recordLaunch(app) }, 450)
         }
     }
@@ -337,10 +333,30 @@ class MainActivity : AppCompatActivity() {
     fun showAppPopup(app: AppInfo, anchor: View, origin: PopupOrigin) {
         val actions = mutableListOf<AppPopup.Action>()
         if (viewModel.isOnHome(app)) {
-            actions += AppPopup.Action(R.drawable.ic_unpin, getString(R.string.remove_from_home)) { viewModel.removeFromHome(app) }
+            val pageIdx = viewModel.pageIndexForApp(app)
+            val pagesCount = viewModel.workspacePages.value?.size ?: 1
+            if (pageIdx > 0) {
+                actions += AppPopup.Action(R.drawable.ic_back, getString(R.string.move_to_prev_page)) {
+                    viewModel.moveAppBetweenPages(app, pageIdx, pageIdx - 1)
+                    homeFragment?.scrollToPage(pageIdx - 1)
+                }
+            }
+            if (pageIdx in 0 until pagesCount - 1) {
+                actions += AppPopup.Action(R.drawable.ic_chevron_right, getString(R.string.move_to_next_page)) {
+                    viewModel.moveAppBetweenPages(app, pageIdx, pageIdx + 1)
+                    homeFragment?.scrollToPage(pageIdx + 1)
+                }
+            }
+            actions += AppPopup.Action(R.drawable.ic_unpin, getString(R.string.remove_from_home)) {
+                viewModel.removeFromHome(app)
+            }
         } else {
-            actions += AppPopup.Action(R.drawable.ic_pin, getString(R.string.pin_to_home)) { viewModel.pinToHome(app) }
+            actions += AppPopup.Action(R.drawable.ic_pin, getString(R.string.pin_to_home)) {
+                val page = homeFragment?.currentPageIndex ?: 0
+                viewModel.pinToPage(page, app)
+            }
         }
+
         if (viewModel.isInDock(app)) {
             actions += AppPopup.Action(R.drawable.ic_undock, getString(R.string.remove_from_dock)) { viewModel.removeFromDock(app) }
         } else {
@@ -382,8 +398,24 @@ class MainActivity : AppCompatActivity() {
     fun showCustomizeSheet() {
         dismissPopup()
         openDialog?.dismiss()
+        val pagesCount = viewModel.workspacePages.value?.size ?: 1
         openDialog = Sheets.showCustomize(
             this,
+            onWidgets = { showElementAndWidgetPicker() },
+            onAddPage = {
+                val newIdx = viewModel.addPage()
+                homeFragment?.scrollToPage(newIdx)
+                AppLauncher.toast(this, R.string.page_added)
+            },
+            onRemovePage = {
+                val current = homeFragment?.currentPageIndex ?: 0
+                if (viewModel.removePage(current)) {
+                    val target = (current - 1).coerceAtLeast(0)
+                    homeFragment?.scrollToPage(target)
+                    AppLauncher.toast(this, R.string.page_removed)
+                }
+            },
+            canRemovePage = pagesCount > 1,
             onWallpaper = {
                 if (prefs.background != LauncherPrefs.Background.WALLPAPER) {
                     prefs.background = LauncherPrefs.Background.WALLPAPER
@@ -392,16 +424,26 @@ class MainActivity : AppCompatActivity() {
                 }
                 AppLauncher.openWallpaperPicker(this)
             },
-            onWidgets = { showWidgetPicker() },
             onSettings = { openSettings() }
         )
     }
 
-    // ---- Widgets ---------------------------------------------------------------------------
+    // ---- Elements & Widgets -----------------------------------------------------------------
 
-    private fun showWidgetPicker() {
+    private fun showElementAndWidgetPicker() {
         openDialog?.dismiss()
-        openDialog = WidgetPickerDialog.show(this, lifecycleScope) { info -> requestAddWidget(info) }
+        val currentPage = homeFragment?.currentPageIndex ?: 0
+        openDialog = WidgetPickerDialog.show(
+            this,
+            lifecycleScope,
+            onPickElement = { element ->
+                viewModel.addElementToPage(currentPage, element.id)
+                homeFragment?.renderWidgets()
+            },
+            onPickWidget = { info ->
+                requestAddWidget(info)
+            }
+        )
     }
 
     private fun requestAddWidget(info: AppWidgetProviderInfo) {
@@ -461,7 +503,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun addWidget(id: Int) {
         pendingWidgetId = -1
-        prefs.widgetIds = prefs.widgetIds + id
+        val currentPage = homeFragment?.currentPageIndex ?: 0
+        viewModel.addWidgetToPage(currentPage, id)
         homeFragment?.renderWidgets()
     }
 
@@ -492,8 +535,24 @@ class MainActivity : AppCompatActivity() {
             shortcuts = emptyList(),
             actions = listOf(
                 AppPopup.Action(R.drawable.ic_delete, getString(R.string.remove_widget), destructive = true) {
-                    prefs.widgetIds = prefs.widgetIds - id
+                    viewModel.removeWidget(id)
                     try { widgetHost.deleteAppWidgetId(id) } catch (_: Exception) {}
+                    homeFragment?.renderWidgets()
+                }
+            )
+        )
+    }
+
+    fun showElementPopup(pageIndex: Int, element: BespokeElement, anchor: View) {
+        popup.show(
+            anchor = anchor,
+            title = getString(element.titleRes),
+            subtitle = getString(element.subRes),
+            icon = null,
+            shortcuts = emptyList(),
+            actions = listOf(
+                AppPopup.Action(R.drawable.ic_delete, getString(R.string.remove_element), destructive = true) {
+                    viewModel.removeElementFromPage(pageIndex, element.id)
                     homeFragment?.renderWidgets()
                 }
             )

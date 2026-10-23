@@ -14,6 +14,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.ide.common.rendering.api.SessionParams
@@ -21,13 +23,19 @@ import com.nothinglauncher.databinding.ActivitySettingsBinding
 import com.nothinglauncher.databinding.DialogConfirmBinding
 import com.nothinglauncher.databinding.FragmentAppDrawerBinding
 import com.nothinglauncher.databinding.FragmentHomeBinding
+import com.nothinglauncher.databinding.ItemWorkspacePageBinding
 import com.nothinglauncher.databinding.SheetCustomizeBinding
+import com.nothinglauncher.databinding.WidgetBatteryBinding
+import com.nothinglauncher.databinding.WidgetCalendarBinding
+import com.nothinglauncher.databinding.WidgetClockBinding
+import com.nothinglauncher.databinding.WidgetQuickTogglesBinding
+import com.nothinglauncher.databinding.WidgetWeatherBinding
 import org.junit.Rule
 import org.junit.Test
 
 /**
  * Screenshot tests (Paparazzi / layoutlib) for every launcher surface, rendered with
- * deterministic sample data. Run `./gradlew :app:recordPaparazziDebug` to regenerate.
+ * deterministic sample data.
  */
 class ScreensTest {
 
@@ -46,7 +54,6 @@ class ScreensTest {
 
     private fun fakeIcon(bg: Int, glyph: Int, style: LauncherPrefs.IconStyle): Drawable {
         val fg = ContextCompat.getDrawable(context, glyph)!!.mutate().apply { setTint(Color.WHITE) }
-        // layoutlib can't build AdaptiveIconDrawable (no system icon mask), so feed the layers directly.
         val layers = IconFactory.Layers(ColorDrawable(bg), InsetDrawable(fg, 0.36f), null)
         return IconFactory.renderLayers(context.resources, layers, style, context.resources.getDimensionPixelSize(R.dimen.icon_render_size))
     }
@@ -77,7 +84,7 @@ class ScreensTest {
         Triple("Netflix", 0xFFE50914.toInt(), R.drawable.ic_arrow_up_right),
         Triple("Slack", 0xFF4A154B.toInt(), R.drawable.ic_apps),
         Triple("Uber", 0xFF000000.toInt(), R.drawable.ic_globe),
-        Triple("WhatsApp", 0xFF25D366.toInt(), R.drawable.ic_dock),
+        Triple("WhatsApp", 0xFF25D366.toInt(), R.drawable.ic_dock)
     )
 
     private fun apps(style: LauncherPrefs.IconStyle = LauncherPrefs.IconStyle.MONO) =
@@ -96,28 +103,58 @@ class ScreensTest {
 
     private fun buildHome(columns: Int = 4, labels: Boolean = true, style: LauncherPrefs.IconStyle = LauncherPrefs.IconStyle.MONO): View {
         val b = FragmentHomeBinding.inflate(LayoutInflater.from(context))
-        b.homeContent.updatePadding(top = dp(24 + 12))
+        b.workspaceRecycler.updatePadding(top = dp(24))
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
-        val clock = b.clockTile
-        clock.clock.previewTime = 10 to 24
-        clock.secondsTicker.previewSecond = 37
-        clock.clockDate.text = "Thursday, 23 October"
-        clock.clockMeridiem.text = "24H"
+        val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.root.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        pageB.pageContent.updatePadding(top = dp(12))
 
-        b.batteryTile.battery.level = 78
-        b.calendarTile.calMonth.text = "OCT"
-        b.calendarTile.calDay.text = "23"
-        b.calendarTile.calWeekday.text = "Thursday"
-        b.calendarTile.calAlarm.text = "FRI 07:30"
+        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, true)
+        clockB.clock.previewTime = 10 to 24
+        clockB.secondsTicker.previewSecond = 37
+        clockB.clockDate.text = "Thursday, 23 October"
+        clockB.clockMeridiem.text = "24H"
+
+        val density = context.resources.displayMetrics.density
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            isBaselineAligned = false
+        }
+        val batB = WidgetBatteryBinding.inflate(LayoutInflater.from(context), row, false)
+        batB.battery.level = 78
+
+        val calB = WidgetCalendarBinding.inflate(LayoutInflater.from(context), row, false)
+        calB.calMonth.text = "OCT"
+        calB.calDay.text = "23"
+        calB.calWeekday.text = "Thursday"
+        calB.calAlarm.text = "FRI 07:30"
+
+        val halfLp1 = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginEnd = (6 * density).toInt() }
+        val halfLp2 = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = (6 * density).toInt() }
+        row.addView(batB.root, halfLp1)
+        row.addView(calB.root, halfLp2)
+        pageB.elementsContainer.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = (10 * density).toInt()
+        })
 
         val all = apps(style)
         val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
         adapter.iconSizePx = context.resources.getDimensionPixelSize(if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size)
         adapter.showLabels = labels
-        b.homeGrid.layoutManager = GridLayoutManager(context, columns)
-        b.homeGrid.adapter = adapter
+        pageB.homeGrid.layoutManager = GridLayoutManager(context, columns)
+        pageB.homeGrid.adapter = adapter
         adapter.setItems(all.take(columns * 2))
+
+        b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = 1
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int) = object : RecyclerView.ViewHolder(pageB.root) {}
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {}
+        }
+
+        b.pageIndicator.pageCount = 3
+        b.pageIndicator.currentPage = 0
         b.dock.setApps(all.subList(8, 12))
         return screen(b.root)
     }
@@ -129,19 +166,66 @@ class ScreensTest {
 
     @Test fun homeEmpty() {
         val b = FragmentHomeBinding.inflate(LayoutInflater.from(context))
-        b.homeContent.updatePadding(top = dp(36))
+        b.workspaceRecycler.updatePadding(top = dp(24))
         b.bottomBar.updatePadding(bottom = dp(28))
-        b.clockTile.clock.previewTime = 21 to 7
-        b.clockTile.secondsTicker.previewSecond = 5
-        b.clockTile.clockDate.text = "Thursday, 23 October"
-        b.batteryTile.battery.level = 12
-        b.calendarTile.calMonth.text = "OCT"
-        b.calendarTile.calDay.text = "23"
-        b.calendarTile.calWeekday.text = "Thursday"
-        b.calendarTile.calAlarm.text = "NO ALARM"
-        b.homeGrid.isVisible = false
-        b.homeEmpty.isVisible = true
+
+        val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.pageContent.updatePadding(top = dp(12))
+
+        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, true)
+        clockB.clock.previewTime = 21 to 7
+        clockB.secondsTicker.previewSecond = 5
+        clockB.clockDate.text = "Thursday, 23 October"
+
+        pageB.homeGrid.isVisible = false
+        pageB.homeEmpty.isVisible = true
+
+        b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = 1
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int) = object : RecyclerView.ViewHolder(pageB.root) {}
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {}
+        }
+        b.pageIndicator.pageCount = 2
+        b.pageIndicator.currentPage = 0
         b.dock.isVisible = false
+        paparazzi.snapshot(screen(b.root))
+    }
+
+    @Test fun homePage2WithWeatherAndToggles() {
+        val b = FragmentHomeBinding.inflate(LayoutInflater.from(context))
+        b.workspaceRecycler.updatePadding(top = dp(24))
+        b.bottomBar.updatePadding(bottom = dp(16 + 12))
+
+        val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        val density = context.resources.displayMetrics.density
+        val elLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = (10 * density).toInt()
+        }
+
+        val weatherB = WidgetWeatherBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        pageB.elementsContainer.addView(weatherB.root, elLp)
+
+        val togB = WidgetQuickTogglesBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        pageB.elementsContainer.addView(togB.root, elLp)
+
+        val all = apps()
+        val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
+        adapter.iconSizePx = context.resources.getDimensionPixelSize(R.dimen.icon_size)
+        pageB.homeGrid.layoutManager = GridLayoutManager(context, 4)
+        pageB.homeGrid.adapter = adapter
+        adapter.setItems(all.subList(12, 16))
+
+        b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
+        b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            override fun getItemCount() = 1
+            override fun onCreateViewHolder(p: ViewGroup, vt: Int) = object : RecyclerView.ViewHolder(pageB.root) {}
+            override fun onBindViewHolder(h: RecyclerView.ViewHolder, pos: Int) {}
+        }
+
+        b.pageIndicator.pageCount = 3
+        b.pageIndicator.setPageImmediately(1)
+        b.dock.setApps(all.subList(8, 12))
         paparazzi.snapshot(screen(b.root))
     }
 
@@ -216,8 +300,10 @@ class ScreensTest {
     @Test fun customizeSheet() {
         val b = SheetCustomizeBinding.inflate(LayoutInflater.from(context))
         listOf(
-            Triple(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper),
             Triple(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets),
+            Triple(b.tileAddPage, R.drawable.ic_add, R.string.add_page),
+            Triple(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page),
+            Triple(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper),
             Triple(b.tileSettings, R.drawable.ic_tune, R.string.settings)
         ).forEach { (t, icon, label) -> t.tileIcon.setImageResource(icon); t.tileLabel.setText(label) }
         val home = buildHome() as FrameLayout

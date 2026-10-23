@@ -98,4 +98,46 @@
     <string name="back">Back</string>
     <string name="setting_about">About</string>
     <string name="about_body">Version %1$s · Type set in Space Mono &amp; Space Grotesk (SIL OFL)</string>
+
+    <!-- Multi-page & Bespoke Elements -->
+    <string name="add_element">Add element</string>
+    <string name="add_page">Add page</string>
+    <string name="remove_page">Remove page</string>
+    <string name="remove_page_confirm">Remove this page? Pinned apps will be moved to the first page.</string>
+    <string name="page_added">Page added</string>
+    <string name="page_removed">Page removed</string>
+    <string name="move_to_next_page">Move to next page</string>
+    <string name="move_to_prev_page">Move to previous page</string>
+    <string name="page_indicator">Page %1$d of %2$d</string>
+    <string name="bespoke_elements">Nothing Elements</string>
+    <string name="system_widgets">System Widgets</string>
+    <string name="remove_element">Remove element</string>
+    <string name="element_clock">LED Clock</string>
+    <string name="element_clock_sub">Dot-matrix panel with seconds ticker</string>
+    <string name="element_battery_cal">Battery &amp; Date</string>
+    <string name="element_battery_cal_sub">40-dot battery ring &amp; calendar day</string>
+    <string name="element_weather">Weather</string>
+    <string name="element_weather_sub">Dot-matrix temperature &amp; conditions</string>
+    <string name="element_toggles">Quick Toggles</string>
+    <string name="element_toggles_sub">Wi-Fi, Bluetooth, Torch &amp; Sound</string>
+    <string name="element_pedometer">Step Counter</string>
+    <string name="element_pedometer_sub">Daily activity dot ring</string>
+    <string name="element_compass">Compass</string>
+    <string name="element_compass_sub">Dot heading &amp; cardinal direction</string>
+    <string name="weather_city_default">LONDON</string>
+    <string name="weather_temp_default">21°</string>
+    <string name="weather_condition_default">PARTLY CLOUDY</string>
+    <string name="weather_details">%1$s · %2$s</string>
+    <string name="toggle_wifi">Wi-Fi</string>
+    <string name="toggle_bt">Bluetooth</string>
+    <string name="toggle_torch">Torch</string>
+    <string name="toggle_sound">Sound</string>
+    <string name="sound_normal">RING</string>
+    <string name="sound_vibrate">VIBE</string>
+    <string name="sound_silent">MUTE</string>
+    <string name="pedometer_label">DAILY STEPS</string>
+    <string name="pedometer_steps_default">7,420</string>
+    <string name="pedometer_goal">GOAL 10,000 · 74%</string>
+    <string name="compass_heading_default">042° NE</string>
+    <string name="compass_label">HEADING</string>
 </resources>
