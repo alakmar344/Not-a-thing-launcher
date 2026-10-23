@@ -1,14 +1,107 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Not a Thing Launcher</string>
-    <string name="search_apps">Search apps…</string>
-    <string name="clock_glyph">Clock glyph</string>
-    <string name="app_icon">App icon</string>
-    <string name="add_widget">Add widget</string>
-    <string name="wallpaper">Wallpaper</string>
+    <string name="app_short_name">Not a Thing</string>
+
+    <!-- Home -->
+    <string name="local_time">Local time</string>
+    <string name="format_24h">24H</string>
+    <string name="battery">Battery</string>
+    <string name="charging">Charging</string>
+    <string name="battery_low">Low</string>
+    <string name="no_alarm">No alarm</string>
+    <string name="search_hint_home">Search apps &amp; web</string>
+    <string name="home_empty_title">Your space, nothing else</string>
+    <string name="home_empty_body">Long-press any app in the drawer and choose “Pin to home”.</string>
+    <string name="open_drawer">Open app drawer</string>
+    <string name="clock_widget">Clock. Opens alarms.</string>
+    <string name="battery_widget">Battery level</string>
+    <string name="calendar_widget">Calendar. Opens your calendar.</string>
+
+    <!-- Drawer -->
+    <string name="apps">Apps</string>
+    <string name="search_apps">Search apps</string>
+    <string name="clear_search">Clear search</string>
+    <string name="recent">Recent</string>
+    <string name="all_apps">All apps</string>
+    <string name="no_match">No match</string>
+    <string name="search_web_for">Search the web for “%1$s”</string>
+    <string name="search_web">Search the web</string>
     <string name="settings">Settings</string>
+
+    <!-- App actions -->
+    <string name="pin_to_home">Pin to home</string>
+    <string name="remove_from_home">Remove from home</string>
+    <string name="add_to_dock">Add to dock</string>
+    <string name="remove_from_dock">Remove from dock</string>
     <string name="app_info">App info</string>
+    <string name="hide_app">Hide app</string>
     <string name="uninstall">Uninstall</string>
-    <string name="folder_name">Folder</string>
-    <string name="new_folder">New Folder</string>
+    <string name="dock_full">Dock is full — remove an app first</string>
+    <string name="app_hidden">%1$s hidden. Restore it in Settings.</string>
+    <string name="cannot_open">Couldn’t open that</string>
+    <string name="remove_widget">Remove widget</string>
+    <string name="app_icon">App icon</string>
+
+    <!-- Customize sheet -->
+    <string name="customize">Customize</string>
+    <string name="wallpaper">Wallpaper</string>
+    <string name="widgets">Widgets</string>
+
+    <!-- Widgets -->
+    <string name="add_widget">Add widget</string>
+    <string name="no_widgets">No widgets available</string>
+    <string name="widget_size">%1$d × %2$d</string>
+    <string name="widget_failed">That widget couldn’t be added</string>
+
+    <!-- Settings -->
+    <string name="section_home">Home</string>
+    <string name="section_drawer">Drawer</string>
+    <string name="section_look">Look</string>
+    <string name="section_gestures">Gestures</string>
+    <string name="section_system">System</string>
+    <string name="setting_labels">App labels</string>
+    <string name="setting_labels_sub">Show names under home screen icons</string>
+    <string name="setting_columns">Grid columns</string>
+    <string name="setting_columns_sub">Icons per row on home and in the drawer</string>
+    <string name="setting_seconds">Seconds ticker</string>
+    <string name="setting_seconds_sub">A live row of 60 dots under the clock</string>
+    <string name="setting_icons">Icon style</string>
+    <string name="setting_icons_sub">Monochrome uses themed icons when apps provide them</string>
+    <string name="icons_mono">Mono</string>
+    <string name="icons_color">Color</string>
+    <string name="setting_background">Background</string>
+    <string name="setting_background_sub">Dot grid, pure black or your wallpaper</string>
+    <string name="bg_dots">Dots</string>
+    <string name="bg_black">Black</string>
+    <string name="bg_wallpaper">Wallpaper</string>
+    <string name="setting_accent">Accent</string>
+    <string name="setting_accent_sub">Used sparingly — for alerts, live dots and focus</string>
+    <string name="accent_red">Red</string>
+    <string name="accent_white">White</string>
+    <string name="setting_recents">Recent apps</string>
+    <string name="setting_recents_sub">Show recently opened apps at the top</string>
+    <string name="setting_keyboard">Open keyboard</string>
+    <string name="setting_keyboard_sub">Focus search whenever the drawer opens</string>
+    <string name="setting_hidden">Hidden apps</string>
+    <string name="setting_hidden_none">None hidden</string>
+    <string name="setting_hidden_count">%1$d hidden</string>
+    <string name="setting_swipe_down">Swipe down</string>
+    <string name="setting_swipe_down_sub">On the home screen</string>
+    <string name="swipe_notifications">Alerts</string>
+    <string name="swipe_search">Search</string>
+    <string name="setting_default">Default home app</string>
+    <string name="setting_default_on">Not a Thing is your home screen</string>
+    <string name="setting_default_off">Tap to make Not a Thing your home screen</string>
+    <string name="setting_reset">Reset layout</string>
+    <string name="setting_reset_sub">Restore the default home and dock apps</string>
+    <string name="reset_confirm_title">Reset layout?</string>
+    <string name="reset_confirm_body">Your pinned apps, dock and widgets will go back to the defaults.</string>
+    <string name="reset">Reset</string>
+    <string name="cancel">Cancel</string>
+    <string name="unhide">Unhide</string>
+    <string name="done">Done</string>
+    <string name="back">Back</string>
+    <string name="setting_about">About</string>
+    <string name="about_body">Version %1$s · Type set in Space Mono &amp; Space Grotesk (SIL OFL)</string>
 </resources>

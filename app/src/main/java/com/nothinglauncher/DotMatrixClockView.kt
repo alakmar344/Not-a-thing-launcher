@@ -1,199 +1,99 @@
 package com.nothinglauncher
 
 import android.content.Context
-import android.graphics.Canvas
-import android.graphics.Paint
-import android.os.Handler
-import android.os.Looper
+import android.text.format.DateFormat
 import android.util.AttributeSet
-import android.view.View
-import androidx.core.content.ContextCompat
 import java.util.Calendar
 
+/**
+ * Live dot-matrix clock. Respects the system 12/24-hour setting and blinks the colon
+ * in the accent colour once per second. It only ticks while actually visible.
+ */
 class DotMatrixClockView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
-) : View(context, attrs, defStyleAttr) {
+) : DotMatrixView(context, attrs, defStyleAttr) {
 
-    private val glowRadius = 12f * resources.displayMetrics.density
+    var blinkColon: Boolean = true
+        set(value) { field = value; tick() }
 
-    private val activePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.dot_active)
-        style = Paint.Style.FILL
-        setShadowLayer(glowRadius, 0f, 0f, ContextCompat.getColor(context, R.color.dot_glow))
+    /** Called whenever the displayed minute changes (and once on first tick). */
+    var onMinuteChanged: ((Calendar) -> Unit)? = null
+
+    /** Freezes the clock at a given time (previews / screenshot tests). */
+    var previewTime: Pair<Int, Int>? = null
+        set(value) { field = value; tick() }
+
+    private var lastMinuteStamp = -1L
+    private var running = false
+
+    private val ticker = object : Runnable {
+        override fun run() {
+            tick()
+            if (running) postDelayed(this, 1000L - System.currentTimeMillis() % 1000L)
+        }
     }
-
-    private val inactivePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.dot_inactive)
-        style = Paint.Style.FILL
-    }
-
-    private val handler = Handler(Looper.getMainLooper())
-    private var currentTime = ""
 
     init {
-        setLayerType(LAYER_TYPE_SOFTWARE, null)
+        tick()
     }
 
-    // 5x7 dot matrix font patterns for digits 0-9 and colon
-    private val digitPatterns = mapOf(
-        '0' to arrayOf(
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(1,0,0,1,1),
-            intArrayOf(1,0,1,0,1),
-            intArrayOf(1,1,0,0,1),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,1,1,1,0)
-        ),
-        '1' to arrayOf(
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,1,1,0,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,1,1,1,0)
-        ),
-        '2' to arrayOf(
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,1,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,1,0,0,0),
-            intArrayOf(1,1,1,1,1)
-        ),
-        '3' to arrayOf(
-            intArrayOf(1,1,1,1,0),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(1,1,1,1,0)
-        ),
-        '4' to arrayOf(
-            intArrayOf(0,0,0,1,0),
-            intArrayOf(0,0,1,1,0),
-            intArrayOf(0,1,0,1,0),
-            intArrayOf(1,0,0,1,0),
-            intArrayOf(1,1,1,1,1),
-            intArrayOf(0,0,0,1,0),
-            intArrayOf(0,0,0,1,0)
-        ),
-        '5' to arrayOf(
-            intArrayOf(1,1,1,1,1),
-            intArrayOf(1,0,0,0,0),
-            intArrayOf(1,0,0,0,0),
-            intArrayOf(1,1,1,1,0),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(1,1,1,1,0)
-        ),
-        '6' to arrayOf(
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,0),
-            intArrayOf(1,0,0,0,0),
-            intArrayOf(1,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,1,1,1,0)
-        ),
-        '7' to arrayOf(
-            intArrayOf(1,1,1,1,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,1,0),
-            intArrayOf(0,0,1,0,0),
-            intArrayOf(0,1,0,0,0),
-            intArrayOf(0,1,0,0,0),
-            intArrayOf(0,1,0,0,0)
-        ),
-        '8' to arrayOf(
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,1,1,1,0)
-        ),
-        '9' to arrayOf(
-            intArrayOf(0,1,1,1,0),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(1,0,0,0,1),
-            intArrayOf(0,1,1,1,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,0,0,0,1),
-            intArrayOf(0,1,1,1,0)
-        ),
-        ':' to arrayOf(
-            intArrayOf(0,0,0),
-            intArrayOf(0,1,0),
-            intArrayOf(0,1,0),
-            intArrayOf(0,0,0),
-            intArrayOf(0,1,0),
-            intArrayOf(0,1,0),
-            intArrayOf(0,0,0)
-        )
-    )
-
-    private val updateRunnable = object : Runnable {
-        override fun run() {
-            updateTime()
-            handler.postDelayed(this, 1000)
+    fun tick() {
+        val cal = Calendar.getInstance()
+        val preview = previewTime
+        if (preview != null) {
+            cal.set(Calendar.HOUR_OF_DAY, preview.first)
+            cal.set(Calendar.MINUTE, preview.second)
+            cal.set(Calendar.SECOND, 0)
         }
+        val is24 = is24Hour()
+        val hour = cal.get(Calendar.HOUR_OF_DAY)
+        val minute = cal.get(Calendar.MINUTE)
+        val newText = if (is24) {
+            String.format(java.util.Locale.US, "%02d:%02d", hour, minute)
+        } else {
+            val h12 = if (hour % 12 == 0) 12 else hour % 12
+            String.format(java.util.Locale.US, "%d:%02d", h12, minute)
+        }
+        text = newText
+        accentIndices = setOf(newText.indexOf(':'))
+        accentVisible = !blinkColon || preview != null || cal.get(Calendar.SECOND) % 2 == 0
+
+        val stamp = cal.timeInMillis / 60_000L
+        if (stamp != lastMinuteStamp) {
+            lastMinuteStamp = stamp
+            onMinuteChanged?.invoke(cal)
+        }
+    }
+
+    fun is24Hour(): Boolean = try {
+        DateFormat.is24HourFormat(context)
+    } catch (e: Exception) {
+        true
+    }
+
+    private fun updateRunning() {
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE && previewTime == null
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(ticker)
+        if (running) post(ticker)
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        handler.post(updateRunnable)
+        updateRunning()
     }
 
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
-        handler.removeCallbacks(updateRunnable)
+        running = false
+        removeCallbacks(ticker)
     }
 
-    private fun updateTime() {
-        val calendar = Calendar.getInstance()
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        val minute = calendar.get(Calendar.MINUTE)
-        currentTime = String.format("%02d:%02d", hour, minute)
-        invalidate()
-    }
-
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        if (currentTime.isEmpty()) {
-            updateTime()
-        }
-        val chars = currentTime.toList()
-        var totalCols = 0
-        for (c in chars) {
-            totalCols += if (c == ':') 3 else 5
-        }
-        totalCols += (chars.size - 1)
-
-        val dotSize = height / 9f
-        val dotSpacing = dotSize * 1.4f
-        val totalWidth = totalCols * dotSpacing
-        var startX = (width.toFloat() - totalWidth) / 2f
-        val startY = (height.toFloat() - 7 * dotSpacing) / 2f
-
-        for (c in chars) {
-            val pattern = digitPatterns[c] ?: continue
-            val colCount = pattern[0].size
-            for (row in pattern.indices) {
-                for (col in 0 until colCount) {
-                    val x = startX + col * dotSpacing + dotSpacing / 2
-                    val y = startY + row * dotSpacing + dotSpacing / 2
-                    val paint = if (pattern[row][col] == 1) activePaint else inactivePaint
-                    canvas.drawCircle(x, y, dotSize / 2f, paint)
-                }
-            }
-            startX += colCount * dotSpacing + dotSpacing
-        }
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
     }
 }

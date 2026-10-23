@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="DotMatrixView">
+        <attr name="dmText" format="string" />
+        <attr name="dmDotColor" format="color" />
+        <attr name="dmOffColor" format="color" />
+        <attr name="dmAccentColor" format="color" />
+        <!-- Draw a full LED panel of unlit dots behind the text -->
+        <attr name="dmPanel" format="boolean" />
+        <attr name="dmPanelPadRows" format="integer" />
+        <attr name="dmDotScale" format="float" />
+        <attr name="dmLetterSpacing" format="integer" />
+        <attr name="dmGlow" format="boolean" />
+        <attr name="dmGravity" format="enum">
+            <enum name="start" value="0" />
+            <enum name="center" value="1" />
+            <enum name="end" value="2" />
+        </attr>
+    </declare-styleable>
+</resources>

@@ -1,23 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="nothing_black">#0A0A10</color>
-    <color name="nothing_white">#F7F7F7</color>
-    <color name="nothing_gray">#14141D</color>
-    <color name="nothing_accent">#FF4D6D</color>
-    <color name="nothing_accent_secondary">#6AE4FF</color>
-    <color name="nothing_surface">#101016</color>
-    <color name="nothing_surface_alt">#1A1A24</color>
-    <color name="dot_active">#F7F7F7</color>
-    <color name="dot_inactive">#2B2B36</color>
-    <color name="dot_glow">#FF4D6D</color>
-    <color name="search_bar_bg">#15151E</color>
-    <color name="folder_bg">#1B1B26</color>
-    <color name="dock_bg">#0F0F16</color>
-    <color name="glyph_stroke">#2A2A38</color>
-    <color name="glyph_fill">#111118</color>
-    <color name="home_gradient_start">#09090F</color>
-    <color name="home_gradient_end">#151521</color>
-    <color name="drawer_gradient_start">#0B0B12</color>
-    <color name="drawer_gradient_end">#1B1B28</color>
-    <color name="accent_glow">#33FF4D6D</color>
+    <!-- Core monochrome palette -->
+    <color name="nothing_black">#000000</color>
+    <color name="nothing_white">#FFFFFF</color>
+    <color name="nothing_red">#D71921</color>
+    <color name="nothing_red_soft">#33D71921</color>
+
+    <!-- Dark surfaces, from deepest to most raised -->
+    <color name="surface">#0E0E10</color>
+    <color name="surface_raised">#161618</color>
+    <color name="surface_icon">#1C1C1F</color>
+    <color name="surface_pressed">#222226</color>
+    <color name="hairline">#232327</color>
+    <color name="hairline_strong">#34343A</color>
+
+    <!-- Text on dark -->
+    <color name="text_primary">#F4F4F2</color>
+    <color name="text_secondary">#9C9CA1</color>
+    <color name="text_tertiary">#5C5C62</color>
+
+    <!-- Light "paper" tile -->
+    <color name="paper">#EFEFEC</color>
+    <color name="ink">#0B0B0C</color>
+    <color name="ink_secondary">#6E6E72</color>
+    <color name="paper_dot_off">#D5D5D1</color>
+
+    <!-- Dot matrix -->
+    <color name="dot_on">#F4F4F2</color>
+    <color name="dot_off">#1D1D21</color>
+    <color name="dot_grid">#161619</color>
+
+    <!-- Overlays -->
+    <color name="drawer_bg">#EB050506</color>
+    <color name="wallpaper_scrim_top">#8C000000</color>
+    <color name="wallpaper_scrim_bottom">#B3000000</color>
+    <color name="ripple_light">#1FFFFFFF</color>
+    <color name="ripple_dark">#14000000</color>
+    <color name="text_highlight">#55D71921</color>
 </resources>
