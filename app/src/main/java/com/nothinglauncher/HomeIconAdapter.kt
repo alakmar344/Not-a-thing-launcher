@@ -3,17 +3,21 @@ package com.nothinglauncher
 import android.annotation.SuppressLint
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.ItemAppBinding
+import kotlin.math.abs
 
-/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper. */
+/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper and full launcher dragging. */
 class HomeIconAdapter(
     private val onAppClick: (AppInfo, View) -> Unit,
-    private val onAppLongClick: (AppInfo, View) -> Unit
+    private val onAppLongClick: (AppInfo, View) -> Unit,
+    private val onAppDragStart: ((AppInfo, View, Float, Float) -> Unit)? = null
 ) : RecyclerView.Adapter<HomeIconAdapter.IconViewHolder>() {
 
     private val items = mutableListOf<AppInfo>()
@@ -56,6 +60,11 @@ class HomeIconAdapter(
     override fun getItemCount(): Int = items.size
 
     inner class IconViewHolder(private val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
+        private var downRawX = 0f
+        private var downRawY = 0f
+        private var longPressed = false
+        private val slop = ViewConfiguration.get(binding.root.context).scaledTouchSlop
+
         fun bind(app: AppInfo) {
             binding.appIcon.setImageDrawable(app.icon)
             binding.appIcon.contentDescription = app.label
@@ -63,8 +72,36 @@ class HomeIconAdapter(
             binding.appLabel.text = app.label
             binding.appLabel.isVisible = showLabels
             applyLabelShadow(binding, labelShadow)
+
             binding.root.setOnClickListener { onAppClick(app, binding.appIcon) }
+
+            binding.root.setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downRawX = event.rawX
+                        downRawY = event.rawY
+                        longPressed = false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (longPressed) {
+                            val dx = abs(event.rawX - downRawX)
+                            val dy = abs(event.rawY - downRawY)
+                            if (dx > slop * 1.5f || dy > slop * 1.5f) {
+                                longPressed = false
+                                onAppDragStart?.invoke(app, binding.appIcon, event.rawX, event.rawY)
+                                return@setOnTouchListener true
+                            }
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        longPressed = false
+                    }
+                }
+                false
+            }
+
             binding.root.setOnLongClickListener {
+                longPressed = true
                 it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 onAppLongClick(app, binding.appIcon)
                 true
@@ -73,7 +110,6 @@ class HomeIconAdapter(
     }
 
     companion object {
-        /** Wallpaper backgrounds can be bright, so labels get a soft shadow there. */
         fun applyLabelShadow(binding: ItemAppBinding, enabled: Boolean) {
             if (enabled) binding.appLabel.setShadowLayer(6f, 0f, 1f, 0xCC000000.toInt())
             else binding.appLabel.setShadowLayer(0f, 0f, 0f, 0)

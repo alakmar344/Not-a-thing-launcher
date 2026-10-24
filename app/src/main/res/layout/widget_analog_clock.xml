@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.nothinglauncher.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tile_dark"
+    android:clickable="true"
+    android:contentDescription="@string/element_analog_clock"
+    android:focusable="true"
+    android:foreground="@drawable/fg_ripple_tile">
+
+    <com.nothinglauncher.AnalogClockDotsView
+        android:id="@+id/analogClock"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="16dp" />
+
+    <ImageView
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="18dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_alarm"
+        android:tint="@color/text_secondary" />
+
+    <TextView
+        style="@style/Text.Label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="14dp"
+        android:text="@string/analog_clock_label"
+        android:textColor="@color/text_secondary"
+        android:textSize="9sp" />
+</com.nothinglauncher.SquareFrameLayout>

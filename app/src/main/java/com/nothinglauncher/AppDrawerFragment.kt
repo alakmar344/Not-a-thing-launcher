@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.content.Context
 import android.os.Bundle
@@ -74,7 +74,15 @@ class AppDrawerFragment : Fragment() {
     private fun setupList() {
         appAdapter = AppAdapter(
             onAppClick = { app, v -> host?.launchApp(app, v) },
-            onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DRAWER) }
+            onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DRAWER) },
+            onAppDragStart = { app, v, rawX, rawY ->
+                host?.startDrag(
+                    DragController.DragItem.App(app, DragController.DragSource.DRAWER),
+                    v,
+                    rawX,
+                    rawY
+                )
+            }
         )
         val cols = viewModel.prefs.gridColumns
         layoutManager = GridLayoutManager(requireContext(), cols).apply {

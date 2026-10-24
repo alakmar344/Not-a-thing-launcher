@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.content.Context
 import android.content.Intent
@@ -101,9 +101,20 @@ class HomeFragment : Fragment() {
         }
     }
 
-    private fun setupDock() {
+        private fun setupDock() {
         binding.dock.onAppClick = { app, v -> host?.launchApp(app, v) }
         binding.dock.onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DOCK) }
+    }
+
+    fun isPointOverDock(rawX: Float, rawY: Float): Boolean {
+        if (_binding == null || !binding.dock.isVisible) return false
+        val loc = IntArray(2)
+        binding.dock.getLocationOnScreen(loc)
+        val left = loc[0].toFloat()
+        val top = loc[1].toFloat()
+        val right = left + binding.dock.width
+        val bottom = top + binding.dock.height
+        return rawX in left..right && rawY in top..bottom
     }
 
     private fun setupBottomBar() {

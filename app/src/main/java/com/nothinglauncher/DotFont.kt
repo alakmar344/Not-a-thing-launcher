@@ -61,6 +61,7 @@ object DotFont {
     )
 
     fun glyph(c: Char): Array<String> = glyphs[c.uppercaseChar()] ?: glyphs.getValue(' ')
+    fun glyphFor(c: Char): Array<String> = glyph(c)
 
     /**
      * A rasterised line of text.

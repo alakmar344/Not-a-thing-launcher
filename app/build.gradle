@@ -66,3 +66,9 @@ configurations.configureEach { config ->
         config.resolutionStrategy.force 'com.google.guava:guava:31.1-jre'
     }
 }
+
+tasks.withType(Test).configureEach {
+    def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: 'C:/Users/proma/android-sdk'
+    environment 'ANDROID_HOME', sdkDir
+    environment 'ANDROID_SDK_ROOT', sdkDir
+}
