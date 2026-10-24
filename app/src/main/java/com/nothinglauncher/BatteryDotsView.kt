@@ -92,26 +92,6 @@ class BatteryDotsView @JvmOverloads constructor(
         } catch (_: Exception) {}
     }
 
-    override fun onAttachedToWindow() {
-        super.onAttachedToWindow()
-        if (!receiverRegistered) {
-            try {
-                context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
-                receiverRegistered = true
-            } catch (_: Exception) {}
-        }
-    }
-
-    override fun onDetachedFromWindow() {
-        super.onDetachedFromWindow()
-        if (receiverRegistered) {
-            try {
-                context.unregisterReceiver(batteryReceiver)
-                receiverRegistered = false
-            } catch (_: Exception) {}
-        }
-    }
-
     private fun updateDescription() {
         contentDescription = "${context.getString(R.string.battery_widget)} $level%" +
             if (charging) ", ${context.getString(R.string.charging)}" else ""
@@ -187,6 +167,25 @@ class BatteryDotsView @JvmOverloads constructor(
         }
     }
 
-    override fun onAttachedToWindow() { super.onAttachedToWindow(); updatePulse() }
-    override fun onDetachedFromWindow() { super.onDetachedFromWindow(); pulseAnimator?.cancel(); pulseAnimator = null }
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updatePulse()
+        if (!receiverRegistered) {
+            try {
+                context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                receiverRegistered = true
+            } catch (_: Exception) {}
+        }
+    }
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        if (receiverRegistered) {
+            try {
+                context.unregisterReceiver(batteryReceiver)
+                receiverRegistered = false
+            } catch (_: Exception) {}
+        }
+    }
 }
