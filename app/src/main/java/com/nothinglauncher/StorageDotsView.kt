@@ -62,6 +62,7 @@ class StorageDotsView @JvmOverloads constructor(
     }
 
     private fun refreshStorageInfo() {
+        if (isInEditMode) return
         try {
             val stat = StatFs(Environment.getDataDirectory().path)
             val blockSize = stat.blockSizeLong
@@ -80,7 +81,7 @@ class StorageDotsView @JvmOverloads constructor(
                 storageText = "$freeGb GB"
                 storageSub = "FREE OF $totalGb GB · $pct%"
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             // Keep default
         }
     }

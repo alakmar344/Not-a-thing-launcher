@@ -77,6 +77,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
     }
 
     private fun queryInitialBattery() {
+        if (isInEditMode) return
         try {
             val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             val batteryStatus = context.registerReceiver(null, filter)
@@ -89,7 +90,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
                 }
                 isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
             }
-        } catch (_: Exception) {}
+        } catch (_: Throwable) {}
     }
 
     override fun onAttachedToWindow() {
@@ -98,7 +99,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
             try {
                 context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
                 receiverRegistered = true
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
         }
     }
 
@@ -108,7 +109,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
             try {
                 context.unregisterReceiver(batteryReceiver)
                 receiverRegistered = false
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
         }
     }
 

@@ -77,6 +77,7 @@ class BatteryDotsView @JvmOverloads constructor(
     }
 
     private fun queryInitialBattery() {
+        if (isInEditMode) return
         try {
             val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             val batteryStatus = context.registerReceiver(null, filter)
@@ -89,7 +90,7 @@ class BatteryDotsView @JvmOverloads constructor(
                 }
                 charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
             }
-        } catch (_: Exception) {}
+        } catch (_: Throwable) {}
     }
 
     private fun updateDescription() {
@@ -174,7 +175,7 @@ class BatteryDotsView @JvmOverloads constructor(
             try {
                 context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
                 receiverRegistered = true
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
         }
     }
     override fun onDetachedFromWindow() {
@@ -185,7 +186,7 @@ class BatteryDotsView @JvmOverloads constructor(
             try {
                 context.unregisterReceiver(batteryReceiver)
                 receiverRegistered = false
-            } catch (_: Exception) {}
+            } catch (_: Throwable) {}
         }
     }
 }

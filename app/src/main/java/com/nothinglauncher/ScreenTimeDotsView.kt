@@ -61,6 +61,7 @@ class ScreenTimeDotsView @JvmOverloads constructor(
     }
 
     private fun refreshUsageStats() {
+        if (isInEditMode) return
         try {
             val usm = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager
             if (usm != null) {
@@ -80,7 +81,7 @@ class ScreenTimeDotsView @JvmOverloads constructor(
                     }
                 }
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             // Keep default
         }
     }
