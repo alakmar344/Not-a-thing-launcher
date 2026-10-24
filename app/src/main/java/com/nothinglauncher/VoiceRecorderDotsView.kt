@@ -1,0 +1,129 @@
+package com.nothinglauncher
+
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.os.SystemClock
+import android.util.AttributeSet
+import android.view.View
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
+import kotlin.random.Random
+
+/**
+ * A Nothing OS-inspired Voice Memo Tile.
+ * Features a live recording timer in [DotFont] and pulsating dot wave visualizer.
+ */
+class VoiceRecorderDotsView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null
+) : View(context, attrs) {
+
+    private val density = resources.displayMetrics.density
+
+    private val onPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.dot_on)
+    }
+    private val offPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.dot_off)
+    }
+    private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.nothing_red)
+    }
+    private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.text_secondary)
+        textSize = 10f * resources.displayMetrics.scaledDensity
+        letterSpacing = 0.08f
+        typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
+    }
+
+    var accentColor: Int
+        get() = accentPaint.color
+        set(value) { accentPaint.color = value; invalidate() }
+
+    var isRecording: Boolean = false
+        private set
+
+    private var recordStartTime: Long = 0L
+
+    private val ticker = object : Runnable {
+        override fun run() {
+            if (isRecording) {
+                invalidate()
+                postDelayed(this, 120)
+            }
+        }
+    }
+
+    fun toggle(): Boolean {
+        isRecording = !isRecording
+        if (isRecording) {
+            recordStartTime = SystemClock.elapsedRealtime()
+            post(ticker)
+        } else {
+            removeCallbacks(ticker)
+            invalidate()
+        }
+        return isRecording
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(ticker)
+        super.onDetachedFromWindow()
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        val w = width.toFloat()
+        val h = height.toFloat()
+        if (w <= 0f || h <= 0f) return
+
+        val elapsedSec = if (isRecording) (SystemClock.elapsedRealtime() - recordStartTime) / 1000 else 0L
+        val min = elapsedSec / 60
+        val sec = elapsedSec % 60
+        val timeStr = String.format("%02d:%02d", min, sec)
+
+        val dotPitch = 3.8f * density
+        val dotRadius = 1.5f * density
+
+        // Draw timer in DotFont
+        var startX = 0f
+        val startY = 4f * density
+
+        for (ch in timeStr) {
+            val glyph = DotFont.glyphFor(ch)
+            val cols = glyph.firstOrNull()?.length ?: 0
+            for (r in 0 until DotFont.ROWS) {
+                val rowStr = glyph.getOrNull(r) ?: ""
+                for (c in 0 until cols) {
+                    val isLit = rowStr.getOrNull(c) == '#'
+                    val cx = startX + (c * dotPitch)
+                    val cy = startY + (r * dotPitch)
+                    val paint = when {
+                        isLit && ch == ':' && isRecording -> accentPaint
+                        isLit -> onPaint
+                        else -> offPaint
+                    }
+                    canvas.drawCircle(cx, cy, dotRadius, paint)
+                }
+            }
+            startX += (cols * dotPitch) + (dotPitch * 0.8f)
+        }
+
+        // Draw audio wave dots next to timer
+        val waveStartX = startX + 16f * density
+        val waveBars = 8
+        for (b in 0 until waveBars) {
+            val bx = waveStartX + (b * 7f * density)
+            val heightDots = if (isRecording) Random.nextInt(1, 5) else 1
+            for (dr in 0 until 4) {
+                val dy = startY + (DotFont.ROWS * dotPitch) - (dr * 6f * density)
+                val paint = if (dr < heightDots) (if (isRecording) accentPaint else onPaint) else offPaint
+                canvas.drawCircle(bx, dy, dotRadius, paint)
+            }
+        }
+
+        val statusText = if (isRecording) "RECORDING… TAP TO SAVE" else "READY · TAP TO RECORD"
+        canvas.drawText(statusText, 0f, h - 2f * density, labelPaint)
+    }
+}

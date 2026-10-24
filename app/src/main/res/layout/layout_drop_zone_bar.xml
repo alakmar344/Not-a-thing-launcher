@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dropZoneBar"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:layout_gravity="top"
+    android:layout_marginStart="16dp"
+    android:layout_marginTop="36dp"
+    android:layout_marginEnd="16dp"
+    android:background="@drawable/bg_sheet"
+    android:elevation="12dp"
+    android:gravity="center"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="8dp"
+    android:visibility="gone">
+
+    <!-- Remove / Unpin Zone -->
+    <LinearLayout
+        android:id="@+id/dropZoneRemove"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/iconRemove"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_delete"
+            android:tint="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/textRemove"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/drag_target_remove"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="24dp"
+        android:background="@color/border_subtle" />
+
+    <!-- Uninstall Zone -->
+    <LinearLayout
+        android:id="@+id/dropZoneUninstall"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/iconUninstall"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_unpin"
+            android:tint="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/textUninstall"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/drag_target_uninstall"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+
+    <View
+        android:layout_width="1dp"
+        android:layout_height="24dp"
+        android:background="@color/border_subtle" />
+
+    <!-- Info Zone -->
+    <LinearLayout
+        android:id="@+id/dropZoneInfo"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/iconInfo"
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:src="@drawable/ic_info"
+            android:tint="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/textInfo"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/drag_target_info"
+            android:textColor="@color/text_primary"
+            android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

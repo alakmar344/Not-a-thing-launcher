@@ -2,7 +2,9 @@ package com.nothinglauncher
 
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.DiffUtil
@@ -10,6 +12,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.ItemAppBinding
 import com.nothinglauncher.databinding.ItemDrawerHeaderBinding
+import kotlin.math.abs
 
 /** Rows shown in the app drawer. */
 sealed class DrawerItem {
@@ -20,7 +23,8 @@ sealed class DrawerItem {
 /** App drawer grid: section headers (full width) + app cells. */
 class AppAdapter(
     private val onAppClick: (AppInfo, View) -> Unit,
-    private val onAppLongClick: (AppInfo, View) -> Unit
+    private val onAppLongClick: (AppInfo, View) -> Unit,
+    private val onAppDragStart: ((AppInfo, View, Float, Float) -> Unit)? = null
 ) : ListAdapter<DrawerItem, RecyclerView.ViewHolder>(Diff) {
 
     var iconSizePx: Int = 0
@@ -56,13 +60,46 @@ class AppAdapter(
     }
 
     inner class AppHolder(private val b: ItemAppBinding) : RecyclerView.ViewHolder(b.root) {
+        private var downRawX = 0f
+        private var downRawY = 0f
+        private var longPressed = false
+        private val slop = ViewConfiguration.get(b.root.context).scaledTouchSlop
+
         fun bind(app: AppInfo) {
             b.appIcon.setImageDrawable(app.icon)
             b.appIcon.contentDescription = app.label
             if (iconSizePx > 0) b.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
             b.appLabel.text = app.label
+
             b.root.setOnClickListener { onAppClick(app, b.appIcon) }
+
+            b.root.setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downRawX = event.rawX
+                        downRawY = event.rawY
+                        longPressed = false
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (longPressed) {
+                            val dx = abs(event.rawX - downRawX)
+                            val dy = abs(event.rawY - downRawY)
+                            if (dx > slop || dy > slop) {
+                                longPressed = false
+                                onAppDragStart?.invoke(app, b.appIcon, event.rawX, event.rawY)
+                                return@setOnTouchListener true
+                            }
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        longPressed = false
+                    }
+                }
+                false
+            }
+
             b.root.setOnLongClickListener {
+                longPressed = true
                 it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 onAppLongClick(app, b.appIcon)
                 true
@@ -82,8 +119,6 @@ class AppAdapter(
                 else -> false
             }
 
-            // AppInfo is a data class; its icon is compared by reference, so a re-rendered
-            // icon (e.g. after switching icon style) correctly counts as a change.
             override fun areContentsTheSame(oldItem: DrawerItem, newItem: DrawerItem): Boolean =
                 oldItem == newItem
         }

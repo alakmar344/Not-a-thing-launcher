@@ -16,6 +16,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.PathInterpolator
@@ -51,6 +52,9 @@ class MainActivity : AppCompatActivity() {
 
     private var appliedSettingsVersion = -1
 
+    val dragController: DragController by lazy { DragController(this, binding) }
+    val currentPageIndex: Int get() = homeFragment?.currentPageIndex ?: 0
+
     // ---- Drawer state ------------------------------------------------------------------
     private var drawerProgress = 0f
     private var dragStartProgress = 0f
@@ -70,7 +74,7 @@ class MainActivity : AppCompatActivity() {
     private var pendingWidgetId = -1
 
     private val bindWidgetLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val id = pendingWidgetId
+        val id = result.data?.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, pendingWidgetId) ?: pendingWidgetId
         val info = if (id != -1) appWidgetManager.getAppWidgetInfo(id) else null
         if (result.resultCode == Activity.RESULT_OK && info != null) {
             configureOrAddWidget(id, info)
@@ -145,6 +149,7 @@ class MainActivity : AppCompatActivity() {
         openDialog?.dismiss()
         openDialog = null
         popup.dismiss()
+        widgetHost.clearViews()
         super.onDestroy()
     }
 
@@ -155,6 +160,36 @@ class MainActivity : AppCompatActivity() {
             openDialog?.dismiss()
             if (drawerProgress > 0f) closeDrawer() else homeFragment?.scrollToTop()
         }
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (dragController.isDragging && dragController.onTouchEvent(ev)) {
+            return true
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    fun startDrag(item: DragController.DragItem, view: View, rawX: Float, rawY: Float) {
+        dragController.startDrag(item, view, rawX, rawY)
+    }
+
+    fun performPageFlip(direction: Int) {
+        val current = currentPageIndex
+        val total = viewModel.workspacePages.value?.size ?: 1
+        val target = current + direction
+        if (target in 0 until total) {
+            homeFragment?.scrollToPage(target)
+        } else if (direction > 0 && target == total) {
+            val newIdx = viewModel.addPage()
+            homeFragment?.scrollToPage(newIdx)
+        }
+    }
+
+    fun isPointOverDock(rawX: Float, rawY: Float): Boolean =
+        homeFragment?.isPointOverDock(rawX, rawY) ?: false
+
+    fun performHapticFeedback(feedbackConstant: Int) {
+        binding.root.performHapticFeedback(feedbackConstant)
     }
 
     private fun setupBackHandler() {
@@ -654,7 +689,7 @@ class MainActivity : AppCompatActivity() {
         }
         pendingWidgetId = id
         val bound = try {
-            appWidgetManager.bindAppWidgetIdIfAllowed(id, info.profile, info.provider, null)
+            appWidgetManager.bindAppWidgetIdIfAllowed(id, info.profile, info.provider, Bundle())
         } catch (e: Exception) {
             false
         }
@@ -683,8 +718,8 @@ class MainActivity : AppCompatActivity() {
                 widgetHost.startAppWidgetConfigureActivityForResult(this, id, 0, REQUEST_CONFIGURE_WIDGET, null)
                 return
             } catch (e: Exception) {
-                discardPendingWidget()
-                AppLauncher.toast(this, R.string.widget_failed)
+                // If configure activity fails to start, fallback to adding widget directly
+                addWidget(id)
                 return
             }
         }
@@ -718,7 +753,7 @@ class MainActivity : AppCompatActivity() {
     fun createWidgetView(id: Int): AppWidgetHostView? {
         val info = try { appWidgetManager.getAppWidgetInfo(id) } catch (e: Exception) { null } ?: return null
         return try {
-            widgetHost.createView(this, id, info)
+            widgetHost.getOrCreateView(this, id, info)
         } catch (e: Exception) {
             null
         }

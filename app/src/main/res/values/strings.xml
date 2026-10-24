@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Not a Thing Launcher</string>
 
@@ -207,4 +207,52 @@
     <string name="battery_charging_label">CHARGING</string>
     <string name="action_quick_settings">Home Settings</string>
     <string name="action_manage_pages">Manage Pages</string>
+    <!-- v8.5 Modern Drag & Drop and Bespoke Widgets Suite -->
+    <string name="drag_target_remove">REMOVE</string>
+    <string name="drag_target_uninstall">UNINSTALL</string>
+    <string name="drag_target_info">APP INFO</string>
+    <string name="drag_folder_created">Folder created</string>
+    <string name="drag_app_pinned">App placed on home</string>
+
+    <string name="element_analog_clock">Analog Clock</string>
+    <string name="element_analog_clock_sub">Dot dial with live hour and minute hands</string>
+    <string name="analog_clock_label">ANALOG CLOCK</string>
+
+    <string name="element_media">Media Controller</string>
+    <string name="element_media_sub">Playback controls &amp; live waveform visualizer</string>
+    <string name="media_label">NOW PLAYING</string>
+    <string name="media_title_default">NOTHING SOUNDS</string>
+    <string name="media_artist_default">GLYPH AUDIO SYSTEM</string>
+
+    <string name="element_stopwatch">Chrono / Stopwatch</string>
+    <string name="element_stopwatch_sub">High-precision dot timer with 1/10s ticker</string>
+    <string name="stopwatch_label">STOPWATCH</string>
+    <string name="stopwatch_start">START</string>
+    <string name="stopwatch_stop">PAUSE</string>
+    <string name="stopwatch_reset">RESET</string>
+
+    <string name="element_system_monitor">RAM &amp; CPU Monitor</string>
+    <string name="element_system_monitor_sub">Real-time memory usage &amp; processor stats</string>
+    <string name="system_monitor_label">SYSTEM MONITOR</string>
+    <string name="system_monitor_ram_free">RAM FREE</string>
+    <string name="system_monitor_cpu_active">CPU ACTIVE</string>
+
+    <string name="element_habit_tracker">Habit / Water</string>
+    <string name="element_habit_tracker_sub">Daily hydration &amp; 8-dot goal tracker</string>
+    <string name="habit_label">HYDRATION TRACKER</string>
+    <string name="habit_sub">8 GLASSES DAILY GOAL</string>
+
+    <string name="element_countdown">Event Countdown</string>
+    <string name="element_countdown_sub">Days remaining countdown to target event</string>
+    <string name="countdown_label">COUNTDOWN</string>
+    <string name="countdown_default_title">NEXT MILESTONE</string>
+    <string name="countdown_days_suffix">DAYS REMAINING</string>
+    <string name="edit_countdown_title">Edit Countdown</string>
+    <string name="countdown_hint">Event title…</string>
+
+    <string name="element_sound_recorder">Voice Memo</string>
+    <string name="element_sound_recorder_sub">One-tap audio memo recorder</string>
+    <string name="recorder_label">VOICE MEMO</string>
+    <string name="recorder_idle">TAP TO RECORD</string>
+    <string name="recorder_recording">RECORDING…</string>
 </resources>

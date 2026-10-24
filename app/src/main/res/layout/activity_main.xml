@@ -15,4 +15,18 @@
         android:layout_height="match_parent"
         android:visibility="invisible" />
 
+    <!-- Top Drop Action Target Bar during drag -->
+    <include
+        android:id="@+id/dropZoneInclude"
+        layout="@layout/layout_drop_zone_bar" />
+
+    <!-- Floating Drag Overlay View Layer -->
+    <FrameLayout
+        android:id="@+id/dragOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone" />
+
 </FrameLayout>
