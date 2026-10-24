@@ -6,11 +6,11 @@
     android:clickable="true"
     android:focusable="true"
     android:foreground="@drawable/fg_ripple_tile"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:padding="@dimen/tile_padding">
 
     <com.nothinglauncher.BatteryGaugeDotsView
         android:id="@+id/batteryDotsView"
         android:layout_width="match_parent"
-        android:layout_height="96dp"
-        android:padding="14dp" />
+        android:layout_height="76dp" />
 </LinearLayout>

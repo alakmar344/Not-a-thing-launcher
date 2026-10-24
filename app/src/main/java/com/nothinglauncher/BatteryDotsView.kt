@@ -1,7 +1,11 @@
 package com.nothinglauncher
 
 import android.animation.ValueAnimator
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
@@ -52,6 +56,61 @@ class BatteryDotsView @JvmOverloads constructor(
     private var pulseAnimator: ValueAnimator? = null
 
     private val lowThreshold = 15
+
+    private var receiverRegistered = false
+
+    private val batteryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent == null) return
+            val lvl = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+            if (lvl >= 0 && scale > 0) {
+                level = (lvl * 100 / scale.toFloat()).roundToInt()
+            }
+            charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+        }
+    }
+
+    init {
+        queryInitialBattery()
+    }
+
+    private fun queryInitialBattery() {
+        try {
+            val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus = context.registerReceiver(null, filter)
+            if (batteryStatus != null) {
+                val lvl = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                val scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                val status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                if (lvl >= 0 && scale > 0) {
+                    level = (lvl * 100 / scale.toFloat()).roundToInt()
+                }
+                charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        if (!receiverRegistered) {
+            try {
+                context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                receiverRegistered = true
+            } catch (_: Exception) {}
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        if (receiverRegistered) {
+            try {
+                context.unregisterReceiver(batteryReceiver)
+                receiverRegistered = false
+            } catch (_: Exception) {}
+        }
+    }
 
     private fun updateDescription() {
         contentDescription = "${context.getString(R.string.battery_widget)} $level%" +

@@ -350,7 +350,7 @@ class ScreensTest {
             Triple(b.tileWidgets, R.drawable.ic_widgets, R.string.widgets),
             Triple(b.tileAddPage, R.drawable.ic_add, R.string.add_page),
             Triple(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page),
-            Triple(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper),
+            Triple(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper_style),
             Triple(b.tileSettings, R.drawable.ic_tune, R.string.settings)
         ).forEach { (t, icon, label) -> t.tileIcon.setImageResource(icon); t.tileLabel.setText(label) }
         val home = buildHome() as FrameLayout
@@ -408,7 +408,7 @@ class ScreensTest {
         SettingsUi.card(list).also { card ->
             SettingsUi.actionRow(card, "Default home app", "Not a Thing is your home screen", trailingIcon = R.drawable.ic_home) {}
             SettingsUi.actionRow(card, "Reset layout", "Restore the default home and dock apps", destructive = true, trailingIcon = R.drawable.ic_refresh) {}
-            SettingsUi.infoRow(card, "About", "Version 2.0 · Type set in Space Mono & Space Grotesk (SIL OFL)")
+            SettingsUi.infoRow(card, "About", "Version 8.0 · Type set in Space Mono & Space Grotesk (SIL OFL)")
         }
         paparazzi.snapshot(b.root)
     }
@@ -433,7 +433,7 @@ class ScreensTest {
         paparazzi.snapshot(screen(column, ColorDrawable(Color.BLACK)))
     }
 
-    @Test fun customizeSheet() {
+    @Test fun customizeSheetStandalone() {
         val b = SheetCustomizeBinding.inflate(LayoutInflater.from(context))
         fun tile(t: com.nothinglauncher.databinding.ItemSheetTileBinding, icon: Int, label: Int, enabled: Boolean = true) {
             t.tileIcon.setImageResource(icon)
