@@ -79,6 +79,8 @@ The release build enables R8 shrinking. Verify the signer before distributing:
 
 | Area | Change |
 |---|---|
+| **Unified CellLayout Grid** | Custom 2D matrix ViewGroup replacing segmented stacks. Freely place and interleave apps, 1×1 circular folders, 2×2 enlarged folders, 2×2 max icons, bespoke elements, and hosted AppWidgets on a single continuous page. |
+| **Nothing OS Folders & Max Tiles** | 1×1 circular dark disc folder icons with 2×2 mini previews; 2×2 enlarged interactive folder tiles with 4 direct launch slots; 2×2 square Max Icon tiles with monochrome icon and red dot accent. |
 | **Onboarding** | First launch now really opens the welcome tour (it previously existed but was never wired), including the set-as-default prompt. Re-runnable from *Settings → Show welcome tour*. |
 | **Double-Tap to Sleep** | Uses the accessibility global action (`GLOBAL_ACTION_LOCK_SCREEN`); the old code broadcast a no-op intent. If the optional service is off, the launcher explains instead of failing silently. |
 | **Media Controller element** | Now a real player: live track/artist, real play/pause/next/previous via `MediaSessionManager` transport controls, disabled-but-honest state before notification access is granted, tap-to-open current player app. |
