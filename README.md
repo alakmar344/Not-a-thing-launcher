@@ -37,6 +37,41 @@ Each release contains:
 
 Install it like any APK. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
 
+### Local signed artifact
+
+The repository build produces a production-signed APK at:
+
+```text
+dist/Not-a-Thing-Launcher-9.0-release.apk
+```
+
+`dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
+
+---
+
+## 🔐 Release signing & update compatibility
+
+Release builds read signing material from two **ignored** files:
+
+- `keystore/release.jks` — the RSA key pair.
+- `keystore.properties` — store/key passwords and the `nothinglauncher` alias.
+
+Keep both files for every future release of `com.nothinglauncher`. Losing them means Android will reject updates signed with a different key. The build fails rather than silently falling back to the debug key when the release signing configuration is missing.
+
+Build locally (Windows):
+
+```powershell
+.\gradlew.bat :app:assembleDebug --console=plain
+.\gradlew.bat :app:assembleRelease --console=plain
+```
+
+The release build enables R8 shrinking. Verify the signer before distributing:
+
+```powershell
+& "$env:ANDROID_HOME\build-tools\34.0.0\apksigner.bat" verify --print-certs `
+  app\build\outputs\apk\release\app-release.apk
+```
+
 ---
 
 ## 🆕 What v9.0 Fixed & Added
@@ -49,7 +84,12 @@ Install it like any APK. On first launch the **onboarding tour** explains the co
 | **Folder rename** | New *Rename* chip inside the folder sheet (previously `renameFolder` existed with no UI). |
 | **Element & widget reordering** | Long-press popups for bespoke elements and hosted widgets gained *Move Up / Move Down* alongside *Remove*, making pages fully editable. |
 | **Settings → Permissions & capabilities** | Rows for Usage access, Notification access and Accessibility gestures with live on/off subtitles. |
-| **Data safety on upgrade** | `versionCode 11` replaces 8.x in place; `SCHEMA_VERSION` migrations keep `onboarding_complete` behavior for existing users. |
+| **Motion & microphone permissions** | Dedicated rows request `ACTIVITY_RECOGNITION` and `RECORD_AUDIO` in context, report sensor/permission state honestly, and refresh the live pedometer or recorder immediately. |
+| **Weather & step personalisation** | Weather location can be a fixed city or automatic network lookup; the daily step goal is editable from Settings. Both persist across upgrades. |
+| **Folder app actions** | Long-press an app inside a folder for Open, Move to home, Enlarge, Dock and App info. Dragging out of a folder is supported and never leaves a duplicate. |
+| **Widget management** | Hosted widgets can be configured, made taller/shorter, reset to provider height, reordered within a page, moved between pages, or removed. |
+| **Drag/drop integrity** | Home apps, dock apps, enlarged apps and folder contents share a single-copy invariant; dock copies are intentional. Drops route through native workspace, dock, folder-merge and top action zones. |
+| **Data safety on upgrade** | `versionCode 11` replaces 8.x in place; `SCHEMA_VERSION` migrations keep `onboarding_complete` behavior for existing users. Release builds are signed with a stable project key so future versions install over this one. |
 
 ---
 

@@ -34,6 +34,7 @@ object MediaSessionRepository {
     private var manager: MediaSessionManager? = null
     private var controller: MediaController? = null
     private var started = false
+    private var managerListenerRegistered = false
     private var current = State()
 
     private val sessionCallback = object : MediaController.Callback() {
@@ -84,9 +85,12 @@ object MediaSessionRepository {
         val ctx = appContext
         started = false
         try {
-            if (ctx != null) manager?.removeOnActiveSessionsChangedListener(sessionsChanged)
+            if (ctx != null && managerListenerRegistered) {
+                manager?.removeOnActiveSessionsChangedListener(sessionsChanged)
+            }
         } catch (_: Exception) {
         }
+        managerListenerRegistered = false
         controller?.unregisterCallback(sessionCallback)
         controller = null
         update(State(permissionGranted = ctx != null && LauncherSystem.hasNotificationAccess(ctx)))
@@ -131,10 +135,12 @@ object MediaSessionRepository {
 
     /** Registers the session-change listener whenever notification access is available. */
     private fun registerManagerListener(ctx: Context) {
+        if (managerListenerRegistered) return
         if (!LauncherSystem.hasNotificationAccess(ctx)) return
         val m = manager ?: return
         try {
             m.addOnActiveSessionsChangedListener(sessionsChanged, listenerComponent(ctx))
+            managerListenerRegistered = true
         } catch (e: Exception) {
             // Permission can be revoked between check and call.
         }
