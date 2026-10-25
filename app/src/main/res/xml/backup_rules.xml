@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keep the launcher layout and preferences across device backups. Widget host ids are
+  restored as well; the widget host silently drops ids that no longer exist.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="launcher_prefs.xml" />
+    <include domain="file" path="." />
+</full-backup-content>

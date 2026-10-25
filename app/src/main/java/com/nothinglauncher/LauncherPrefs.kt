@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 
 /**
  * Typed access to every persisted launcher setting and layout list.
@@ -25,6 +26,10 @@ class LauncherPrefs(context: Context) {
     private val appContext = context.applicationContext
     private val sp: SharedPreferences =
         appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    init {
+        migrateIfNeeded()
+    }
 
     // ---- Settings -----------------------------------------------------------------------
 
@@ -88,6 +93,110 @@ class LauncherPrefs(context: Context) {
         get() = sp.getBoolean(K_KEYBOARD, false)
         set(value) = putSetting(K_KEYBOARD, value)
 
+    /** True once the first-run tour has been shown (or an existing install was migrated). */
+    var onboardingComplete: Boolean
+        get() = sp.getBoolean(K_ONBOARDING_COMPLETE, false)
+        set(value) = putSetting(K_ONBOARDING_COMPLETE, value)
+
+    /** Last schema version whose migrations were applied. */
+    val schemaVersion: Int get() = sp.getInt(K_SCHEMA_VERSION, 0)
+
+    /** Optional weather city chosen by the user. Empty means "locate automatically". */
+    var weatherCity: String
+        get() = sp.getString(K_WEATHER_CITY, "").orEmpty()
+        set(value) = putSetting(K_WEATHER_CITY, value.trim())
+
+    /** Cached weather payload so the first frame after a cold start is immediate. */
+    var weatherCache: String?
+        get() = sp.getString(K_WEATHER_CACHE, null)
+        set(value) {
+            sp.edit().apply {
+                if (value == null) remove(K_WEATHER_CACHE) else putString(K_WEATHER_CACHE, value)
+            }.apply()
+        }
+
+    var countdownTitle: String
+        get() = sp.getString(K_COUNTDOWN_TITLE, "").orEmpty()
+        set(value) = putSetting(K_COUNTDOWN_TITLE, value.trim())
+
+    /** Epoch day of the countdown target, or 0 when the user has not configured one. */
+    var countdownEpochDay: Long
+        get() = sp.getLong(K_COUNTDOWN_DAY, 0L)
+        set(value) = putSetting(K_COUNTDOWN_DAY, value)
+
+    /** Number of completed habit dots, reset automatically at midnight. */
+    var habitCount: Int
+        get() {
+            if (sp.getLong(K_HABIT_DAY, 0L) != LocalDate.now().toEpochDay()) return 0
+            return sp.getInt(K_HABIT_COUNT, 0).coerceIn(0, HABIT_TOTAL)
+        }
+        set(value) {
+            sp.edit()
+                .putInt(K_HABIT_COUNT, value.coerceIn(0, HABIT_TOTAL))
+                .putLong(K_HABIT_DAY, LocalDate.now().toEpochDay())
+                .putInt(K_VERSION, settingsVersion + 1)
+                .apply()
+        }
+
+    /** Path of the last successfully saved voice memo. */
+    var lastRecordingPath: String?
+        get() = sp.getString(K_LAST_RECORDING, null)
+        set(value) {
+            sp.edit().apply {
+                if (value.isNullOrBlank()) remove(K_LAST_RECORDING) else putString(K_LAST_RECORDING, value)
+            }.putInt(K_VERSION, settingsVersion + 1).apply()
+        }
+
+    /** Daily step goal. */
+    var stepGoal: Int
+        get() = sp.getInt(K_STEP_GOAL, 10000).coerceIn(1000, 100000)
+        set(value) = putSetting(K_STEP_GOAL, value.coerceIn(1000, 100000))
+
+    /** Sensor step total recorded at the start of [stepDay]. */
+    var stepBaseline: Int
+        get() = sp.getInt(K_STEP_BASELINE, -1)
+        set(value) {
+            sp.edit().putInt(K_STEP_BASELINE, value).apply()
+        }
+
+    var stepDay: Long
+        get() = sp.getLong(K_STEP_DAY, 0L)
+        set(value) {
+            sp.edit().putLong(K_STEP_DAY, value).apply()
+        }
+
+    /** Per-widget heights in dp; third-party widgets can be resized without losing their id. */
+    var widgetHeights: Map<Int, Int>
+        get() = try {
+            sp.getString(K_WIDGET_HEIGHTS, null)?.let { raw ->
+                val obj = JSONObject(raw)
+                buildMap {
+                    obj.keys().forEach { key ->
+                        val id = key.toIntOrNull() ?: return@forEach
+                        val height = obj.optInt(key, 0)
+                        if (height > 0) put(id, height)
+                    }
+                }
+            } ?: emptyMap()
+        } catch (e: Exception) {
+            emptyMap()
+        }
+        set(value) {
+            val obj = JSONObject()
+            value.forEach { (id, height) -> obj.put(id.toString(), height.coerceAtLeast(0)) }
+            putData(K_WIDGET_HEIGHTS, if (value.isEmpty()) null else obj.toString())
+        }
+
+    fun widgetHeight(id: Int, fallbackDp: Int): Int = widgetHeights[id] ?: fallbackDp
+
+    fun setWidgetHeight(id: Int, heightDp: Int) {
+        widgetHeights = widgetHeights + (id to heightDp.coerceIn(MIN_WIDGET_HEIGHT_DP, MAX_WIDGET_HEIGHT_DP))
+    }
+
+    fun removeWidgetHeight(id: Int) {
+        if (id in widgetHeights) widgetHeights = widgetHeights - id
+    }
+
     val settingsVersion: Int get() = sp.getInt(K_VERSION, 0)
 
     fun accentColor(): Int = ContextCompat.getColor(
@@ -132,7 +241,9 @@ class LauncherPrefs(context: Context) {
     var widgetIds: List<Int>
         get() {
             val fromPages = pages?.flatMap { it.widgetIds }
-            if (fromPages != null && fromPages.isNotEmpty()) return fromPages
+            // Once the v3 page model exists it is authoritative. Falling back to the legacy
+            // list when every widget has been removed would resurrect stale host ids.
+            if (fromPages != null) return fromPages
             return sp.getString(K_WIDGETS, null)?.let(::parseStrings)?.mapNotNull { it.toIntOrNull() } ?: emptyList()
         }
         set(value) = putData(K_WIDGETS, JSONArray(value.map { it.toString() }).toString())
@@ -141,8 +252,31 @@ class LauncherPrefs(context: Context) {
         sp.edit()
             .remove(K_HOME).remove(K_DOCK).remove(K_LEGACY_HOME).remove(K_LEGACY_DOCK)
             .remove(K_WIDGETS).remove(K_PAGES_V3).remove(K_ACTIVE_PAGE)
+            .remove(K_WIDGET_HEIGHTS)
             .putInt(K_VERSION, settingsVersion + 1)
             .apply()
+    }
+
+    // ---- Migrations ---------------------------------------------------------------------
+
+    /**
+     * Non-destructive schema migration. Existing v1-v8 JSON layouts are kept exactly as they
+     * are; new keys only add behaviour. Existing installs are marked as having completed the
+     * tour so an upgrade never interrupts someone who is already using the launcher.
+     */
+    private fun migrateIfNeeded() {
+        val stored = sp.getInt(K_SCHEMA_VERSION, 0)
+        if (stored >= SCHEMA_VERSION) return
+
+        val hasLegacyUserData = sp.contains(K_PAGES_V3) || sp.contains(K_HOME) ||
+            sp.contains(K_DOCK) || sp.contains(K_LEGACY_HOME) || sp.contains(K_LEGACY_DOCK) ||
+            sp.contains(K_WIDGETS) || sp.contains(K_HIDDEN) || sp.getInt(K_VERSION, 0) > 0
+
+        val editor = sp.edit().putInt(K_SCHEMA_VERSION, SCHEMA_VERSION)
+        if (hasLegacyUserData && !sp.contains(K_ONBOARDING_COMPLETE)) {
+            editor.putBoolean(K_ONBOARDING_COMPLETE, true)
+        }
+        editor.apply()
     }
 
     // ---- Helpers ------------------------------------------------------------------------
@@ -171,27 +305,41 @@ class LauncherPrefs(context: Context) {
     private fun parsePages(json: String): List<WorkspacePage>? = try {
         val arr = JSONArray(json)
         List(arr.length()) { i ->
-            val obj = arr.getJSONObject(i)
-            val id = obj.optString("id", "page_$i")
-            val apps = obj.optJSONArray("apps")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
-            val elements = obj.optJSONArray("elements")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
-            val widgets = obj.optJSONArray("widgets")?.let { a -> List(a.length()) { a.getInt(it) } } ?: emptyList()
-            val enlarged = obj.optJSONArray("enlarged")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+            val obj = arr.optJSONObject(i) ?: JSONObject()
+            val id = obj.optString("id", "page_$i").ifBlank { "page_$i" }
+            val apps = obj.optJSONArray("apps").toStringList()
+            val elements = obj.optJSONArray("elements").toStringList()
+            val widgets = obj.optJSONArray("widgets").toIntList()
+            val enlarged = obj.optJSONArray("enlarged").toStringList()
+            val folders = mutableListOf<WorkspaceFolder>()
             val foldersArr = obj.optJSONArray("folders")
-            val folders = if (foldersArr != null) {
-                List(foldersArr.length()) { fIdx ->
-                    val fObj = foldersArr.getJSONObject(fIdx)
-                    val fId = fObj.optString("id", "f_$fIdx")
-                    val fName = fObj.optString("name", "FOLDER")
-                    val fApps = fObj.optJSONArray("apps")?.let { fa -> List(fa.length()) { fa.getString(it) } } ?: emptyList()
-                    val fEnlarged = fObj.optBoolean("isEnlarged", false)
-                    WorkspaceFolder(fId, fName, fApps, fEnlarged)
+            if (foldersArr != null) {
+                for (fIdx in 0 until foldersArr.length()) {
+                    val fObj = foldersArr.optJSONObject(fIdx) ?: continue
+                    val fApps = fObj.optJSONArray("apps").toStringList()
+                    if (fApps.isEmpty()) continue
+                    folders += WorkspaceFolder(
+                        id = fObj.optString("id", "f_${i}_$fIdx").ifBlank { "f_${i}_$fIdx" },
+                        name = fObj.optString("name", "FOLDER").ifBlank { "FOLDER" },
+                        appKeys = fApps,
+                        isEnlarged = fObj.optBoolean("isEnlarged", false)
+                    )
                 }
-            } else emptyList()
+            }
             WorkspacePage(id, apps, elements, widgets, enlarged, folders)
         }
     } catch (e: Exception) {
         null
+    }
+
+    private fun JSONArray?.toStringList(): List<String> {
+        if (this == null) return emptyList()
+        return List(length()) { i -> optString(i, "") }.filter { it.isNotEmpty() }
+    }
+
+    private fun JSONArray?.toIntList(): List<Int> {
+        if (this == null) return emptyList()
+        return List(length()) { i -> optInt(i, -1) }.filter { it >= 0 }
     }
 
     private fun serializePages(pages: List<WorkspacePage>): String {
@@ -226,6 +374,10 @@ class LauncherPrefs(context: Context) {
     companion object {
         const val PREFS_NAME = "launcher_prefs"
         const val MAX_RECENTS = 10
+        const val HABIT_TOTAL = 8
+        const val SCHEMA_VERSION = 2
+        const val MIN_WIDGET_HEIGHT_DP = 80
+        const val MAX_WIDGET_HEIGHT_DP = 720
 
         private const val K_THEME_MODE = "theme_mode"
         private const val K_ICON_STYLE = "icon_style"
@@ -241,6 +393,8 @@ class LauncherPrefs(context: Context) {
         private const val K_RECENTS = "show_recents"
         private const val K_KEYBOARD = "auto_keyboard"
         private const val K_VERSION = "settings_version"
+        private const val K_SCHEMA_VERSION = "schema_version"
+        private const val K_ONBOARDING_COMPLETE = "onboarding_complete_v9"
         private const val K_HOME = "home_items_v2"
         private const val K_DOCK = "dock_items_v2"
         private const val K_LEGACY_HOME = "home_apps"
@@ -248,9 +402,20 @@ class LauncherPrefs(context: Context) {
         private const val K_RECENT_LIST = "recent_items"
         private const val K_HIDDEN = "hidden_items"
         private const val K_WIDGETS = "widget_ids"
+        private const val K_WIDGET_HEIGHTS = "widget_heights_v9"
         private const val K_PAGES_V3 = "workspace_pages_v3"
         private const val K_ACTIVE_PAGE = "active_page_index"
         private const val K_QUICK_NOTE = "quick_note_text"
         private const val K_SHOW_DOT_GRID = "show_dot_grid"
+        private const val K_WEATHER_CITY = "weather_city_v9"
+        private const val K_WEATHER_CACHE = "weather_cache_v9"
+        private const val K_COUNTDOWN_TITLE = "countdown_title_v9"
+        private const val K_COUNTDOWN_DAY = "countdown_day_v9"
+        private const val K_HABIT_COUNT = "habit_count_v9"
+        private const val K_HABIT_DAY = "habit_day_v9"
+        private const val K_LAST_RECORDING = "last_recording_v9"
+        private const val K_STEP_GOAL = "step_goal_v9"
+        private const val K_STEP_BASELINE = "step_baseline_v9"
+        private const val K_STEP_DAY = "step_day_v9"
     }
 }

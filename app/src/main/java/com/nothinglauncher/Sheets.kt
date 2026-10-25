@@ -7,6 +7,7 @@ import android.graphics.drawable.Drawable
 import android.os.Process
 import android.view.Gravity
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -14,6 +15,7 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.DialogConfirmBinding
+import com.nothinglauncher.databinding.DialogCountdownBinding
 import com.nothinglauncher.databinding.DialogListBinding
 import com.nothinglauncher.databinding.ItemHiddenAppBinding
 import android.widget.TextView
@@ -25,8 +27,23 @@ import com.nothinglauncher.databinding.SheetCustomizeBinding
 /** Floating bottom sheets & dialogs in the launcher's own visual language. */
 object Sheets {
 
-    fun create(context: Context, content: View, maxHeightFraction: Float = 0f): Dialog {
-        val dialog = Dialog(context, R.style.Theme_NothingLauncher_Sheet)
+    /**
+     * Creates a bottom sheet. [onTouch] lets a caller keep receiving the gesture stream from
+     * the dialog window (the folder sheet uses it to continue a drag that began on an app icon
+     * inside the folder).
+     */
+    fun create(
+        context: Context,
+        content: View,
+        maxHeightFraction: Float = 0f,
+        onTouch: ((MotionEvent) -> Boolean)? = null
+    ): Dialog {
+        val dialog = object : Dialog(context, R.style.Theme_NothingLauncher_Sheet) {
+            override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+                if (onTouch?.invoke(ev) == true) return true
+                return super.dispatchTouchEvent(ev)
+            }
+        }
         dialog.setContentView(content)
         dialog.setCanceledOnTouchOutside(true)
         val height = if (maxHeightFraction > 0f) {
@@ -157,6 +174,7 @@ object Sheets {
     ): Dialog {
         val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root)
+        b.noteTitle.text = "QUICK NOTE"
         b.noteInput.setText(currentNote)
         b.noteInput.setSelection(currentNote.length)
         b.noteCancel.setOnClickListener { dialog.dismiss() }
@@ -164,6 +182,139 @@ object Sheets {
             dialog.dismiss()
             val text = b.noteInput.text.toString().trim()
             onSave(text.ifEmpty { "NOTHING BUT TIME" })
+        }
+        dialog.show()
+        return dialog
+    }
+
+    /** Same sheet as the quick-note editor, used for renaming folders. */
+    fun showRename(
+        context: Context,
+        currentName: String,
+        onSave: (String) -> Unit
+    ): Dialog {
+        val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
+        val dialog = create(context, b.root)
+        b.noteTitle.text = "RENAME"
+        b.noteInput.setText(currentName)
+        b.noteInput.setSelection(b.noteInput.text.length)
+        b.noteInput.hint = context.getString(R.string.folder_rename_hint)
+        b.noteCancel.setOnClickListener { dialog.dismiss() }
+        b.noteSave.setOnClickListener {
+            dialog.dismiss()
+            onSave(b.noteInput.text.toString().trim())
+        }
+        dialog.show()
+        return dialog
+    }
+
+    /**
+     * Countdown element editor: event title (free text), a tappable target-date row that opens
+     * the system date picker, and a clear button. Persists through [LauncherPrefs] so the tile
+     * survives reboots, and re-renders through [onSaved] whenever the values actually change.
+     */
+    fun showCountdown(
+        context: Context,
+        prefs: LauncherPrefs,
+        onSaved: () -> Unit
+    ): Dialog {
+        val b = DialogCountdownBinding.inflate(LayoutInflater.from(context))
+        val dialog = create(context, b.root)
+        b.countdownTitle.text = "EDIT COUNTDOWN"
+        b.countdownInput.setText(prefs.countdownTitle)
+        b.countdownInput.setSelection(b.countdownInput.text.length)
+
+        var targetEpochDay = prefs.countdownEpochDay
+
+        fun updateDateRow() {
+            b.countdownDate.text = if (targetEpochDay > 0L) {
+                try {
+                    android.text.format.DateFormat.getMediumDateFormat(context)
+                        .format(java.util.Date.from(
+                            java.time.LocalDate.ofEpochDay(targetEpochDay)
+                                .atStartOfDay(java.time.ZoneId.systemDefault()).toInstant()
+                        ))
+                        .uppercase()
+                } catch (_: Exception) {
+                    context.getString(R.string.countdown_set_date)
+                }
+            } else {
+                context.getString(R.string.countdown_set_date)
+            }
+        }
+
+        b.countdownDate.setOnClickListener {
+            val seed = if (targetEpochDay > 0L) targetEpochDay else java.time.LocalDate.now().toEpochDay()
+            val date = java.time.LocalDate.ofEpochDay(seed)
+            try {
+                android.app.DatePickerDialog(
+                    context,
+                    { _, year, month, dayOfMonth ->
+                        targetEpochDay = java.time.LocalDate.of(year, month + 1, dayOfMonth).toEpochDay()
+                        updateDateRow()
+                    },
+                    date.year,
+                    date.monthValue - 1,
+                    date.dayOfMonth
+                ).show()
+            } catch (_: Exception) {
+                AppLauncher.toast(context, R.string.cannot_open)
+            }
+        }
+
+        b.countdownClear.setOnClickListener {
+            dialog.dismiss()
+            prefs.countdownEpochDay = 0L
+            prefs.countdownTitle = ""
+            AppLauncher.toast(context, R.string.countdown_cleared)
+            onSaved()
+        }
+
+        b.countdownSave.setOnClickListener {
+            dialog.dismiss()
+            prefs.countdownTitle = b.countdownInput.text.toString().trim().uppercase()
+            if (targetEpochDay > 0L) prefs.countdownEpochDay = targetEpochDay
+            AppLauncher.toast(
+                context,
+                if (prefs.countdownEpochDay > 0L) R.string.countdown_saved else R.string.countdown_set_date
+            )
+            onSaved()
+        }
+
+        updateDateRow()
+        dialog.show()
+        return dialog
+    }
+
+    /**
+     * Shared single-field editor used by weather location, countdown, step goal and folder rename.
+     * The title and hint are plain strings so the same sheet can show dynamic content.
+     */
+    fun showTextInput(
+        context: Context,
+        title: String,
+        hint: String,
+        initial: String,
+        maxLength: Int = 48,
+        numeric: Boolean = false,
+        onSave: (String) -> Unit
+    ): Dialog {
+        val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
+        val dialog = create(context, b.root)
+        b.noteTitle.text = title.uppercase()
+        b.noteInput.hint = hint
+        b.noteInput.setText(initial)
+        b.noteInput.setSelection(initial.length)
+        b.noteInput.inputType = if (numeric) {
+            android.text.InputType.TYPE_CLASS_NUMBER
+        } else {
+            android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        b.noteInput.filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
+        b.noteCancel.setOnClickListener { dialog.dismiss() }
+        b.noteSave.setOnClickListener {
+            dialog.dismiss()
+            onSave(b.noteInput.text.toString().trim())
         }
         dialog.show()
         return dialog

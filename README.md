@@ -5,6 +5,8 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
+**Version 9.0** is a full-functionality pass: every claim below is backed by native Android APIs — real drag-and-drop across pages, dock and drop-zone targets, real widget hosting through `AppWidgetHost`, live media-session playback controls, a first-run onboarding flow that offers the system HOME-role handoff, and versioned layout persistence that upgrades installs **without losing user data, settings, or layouts**.
+
 ![Home, drawer, long-press menu and customize sheet](docs/showcase_1.png)
 
 ![Settings, search, colour icons and the empty / low-battery state](docs/showcase_2.png)
@@ -24,16 +26,30 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 
 ---
 
-## ⬇️ Download Latest APK (Build v8)
+## ⬇️ Download Latest APK (Build v9)
 
-- **[Download Latest APK (Release v8)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
+- **[Download Latest APK (Release v9)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
 - `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
-After installing, press Home and choose **Not a Thing Launcher**, or open the launcher's *Settings → Default home app*.
+Install it like any APK. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
+
+---
+
+## 🆕 What v9.0 Fixed & Added
+
+| Area | Change |
+|---|---|
+| **Onboarding** | First launch now really opens the welcome tour (it previously existed but was never wired), including the set-as-default prompt. Re-runnable from *Settings → Show welcome tour*. |
+| **Double-Tap to Sleep** | Uses the accessibility global action (`GLOBAL_ACTION_LOCK_SCREEN`); the old code broadcast a no-op intent. If the optional service is off, the launcher explains instead of failing silently. |
+| **Media Controller element** | Now a real player: live track/artist, real play/pause/next/previous via `MediaSessionManager` transport controls, disabled-but-honest state before notification access is granted, tap-to-open current player app. |
+| **Folder rename** | New *Rename* chip inside the folder sheet (previously `renameFolder` existed with no UI). |
+| **Element & widget reordering** | Long-press popups for bespoke elements and hosted widgets gained *Move Up / Move Down* alongside *Remove*, making pages fully editable. |
+| **Settings → Permissions & capabilities** | Rows for Usage access, Notification access and Accessibility gestures with live on/off subtitles. |
+| **Data safety on upgrade** | `versionCode 11` replaces 8.x in place; `SCHEMA_VERSION` migrations keep `onboarding_complete` behavior for existing users. |
 
 ---
 

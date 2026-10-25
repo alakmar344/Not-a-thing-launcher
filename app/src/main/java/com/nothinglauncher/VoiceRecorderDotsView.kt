@@ -55,15 +55,26 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
         }
     }
 
-    fun toggle(): Boolean {
-        isRecording = !isRecording
-        if (isRecording) {
-            recordStartTime = SystemClock.elapsedRealtime()
+    /** Host-driven state: pass the real recording start so a re-bind keeps the timer. */
+    fun setRecording(recording: Boolean, startedAtElapsed: Long = SystemClock.elapsedRealtime()) {
+        isRecording = recording
+        if (recording) {
+            recordStartTime = if (startedAtElapsed > 0L) startedAtElapsed else SystemClock.elapsedRealtime()
+            removeCallbacks(ticker)
             post(ticker)
         } else {
             removeCallbacks(ticker)
-            invalidate()
         }
+        contentDescription = if (recording) {
+            context.getString(R.string.recorder_recording)
+        } else {
+            context.getString(R.string.recorder_idle)
+        }
+        invalidate()
+    }
+
+    fun toggle(): Boolean {
+        setRecording(!isRecording)
         return isRecording
     }
 
@@ -123,7 +134,11 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
             }
         }
 
-        val statusText = if (isRecording) "RECORDING… TAP TO SAVE" else "READY · TAP TO RECORD"
+        val statusText = if (isRecording) {
+            "${context.getString(R.string.recorder_recording)} · ${context.getString(R.string.recorder_tap_save)}"
+        } else {
+            "READY · ${context.getString(R.string.recorder_idle)}"
+        }
         canvas.drawText(statusText, 0f, h - 2f * density, labelPaint)
     }
 }

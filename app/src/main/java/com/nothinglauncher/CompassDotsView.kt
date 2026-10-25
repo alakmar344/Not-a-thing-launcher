@@ -34,11 +34,14 @@ class CompassDotsView @JvmOverloads constructor(
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
 
-    var headingDegrees: Int = 42
+    var headingDegrees: Int = 0
         set(value) { field = value % 360; invalidate() }
 
-    var directionText: String = "NE"
+    var directionText: String = "N"
         set(value) { field = value; invalidate() }
+
+    var statusText: String? = null
+        set(value) { field = value; contentDescription = value; invalidate() }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -89,5 +92,8 @@ class CompassDotsView @JvmOverloads constructor(
 
         // 3. Direction label below
         canvas.drawText(directionText, cx, cy + textH / 2f + 14f * density, labelPaint)
+        statusText?.takeIf { it.isNotBlank() }?.let { text ->
+            canvas.drawText(text, cx, height - 6f * density, labelPaint)
+        }
     }
 }

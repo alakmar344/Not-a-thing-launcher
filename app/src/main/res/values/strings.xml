@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Not a Thing Launcher</string>
 
@@ -255,4 +255,167 @@
     <string name="recorder_label">VOICE MEMO</string>
     <string name="recorder_idle">TAP TO RECORD</string>
     <string name="recorder_recording">RECORDING…</string>
+    <string name="recorder_tap_save">TAP TO SAVE</string>
+
+    <!-- v9.0 Onboarding -->
+    <string name="skip">Skip</string>
+    <string name="onboarding_masthead">NOT A THING · SETUP</string>
+    <string name="onboarding_kicker">A QUIET HOME SCREEN</string>
+    <string name="onboarding_title">Nothing in the way.</string>
+    <string name="onboarding_body">A monochrome, dot-matrix home screen with real widgets, folders, gestures and live information. No feed, no noise, nothing you did not ask for.</string>
+    <string name="onboarding_feature_1_title">Make it yours</string>
+    <string name="onboarding_feature_1_body">Drag apps anywhere, create folders, enlarge icons and add widgets or Nothing elements to any page.</string>
+    <string name="onboarding_feature_2_title">Live, not decorative</string>
+    <string name="onboarding_feature_2_body">Weather, media, steps, compass, screen time and voice memos use real Android data and sensors.</string>
+    <string name="onboarding_feature_3_title">Stays out of the way</string>
+    <string name="onboarding_feature_3_body">Every optional permission is explained in Settings. The launcher works without them and never invents data.</string>
+    <string name="onboarding_appearance">APPEARANCE</string>
+    <string name="onboarding_home_not_default">Not your home app yet</string>
+    <string name="onboarding_home_default">You are home</string>
+    <string name="onboarding_set_default">SET AS DEFAULT HOME</string>
+    <string name="onboarding_open_home">OPEN HOME SCREEN</string>
+    <string name="onboarding_continue">Continue without changing home</string>
+    <string name="onboarding_footer">Android will ask you to confirm. You can change this at any time in Settings.</string>
+
+    <!-- v9.0 Real widgets & permissions -->
+    <string name="weather_loading">LOADING</string>
+    <string name="weather_unavailable">OFFLINE</string>
+    <string name="weather_tap_refresh">TAP TO REFRESH</string>
+    <string name="weather_local">LOCAL</string>
+    <string name="weather_refresh">Refresh weather</string>
+    <string name="weather_set_city">Set city…</string>
+    <string name="weather_city_hint">City name (empty for auto)</string>
+    <string name="weather_city_title">WEATHER CITY</string>
+    <string name="weather_city_saved">Weather city updated</string>
+    <string name="weather_city_auto">Automatic</string>
+
+    <string name="screen_time_no_access">TAP TO GRANT USAGE ACCESS</string>
+    <string name="screen_time_today">TODAY</string>
+    <string name="screen_time_unlocks">%1$d UNLOCKS</string>
+    <string name="screen_time_waiting">Waiting for usage access</string>
+
+    <string name="media_permission_needed">NOTIFICATION ACCESS NEEDED</string>
+    <string name="media_no_session">NO ACTIVE PLAYBACK</string>
+    <string name="media_connect_hint">CONNECT A PLAYER</string>
+    <string name="media_label_empty">MEDIA</string>
+    <string name="media_grant_access">Grant notification access</string>
+    <string name="media_refresh">Refresh session</string>
+    <string name="media_open_player">Open player</string>
+    <string name="media_permission_toast">Allow notification access to read media sessions</string>
+
+    <string name="pedometer_no_sensor">NO STEP SENSOR</string>
+    <string name="pedometer_no_permission">TAP TO ALLOW MOTION</string>
+    <string name="pedometer_today">%1$s STEPS TODAY</string>
+    <string name="pedometer_permission_denied">Motion permission is needed for steps</string>
+    <string name="pedometer_calibrating">CALIBRATING…</string>
+    <string name="pedometer_steps">STEPS</string>
+
+    <string name="compass_no_sensor">NO COMPASS SENSOR</string>
+    <string name="compass_calibrating">CALIBRATING…</string>
+    <string name="compass_permission_hint">Move the device in a figure eight</string>
+
+    <string name="habit_reset">Reset today’s progress</string>
+    <string name="habit_progress">%1$d OF %2$d COMPLETED · %3$d%%</string>
+    <string name="habit_goal">8 GLASSES DAILY GOAL</string>
+
+    <string name="countdown_set_date">Set target date</string>
+    <string name="countdown_edit_title">Event title</string>
+    <string name="countdown_title_hint">Event title…</string>
+    <string name="countdown_clear">Clear countdown</string>
+    <string name="countdown_no_target">NO TARGET SET</string>
+    <string name="countdown_target">TARGET</string>
+    <string name="countdown_today">TODAY</string>
+    <string name="countdown_passed">%1$d DAYS AGO</string>
+    <string name="countdown_days">%1$d DAYS LEFT</string>
+
+    <string name="recorder_saved">Memo saved</string>
+    <string name="recorder_failed">Could not start recording</string>
+    <string name="recorder_permission">Microphone access is needed to record</string>
+    <string name="recorder_play_last">Play last memo</string>
+    <string name="recorder_no_recording">No saved memo yet</string>
+    <string name="recorder_mic_denied">Microphone permission denied</string>
+    <string name="camera_denied">Camera permission denied</string>
+    <string name="recorder_stopped">Recording stopped</string>
+
+    <string name="widget_taller">Make taller</string>
+    <string name="widget_shorter">Make shorter</string>
+    <string name="widget_reset_size">Reset size</string>
+    <string name="widget_resized">Widget resized</string>
+    <string name="widget_no_configure">Widget settings unavailable</string>
+
+    <!-- v9.0 Editable workspace, real media controls & capability rows -->
+    <string name="move_up">Move Up</string>
+    <string name="move_down">Move Down</string>
+    <string name="double_tap_needs_accessibility">Enable accessibility gestures (Settings → Gestures) to lock the screen</string>
+
+    <string name="folder_open">Open folder</string>
+    <string name="folder_manage">Manage folder</string>
+    <string name="folder_rename_hint">Folder name…</string>
+    <string name="folder_renamed">Folder renamed</string>
+    <string name="folder_empty_hint">Long-press an app and choose “Add to Folder”.</string>
+    <string name="folder_no_apps">No more apps available to add</string>
+    <string name="folder_app_removed">App moved out of the folder</string>
+
+    <string name="setting_capabilities">Permissions &amp; capabilities</string>
+    <string name="setting_usage_access">Usage access</string>
+    <string name="setting_usage_on">Screen time can read daily usage</string>
+    <string name="setting_usage_off">Tap to allow Screen Time statistics</string>
+    <string name="setting_notification_access">Notification access</string>
+    <string name="setting_notification_on">Media session controls are connected</string>
+    <string name="setting_notification_off">Tap to control media playback</string>
+    <string name="setting_accessibility">Accessibility gestures</string>
+    <string name="setting_accessibility_on">Double-tap sleep and notification shade are active</string>
+    <string name="setting_accessibility_off">Optional: enables double-tap sleep and pull-down</string>
+    <string name="setting_activity_recognition">Motion &amp; step access</string>
+    <string name="setting_activity_on">Step counter is available</string>
+    <string name="setting_activity_off">Tap to allow step counting</string>
+    <string name="setting_activity_unavailable">This device has no step counter sensor</string>
+    <string name="setting_microphone">Microphone</string>
+    <string name="setting_microphone_on">Voice memos can record</string>
+    <string name="setting_microphone_off">Tap to allow voice memos</string>
+    <string name="setting_weather_city">Weather location</string>
+    <string name="setting_weather_auto">Automatic (network location)</string>
+    <string name="setting_weather_manual">Custom city: %1$s</string>
+    <string name="setting_onboarding">Show welcome tour</string>
+    <string name="setting_onboarding_sub">Revisit setup, appearance and default home</string>
+    <string name="setting_step_goal">Daily step goal</string>
+    <string name="setting_step_goal_sub">%1$s steps</string>
+    <string name="accessibility_service_description">Optional gestures for Not a Thing: double-tap the home screen to sleep the display, or pull down to open notifications. The service does not read screen content or collect data.</string>
+
+    <!-- v9.0 Launcher actions -->
+    <string name="gesture_needs_accessibility">Enable Accessibility gestures in Settings to use this</string>
+    <string name="grant_usage_access">Allow usage access</string>
+    <string name="grant_motion_access">Allow motion access</string>
+    <string name="grant_microphone">Allow microphone access</string>
+    <string name="open_settings">Open settings</string>
+    <string name="step_goal_hint">Steps per day</string>
+    <string name="step_goal_saved">Daily step goal updated</string>
+    <string name="folder_rename_title">Rename folder</string>
+    <string name="countdown_saved">Countdown updated</string>
+    <string name="countdown_cleared">Countdown cleared</string>
+    <string name="recorder_playing">Playing last memo</string>
+    <string name="widget_configure">Widget settings</string>
+    <string name="widget_move_page">Move to page</string>
+    <string name="page_move_to">Move to page %1$d</string>
+    <string name="dock_reordered">Dock updated</string>
+    <string name="home_gesture_hint">Long-press empty space to customise</string>
+
+    <!-- v9.0 Element actions, capability feedback and validation -->
+    <string name="open">Open</string>
+    <string name="swipe_needs_accessibility">Enable Accessibility gestures in Settings to pull down the shade</string>
+    <string name="step_goal_invalid">Enter a daily goal between 1,000 and 100,000 steps</string>
+    <string name="weather_updated">Weather updated</string>
+    <string name="media_refreshed">Media session refreshed</string>
+    <string name="action_edit_note">Edit note</string>
+    <string name="action_open_alarms">Open alarms</string>
+    <string name="action_open_calendar">Open calendar</string>
+    <string name="action_battery_settings">Battery settings</string>
+    <string name="action_storage_settings">Storage settings</string>
+    <string name="action_device_info">Device info</string>
+    <string name="action_open_wellbeing">Open Digital Wellbeing</string>
+    <string name="action_open_quick_settings">Open quick settings</string>
+    <string name="action_record_memo">Record memo</string>
+    <string name="action_stop_recording">Stop recording</string>
+    <string name="recorder_stop_playback">Stop playback</string>
+    <string name="action_open_folder">Open folder</string>
 </resources>

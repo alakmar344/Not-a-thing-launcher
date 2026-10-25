@@ -201,6 +201,13 @@ class DragController(private val activity: MainActivity, private val binding: Ac
                 // Check top drop zones
                 checkTopDropZoneHover(rawX, rawY)
 
+                // Highlight the dock slot under the finger.
+                if (activity.isPointOverDock(rawX, rawY)) {
+                    activity.showDockDropTarget(rawX)
+                } else {
+                    activity.clearDockDropTarget()
+                }
+
                 // Check edge screen paging
                 checkEdgePaging(rawX)
             }
@@ -314,7 +321,7 @@ class DragController(private val activity: MainActivity, private val binding: Ac
 
         // 2. Check if dropped on Dock
         if (activity.isPointOverDock(rawX, rawY)) {
-            handleDropOnDock(item)
+            handleDropOnDock(item, rawX)
             finishDrag()
             return
         }
@@ -327,14 +334,21 @@ class DragController(private val activity: MainActivity, private val binding: Ac
     private fun handleDropRemove(item: DragItem) {
         when (item) {
             is DragItem.App -> {
-                if (item.fromSource != DragSource.DRAWER) {
-                    activity.viewModel.removeFromHome(item.app)
-                    AppLauncher.toast(activity, R.string.remove_from_home)
+                when (item.fromSource) {
+                    DragSource.DRAWER -> Unit
+                    DragSource.DOCK -> {
+                        activity.viewModel.removeFromDock(item.app)
+                        AppLauncher.toast(activity, R.string.remove_from_dock)
+                    }
+                    else -> {
+                        activity.viewModel.removeFromHome(item.app)
+                        AppLauncher.toast(activity, R.string.remove_from_home)
+                    }
                 }
             }
             is DragItem.MaxApp -> {
-                activity.viewModel.toggleEnlargeApp(item.pageIndex, item.app.key)
                 activity.viewModel.removeFromHome(item.app)
+                AppLauncher.toast(activity, R.string.remove_from_home)
             }
             is DragItem.Folder -> {
                 activity.viewModel.dissolveFolder(item.pageIndex, item.folder.id)
@@ -345,7 +359,7 @@ class DragController(private val activity: MainActivity, private val binding: Ac
                 AppLauncher.toast(activity, R.string.remove_element)
             }
             is DragItem.Widget -> {
-                activity.viewModel.removeWidget(item.widgetId)
+                activity.removeWidgetHost(item.widgetId)
                 AppLauncher.toast(activity, R.string.remove_widget)
             }
         }
@@ -373,19 +387,26 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         }
     }
 
-    private fun handleDropOnDock(item: DragItem) {
+    private fun handleDropOnDock(item: DragItem, rawX: Float) {
         val app = when (item) {
             is DragItem.App -> item.app
             is DragItem.MaxApp -> item.app
             else -> null
         }
-        if (app != null) {
-            if (activity.viewModel.addToDock(app)) {
-                activity.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                AppLauncher.toast(activity, R.string.add_to_dock)
-            } else {
-                AppLauncher.toast(activity, R.string.dock_full)
-            }
+        if (app == null) return
+        val source = when (item) {
+            is DragItem.App -> item.fromSource
+            is DragItem.MaxApp -> DragSource.HOME_PAGE
+            else -> DragSource.DRAWER
+        }
+        val fromPage = when (item) {
+            is DragItem.App -> item.pageIndex
+            is DragItem.MaxApp -> item.pageIndex
+            else -> 0
+        }
+        val handled = activity.handleDockDrop(app, source, fromPage, rawX)
+        if (!handled && activity.viewModel.isDockFull() && !activity.viewModel.isInDock(app)) {
+            AppLauncher.toast(activity, R.string.dock_full)
         }
     }
 
@@ -397,9 +418,8 @@ class DragController(private val activity: MainActivity, private val binding: Ac
             }
             is DragItem.MaxApp -> {
                 if (item.pageIndex != targetPage) {
-                    activity.viewModel.moveAppBetweenPages(item.app, item.pageIndex, targetPage)
-                    activity.viewModel.toggleEnlargeApp(item.pageIndex, item.app.key)
-                    activity.viewModel.toggleEnlargeApp(targetPage, item.app.key)
+                    activity.viewModel.moveEnlargedAppToPage(item.app, item.pageIndex, targetPage)
+                    activity.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 }
             }
             is DragItem.Bespoke -> {
@@ -429,6 +449,7 @@ class DragController(private val activity: MainActivity, private val binding: Ac
 
     private fun finishDrag() {
         isDragging = false
+        activity.clearDockDropTarget()
         hideDropZoneBar()
 
         dragFloatingView?.animate()

@@ -13,7 +13,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.ItemAppBinding
 import kotlin.math.abs
 
-/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper and full launcher dragging across grid slots. */
+/**
+ * Pinned apps on the home screen.
+ *
+ * A long press arms the gesture; moving the finger then starts a launcher-wide drag,
+ * while releasing without moving opens the app menu. This mirrors the stock launcher
+ * and avoids a focusable popup stealing the drag stream mid-gesture.
+ */
 class HomeIconAdapter(
     private val onAppClick: (AppInfo, View) -> Unit,
     private val onAppLongClick: (AppInfo, View) -> Unit,
@@ -64,12 +70,22 @@ class HomeIconAdapter(
     override fun getItemCount(): Int = items.size
 
     inner class IconViewHolder(private val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
+        private var downX = 0f
+        private var downY = 0f
         private var downRawX = 0f
         private var downRawY = 0f
         private var longPressed = false
         private val slop = ViewConfiguration.get(binding.root.context).scaledTouchSlop
+        private val longPressRunnable = Runnable {
+            if (!binding.root.isAttachedToWindow) return@Runnable
+            longPressed = true
+            binding.root.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        }
 
         fun bind(app: AppInfo?) {
+            binding.root.removeCallbacks(longPressRunnable)
+            longPressed = false
+            binding.root.isPressed = false
             if (iconSizePx > 0) {
                 binding.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
             }
@@ -99,34 +115,55 @@ class HomeIconAdapter(
 
             binding.root.setOnClickListener { onAppClick(app, binding.appIcon) }
 
-            binding.root.setOnTouchListener { _, event ->
+            binding.root.setOnTouchListener { view, event ->
                 when (event.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
+                        downX = event.x
+                        downY = event.y
                         downRawX = event.rawX
                         downRawY = event.rawY
                         longPressed = false
+                        view.isPressed = true
+                        view.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
                     }
                     MotionEvent.ACTION_MOVE -> {
-                        if (longPressed) {
+                        if (!longPressed) {
+                            if (abs(event.x - downX) > slop || abs(event.y - downY) > slop) {
+                                view.removeCallbacks(longPressRunnable)
+                            }
+                        } else {
                             val dx = abs(event.rawX - downRawX)
                             val dy = abs(event.rawY - downRawY)
                             if (dx > slop * 1.5f || dy > slop * 1.5f) {
+                                view.removeCallbacks(longPressRunnable)
                                 longPressed = false
+                                view.isPressed = false
                                 onAppDragStart?.invoke(app, binding.appIcon, event.rawX, event.rawY)
-                                return@setOnTouchListener true
                             }
                         }
                     }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    MotionEvent.ACTION_UP -> {
+                        view.removeCallbacks(longPressRunnable)
+                        view.isPressed = false
+                        if (longPressed) {
+                            longPressed = false
+                            onAppLongClick(app, binding.appIcon)
+                        } else {
+                            view.performClick()
+                        }
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        view.removeCallbacks(longPressRunnable)
+                        view.isPressed = false
                         longPressed = false
                     }
                 }
-                false
+                true
             }
 
+            // Kept for accessibility services (TalkBack long-click). The touch listener above
+            // consumes normal gestures, so this never fires twice during a real touch.
             binding.root.setOnLongClickListener {
-                longPressed = true
-                it.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 onAppLongClick(app, binding.appIcon)
                 true
             }

@@ -153,15 +153,34 @@ object AppLauncher {
         start(context, chooser)
     }
 
-    /** Pulls down the notification shade (hidden API, works on stock & most OEM builds). */
+    /** Opens the app currently playing audio; falls back to its details page. */
+    fun openMediaApp(context: Context, packageName: String) {
+        val pkg = packageName.substringBefore('/')
+        if (pkg.isBlank()) return
+        val launch = try { context.packageManager.getLaunchIntentForPackage(pkg) } catch (_: Exception) { null }
+        if (launch != null && start(context, launch, showError = false)) return
+        start(
+            context,
+            Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", pkg, null)),
+            showError = false
+        )
+    }
+
+    /**
+     * Pulls down the notification shade, preferring the optional accessibility service.
+     * Returns false when the platform gives a normal app no way to do it, so the caller can
+     * explain how to enable the gesture instead of failing silently.
+     */
     @Suppress("WrongConstant")
-    fun expandNotifications(context: Context) {
-        try {
-            val service = context.getSystemService("statusbar") ?: return
+    fun expandNotifications(context: Context): Boolean {
+        if (LauncherSystem.expandNotifications()) return true
+        return try {
+            val service = context.getSystemService("statusbar") ?: return false
             val clazz = Class.forName("android.app.StatusBarManager")
             clazz.getMethod("expandNotificationsPanel").invoke(service)
+            true
         } catch (e: Exception) {
-            // Not available on this build — nothing sensible to fall back to.
+            false
         }
     }
 

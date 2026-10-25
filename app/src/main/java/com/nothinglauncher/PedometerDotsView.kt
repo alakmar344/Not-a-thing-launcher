@@ -35,11 +35,15 @@ class PedometerDotsView @JvmOverloads constructor(
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
 
-    var steps: Int = 7420
+    var steps: Int = 0
         set(value) { field = value; invalidate() }
 
     var goal: Int = 10000
         set(value) { field = value.coerceAtLeast(1); invalidate() }
+
+    /** Optional honest state line ("TAP TO ALLOW MOTION", "NO STEP SENSOR"). */
+    var statusText: String? = null
+        set(value) { field = value; contentDescription = value; invalidate() }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -88,6 +92,9 @@ class PedometerDotsView @JvmOverloads constructor(
         }
 
         // 3. Label below
-        canvas.drawText("STEPS", cx, cy + textH / 2f + 14f * density, labelPaint)
+        canvas.drawText(context.getString(R.string.pedometer_steps), cx, cy + textH / 2f + 14f * density, labelPaint)
+        statusText?.takeIf { it.isNotBlank() }?.let { text ->
+            canvas.drawText(text, cx, height - 6f * density, labelPaint)
+        }
     }
 }

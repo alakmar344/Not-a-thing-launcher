@@ -66,15 +66,13 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
         if (parent != null && isAttachedToWindow) {
             longPressed = true
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            onLongPress?.invoke()
         }
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         if (longPressed) {
-            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
-                longPressed = false
-            }
+            // Keep the gesture until onTouchEvent can either start a drag (move) or open
+            // the menu (release). Opening a focusable popup here would cancel the drag.
             return true
         }
         when (ev.actionMasked) {
@@ -84,6 +82,7 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
                 downRawX = ev.rawX
                 downRawY = ev.rawY
                 longPressed = false
+                removeCallbacks(longPressRunnable)
                 postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
             }
             MotionEvent.ACTION_MOVE -> {
@@ -103,19 +102,28 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
                     val dx = abs(event.rawX - downRawX)
                     val dy = abs(event.rawY - downRawY)
                     if (dx > slop * 1.5f || dy > slop * 1.5f) {
+                        removeCallbacks(longPressRunnable)
                         longPressed = false
                         onDragStart?.invoke(this, event.rawX, event.rawY)
                         return true
                     }
                 }
             }
-            MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+            MotionEvent.ACTION_UP -> {
+                removeCallbacks(longPressRunnable)
+                if (longPressed) {
+                    longPressed = false
+                    onLongPress?.invoke()
+                    return true
+                }
+            }
+            MotionEvent.ACTION_CANCEL -> {
                 removeCallbacks(longPressRunnable)
                 longPressed = false
             }
         }
         if (event.actionMasked == MotionEvent.ACTION_DOWN) return true
-        return super.onTouchEvent(event) || longPressed
+        return super.onTouchEvent(event)
     }
 
     override fun cancelLongPress() {

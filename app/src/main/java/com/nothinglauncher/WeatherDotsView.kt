@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -48,17 +49,37 @@ class WeatherDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
-    var city: String = context.getString(R.string.weather_city_default)
+    var city: String = ""
         set(value) { field = value; invalidate() }
 
-    var temperature: String = "21°"
+    var temperature: String = "--\u00B0"
         set(value) { field = value; invalidate() }
 
-    var condition: String = context.getString(R.string.weather_condition_default)
+    var condition: String = context.getString(R.string.weather_loading)
         set(value) { field = value; invalidate() }
 
-    var highLow: String = "H:24° L:15°"
+    var highLow: String = ""
         set(value) { field = value; invalidate() }
+
+    var isDay: Boolean = true
+        set(value) { field = value; invalidate() }
+
+    fun bind(weather: WeatherRepository.Weather?) {
+        if (weather == null) {
+            if (city.isBlank()) city = context.getString(R.string.weather_local)
+            temperature = "--\u00B0"
+            condition = context.getString(R.string.weather_unavailable)
+            highLow = context.getString(R.string.weather_tap_refresh)
+            contentDescription = condition
+            return
+        }
+        city = weather.city
+        temperature = "${weather.temperature}\u00B0"
+        condition = weather.condition
+        highLow = "H:${weather.high}\u00B0  L:${weather.low}\u00B0"
+        isDay = weather.isDay
+        contentDescription = "${weather.city}, ${weather.temperature}, ${weather.condition}"
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -86,32 +107,65 @@ class WeatherDotsView @JvmOverloads constructor(
             }
         }
 
-        // 3. Center-Right: Procedural Dot-Matrix Weather Graphic (Sun with orbital dots)
+        // 3. Center-Right: procedural dot-matrix weather graphic
         val iconCx = width - padX - 32f * density
         val iconCy = tempY0 + (DotFont.ROWS * pitch) / 2f
-        val sunR = 12f * density
-        val rayR = 20f * density
-
-        // Sun center dots
-        canvas.drawCircle(iconCx, iconCy, sunR * 0.6f, onPaint)
-        // 8 orbiting ray dots
-        for (i in 0 until 8) {
-            val angle = Math.toRadians(i * 45.0)
-            val rx = iconCx + (rayR * cos(angle)).toFloat()
-            val ry = iconCy + (rayR * sin(angle)).toFloat()
-            canvas.drawCircle(rx, ry, 1.8f * density, if (i % 2 == 0) accentPaint else onPaint)
-        }
-        // Cloud arc dots overlay
-        val cloudY = iconCy + 6f * density
-        for (c in -3..3) {
-            val cx = iconCx + c * 5f * density
-            val cy = cloudY - (3 - kotlin.math.abs(c)) * 2f * density
-            canvas.drawCircle(cx, cy, 2.2f * density, onPaint)
-        }
+        drawConditionIcon(canvas, iconCx, iconCy)
 
         // 4. Footer: Condition label & High/Low
         val footerY = height - 14f * density
         canvas.drawText(condition.uppercase(), padX, footerY - 12f * density, titlePaint)
-        canvas.drawText(highLow, padX, footerY, textPaint)
+        if (highLow.isNotBlank()) canvas.drawText(highLow, padX, footerY, textPaint)
+    }
+
+    private fun drawConditionIcon(canvas: Canvas, cx: Float, cy: Float) {
+        val c = condition.uppercase(Locale.US)
+        val rain = c.contains("RAIN") || c.contains("DRIZZLE") || c.contains("SHOWER") || c.contains("THUNDER")
+        val snow = c.contains("SNOW")
+        val cloudy = rain || snow || c.contains("CLOUD") || c.contains("OVERCAST") || c.contains("FOG")
+        if (!cloudy && isDay) {
+            // Sun: solid core with orbital rays.
+            canvas.drawCircle(cx, cy, 8f * density, onPaint)
+            for (i in 0 until 8) {
+                val angle = Math.toRadians(i * 45.0)
+                val rx = cx + (18f * density * cos(angle)).toFloat()
+                val ry = cy + (18f * density * sin(angle)).toFloat()
+                canvas.drawCircle(rx, ry, 1.8f * density, if (i % 2 == 0) accentPaint else onPaint)
+            }
+            return
+        }
+        if (!cloudy && !isDay) {
+            // Crescent moon made from two overlapping circles.
+            val clear = ContextCompat.getColor(context, R.color.nothing_bg)
+            canvas.drawCircle(cx, cy, 10f * density, onPaint)
+            canvas.drawCircle(cx + 5f * density, cy - 3f * density, 9f * density,
+                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = clear })
+            canvas.drawCircle(cx - 1f * density, cy + 1f * density, 2f * density, accentPaint)
+            return
+        }
+        // Cloud silhouette.
+        val cloudY = cy - 2f * density
+        for (col in -4..4) {
+            val px = cx + col * 4.2f * density
+            val lift = (4 - kotlin.math.abs(col)).coerceAtLeast(0)
+            canvas.drawCircle(px, cloudY - lift * 1.4f * density, 2.4f * density, onPaint)
+        }
+        for (col in -4..4) {
+            canvas.drawCircle(cx + col * 4.2f * density, cloudY + 4f * density, 2.4f * density, onPaint)
+        }
+        if (rain) {
+            for (col in -3..3) {
+                val px = cx + col * 4.5f * density
+                val py = cloudY + 11f * density + (if (col % 2 == 0) 0f else 3f * density)
+                canvas.drawCircle(px, py, 1.5f * density, if (col == 0) accentPaint else onPaint)
+            }
+        } else if (snow) {
+            for (col in -3..3 step 2) {
+                canvas.drawCircle(cx + col * 4.5f * density, cloudY + 12f * density, 1.7f * density, onPaint)
+            }
+        } else if (c.contains("THUNDER")) {
+            canvas.drawCircle(cx, cloudY + 12f * density, 2.2f * density, accentPaint)
+            canvas.drawCircle(cx - 2.5f * density, cloudY + 16f * density, 1.5f * density, accentPaint)
+        }
     }
 }
