@@ -16,6 +16,7 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -190,6 +191,27 @@ class MainActivity : AppCompatActivity() {
 
     fun performHapticFeedback(feedbackConstant: Int) {
         binding.root.performHapticFeedback(feedbackConstant)
+    }
+
+    fun handleWorkspaceAppDrop(
+        app: AppInfo,
+        fromSource: DragController.DragSource,
+        fromPage: Int,
+        targetPage: Int,
+        rawX: Float,
+        rawY: Float
+    ) {
+        val handled = homeFragment?.handleAppDropOnPage(app, fromSource, fromPage, targetPage, rawX, rawY) ?: false
+        if (!handled) {
+            if (fromSource == DragController.DragSource.DRAWER) {
+                viewModel.pinToPage(targetPage, app)
+                performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                AppLauncher.toast(this, R.string.drag_app_pinned)
+            } else if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
+                viewModel.moveAppBetweenPages(app, fromPage, targetPage)
+                performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            }
+        }
     }
 
     private fun setupBackHandler() {
@@ -538,7 +560,7 @@ class MainActivity : AppCompatActivity() {
         }
         val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
         val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.75f)
-        dialogView.findViewById<TextView>(R.id.listTitle).text = getString(R.string.folder_add_apps)
+        dialogView.findViewById<DotMatrixView>(R.id.listTitle).text = getString(R.string.folder_add_apps)
         dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
         val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
         recycler.layoutManager = LinearLayoutManager(this)
@@ -572,7 +594,7 @@ class MainActivity : AppCompatActivity() {
         val options = listOf(getString(R.string.action_new_folder)) + page.folders.map { it.name }
         val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
         val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.6f)
-        dialogView.findViewById<TextView>(R.id.listTitle).text = getString(R.string.action_add_to_folder)
+        dialogView.findViewById<DotMatrixView>(R.id.listTitle).text = getString(R.string.action_add_to_folder)
         dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
         val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
         recycler.layoutManager = LinearLayoutManager(this)

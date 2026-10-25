@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.content.Context
 import android.content.Intent
@@ -230,6 +230,102 @@ class HomeFragment : Fragment() {
         binding.workspaceRecycler.smoothScrollToPosition(index)
         viewModel.prefs.activePageIndex = index
         binding.pageIndicator.currentPage = index
+    }
+
+    fun handleAppDropOnPage(
+        app: AppInfo,
+        fromSource: DragController.DragSource,
+        fromPage: Int,
+        targetPage: Int,
+        rawX: Float,
+        rawY: Float
+    ): Boolean {
+        if (_binding == null) return false
+        val pageHolder = workspaceLayoutManager.findViewByPosition(targetPage) ?: return false
+
+        // 1. Check if dropped over a folder in foldersContainer
+        val foldersContainer = pageHolder.findViewById<ViewGroup>(R.id.foldersContainer)
+        if (foldersContainer != null && foldersContainer.childCount > 0) {
+            for (i in 0 until foldersContainer.childCount) {
+                val child = foldersContainer.getChildAt(i)
+                val loc = IntArray(2)
+                child.getLocationOnScreen(loc)
+                val left = loc[0].toFloat()
+                val top = loc[1].toFloat()
+                val right = left + child.width
+                val bottom = top + child.height
+                if (rawX in left..right && rawY in top..bottom) {
+                    val page = viewModel.workspacePages.value?.getOrNull(targetPage) ?: return false
+                    val folder = page.folders.getOrNull(i) ?: return false
+                    if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
+                        viewModel.removeFromPage(fromPage, app.key)
+                    }
+                    viewModel.addAppToFolder(targetPage, folder.id, app.key)
+                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    AppLauncher.toast(requireContext(), R.string.folder_add_apps)
+                    return true
+                }
+            }
+        }
+
+        // 2. Check if dropped over homeGrid
+        val homeGrid = pageHolder.findViewById<RecyclerView>(R.id.homeGrid) ?: return false
+        val gridLoc = IntArray(2)
+        homeGrid.getLocationOnScreen(gridLoc)
+        val localX = rawX - gridLoc[0]
+        val localY = rawY - gridLoc[1]
+
+        val gridAdapter = homeGrid.adapter as? HomeIconAdapter
+        val columns = viewModel.prefs.gridColumns.coerceAtLeast(1)
+
+        val child = homeGrid.findChildViewUnder(localX, localY)
+        if (child != null && gridAdapter != null) {
+            val pos = homeGrid.getChildAdapterPosition(child)
+            if (pos != RecyclerView.NO_POSITION) {
+                val targetApp = gridAdapter.getItem(pos)
+                if (targetApp != null && targetApp.key != app.key) {
+                    // Dropped onto an existing app icon -> MERGE INTO FOLDER!
+                    if (fromSource == DragController.DragSource.HOME_PAGE) {
+                        viewModel.removeFromPage(fromPage, app.key)
+                    }
+                    viewModel.createFolderFromDrop(targetPage, targetApp.key, app.key)
+                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    AppLauncher.toast(requireContext(), R.string.drag_folder_created)
+                    return true
+                } else if (targetApp == null) {
+                    // Dropped onto an empty spacer slot
+                    if (fromSource == DragController.DragSource.HOME_PAGE) {
+                        viewModel.moveAppToPageSlot(app, fromPage, targetPage, pos)
+                    } else {
+                        viewModel.placeAppAtSlot(targetPage, app, pos)
+                    }
+                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                    AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
+                    return true
+                }
+            }
+        }
+
+        // 3. If within or below grid bounds, calculate slot based on row/column
+        if (localX >= 0 && localX <= homeGrid.width && localY >= 0) {
+            val colWidth = (homeGrid.width.toFloat() / columns).coerceAtLeast(1f)
+            val col = (localX / colWidth).toInt().coerceIn(0, columns - 1)
+            val firstChildHeight = homeGrid.getChildAt(0)?.height?.toFloat()
+            val rowHeight = (firstChildHeight ?: (84f * resources.displayMetrics.density)).coerceAtLeast(1f)
+            val row = (localY / rowHeight).toInt().coerceAtLeast(0)
+            val targetSlot = row * columns + col
+
+            if (fromSource == DragController.DragSource.HOME_PAGE) {
+                viewModel.moveAppToPageSlot(app, fromPage, targetPage, targetSlot)
+            } else {
+                viewModel.placeAppAtSlot(targetPage, app, targetSlot)
+            }
+            requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
+            return true
+        }
+
+        return false
     }
 
     override fun onDestroyView() {

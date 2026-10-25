@@ -13,14 +13,14 @@ import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.ItemAppBinding
 import kotlin.math.abs
 
-/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper and full launcher dragging. */
+/** Pinned apps on the home screen. Supports drag-to-reorder via ItemTouchHelper and full launcher dragging across grid slots. */
 class HomeIconAdapter(
     private val onAppClick: (AppInfo, View) -> Unit,
     private val onAppLongClick: (AppInfo, View) -> Unit,
     private val onAppDragStart: ((AppInfo, View, Float, Float) -> Unit)? = null
 ) : RecyclerView.Adapter<HomeIconAdapter.IconViewHolder>() {
 
-    private val items = mutableListOf<AppInfo>()
+    private val items = mutableListOf<AppInfo?>()
 
     var showLabels: Boolean = true
         @SuppressLint("NotifyDataSetChanged")
@@ -35,19 +35,23 @@ class HomeIconAdapter(
         set(value) { if (field != value) { field = value; notifyDataSetChanged() } }
 
     @SuppressLint("NotifyDataSetChanged")
-    fun setItems(newItems: List<AppInfo>) {
+    fun setItems(newItems: List<AppInfo?>) {
         if (newItems == items) return
         items.clear()
         items.addAll(newItems)
         notifyDataSetChanged()
     }
 
-    fun getItems(): List<AppInfo> = items.toList()
+    fun getSlotItems(): List<AppInfo?> = items.toList()
+    fun getItems(): List<AppInfo> = items.filterNotNull()
+    fun getItem(position: Int): AppInfo? = items.getOrNull(position)
 
     fun moveItem(from: Int, to: Int): Boolean {
         if (from !in items.indices || to !in items.indices || from == to) return false
-        val item = items.removeAt(from)
-        items.add(to, item)
+        val fromItem = items[from]
+        val toItem = items[to]
+        items[from] = toItem
+        items[to] = fromItem
         notifyItemMoved(from, to)
         return true
     }
@@ -65,10 +69,30 @@ class HomeIconAdapter(
         private var longPressed = false
         private val slop = ViewConfiguration.get(binding.root.context).scaledTouchSlop
 
-        fun bind(app: AppInfo) {
+        fun bind(app: AppInfo?) {
+            if (iconSizePx > 0) {
+                binding.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
+            }
+
+            if (app == null) {
+                binding.root.alpha = 0f
+                binding.root.isClickable = false
+                binding.root.isFocusable = false
+                binding.root.setOnClickListener(null)
+                binding.root.setOnTouchListener(null)
+                binding.root.setOnLongClickListener(null)
+                binding.appIcon.setImageDrawable(null)
+                binding.appIcon.contentDescription = null
+                binding.appLabel.text = ""
+                binding.appLabel.isVisible = false
+                return
+            }
+
+            binding.root.alpha = 1f
+            binding.root.isClickable = true
+            binding.root.isFocusable = true
             binding.appIcon.setImageDrawable(app.icon)
             binding.appIcon.contentDescription = app.label
-            if (iconSizePx > 0) binding.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
             binding.appLabel.text = app.label
             binding.appLabel.isVisible = showLabels
             applyLabelShadow(binding, labelShadow)

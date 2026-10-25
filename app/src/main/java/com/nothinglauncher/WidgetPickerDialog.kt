@@ -43,49 +43,62 @@ object WidgetPickerDialog {
         b.listTitle.text = "ELEMENTS"
         b.listClose.setOnClickListener { dialog.dismiss() }
         b.listEmpty.setText(R.string.no_widgets)
-        b.listRecycler.isVisible = false
+
+        val rows = mutableListOf<Row>()
+        rows.addAll(loadBespokeRows(context))
+
+        val adapter = Adapter(
+            rows,
+            onPickElement = { el -> dialog.dismiss(); onPickElement(el) },
+            onPickWidget = { info -> dialog.dismiss(); onPickWidget(info) }
+        )
+
+        val lm = GridLayoutManager(context, 2)
+        lm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+            override fun getSpanSize(position: Int): Int = when (val r = rows[position]) {
+                is Row.Header -> 2
+                is Row.Element -> 1
+                is Row.Widget -> if (r.cols >= 3) 2 else 1
+            }
+        }
+        b.listRecycler.layoutManager = lm
+        b.listRecycler.adapter = adapter
+        b.listRecycler.isVisible = true
+        b.listEmpty.isVisible = false
+
         dialog.show()
 
         scope.launch {
-            val rows = withContext(Dispatchers.IO) { loadRows(context) }
-            if (!dialog.isShowing) return@launch
-            b.listEmpty.isVisible = rows.isEmpty()
-            b.listRecycler.isVisible = rows.isNotEmpty()
-            val lm = GridLayoutManager(context, 2)
-            lm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
-                override fun getSpanSize(position: Int): Int = when (val r = rows[position]) {
-                    is Row.Header -> 2
-                    is Row.Element -> 1
-                    is Row.Widget -> if (r.cols >= 3) 2 else 1
-                }
-            }
-            b.listRecycler.layoutManager = lm
-            b.listRecycler.adapter = Adapter(
-                rows,
-                onPickElement = { el -> dialog.dismiss(); onPickElement(el) },
-                onPickWidget = { info -> dialog.dismiss(); onPickWidget(info) }
-            )
+            val thirdParty = withContext(Dispatchers.IO) { loadThirdPartyRows(context) }
+            if (!dialog.isShowing || thirdParty.isEmpty()) return@launch
+            adapter.appendRows(thirdParty)
         }
+
         return dialog
     }
 
-    private fun loadRows(context: Context): List<Row> {
+    private fun loadBespokeRows(context: Context): List<Row> {
         val rows = mutableListOf<Row>()
-
-        // 1. Nothing Bespoke Elements
         val bespoke = BespokeElement.values().toList()
         rows += Row.Header(context.getString(R.string.bespoke_elements), null, bespoke.size)
         bespoke.forEach { rows += Row.Element(it) }
+        return rows
+    }
 
-        // 2. Installed third-party widgets
+    private fun loadThirdPartyRows(context: Context): List<Row> {
+        val rows = mutableListOf<Row>()
         val awm = AppWidgetManager.getInstance(context) ?: return rows
         val pm = context.packageManager
         val density = context.resources.displayMetrics.densityDpi
         val providers = try {
             awm.getInstalledProvidersForProfile(Process.myUserHandle())
         } catch (e: Exception) {
+            null
+        } ?: try {
+            awm.installedProviders
+        } catch (e: Exception) {
             emptyList()
-        }
+        } ?: emptyList()
         val collator = Collator.getInstance().apply { strength = Collator.PRIMARY }
         val byApp = providers.groupBy { it.provider.packageName }
         val apps = byApp.keys.map { pkg ->
@@ -111,10 +124,16 @@ object WidgetPickerDialog {
     }
 
     private class Adapter(
-        private val rows: List<Row>,
+        private val rows: MutableList<Row>,
         private val onPickElement: (BespokeElement) -> Unit,
         private val onPickWidget: (AppWidgetProviderInfo) -> Unit
     ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+
+        fun appendRows(newRows: List<Row>) {
+            val start = rows.size
+            rows.addAll(newRows)
+            notifyItemRangeInserted(start, newRows.size)
+        }
 
         override fun getItemViewType(position: Int) = when (rows[position]) {
             is Row.Header -> TYPE_HEADER

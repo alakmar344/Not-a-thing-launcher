@@ -537,13 +537,21 @@ class WorkspacePageAdapter(
 
             b.homeGrid.layoutManager = GridLayoutManager(ctx, columns)
             b.homeGrid.adapter = gridAdapter
-            gridAdapter.setItems(viewModel.getAppsForPage(page))
+            gridAdapter.setItems(viewModel.getSlotItemsForPage(page, columns))
 
             // Attach touch helper for drag-and-drop within page
             val dragThreshold = 14 * density
             val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, 0
             ) {
+                override fun getDragDirs(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder): Int {
+                    val pos = viewHolder.bindingAdapterPosition
+                    if (pos == RecyclerView.NO_POSITION || gridAdapter.getItem(pos) == null) return 0
+                    return ItemTouchHelper.UP or ItemTouchHelper.DOWN or ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT
+                }
+
+                override fun canDropOver(recyclerView: RecyclerView, current: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean = true
+
                 override fun onMove(rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                     return gridAdapter.moveItem(vh.bindingAdapterPosition, target.bindingAdapterPosition).also {
                         if (it) dragMoved = true
@@ -566,7 +574,7 @@ class WorkspacePageAdapter(
                     vh.itemView.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
                     if (dragMoved) {
                         dragMoved = false
-                        viewModel.savePageApps(pageIndex, gridAdapter.getItems())
+                        viewModel.savePageSlots(pageIndex, gridAdapter.getSlotItems())
                     }
                 }
                 override fun isLongPressDragEnabled(): Boolean = true
@@ -574,7 +582,7 @@ class WorkspacePageAdapter(
             touchHelper.attachToRecyclerView(b.homeGrid)
 
             // 6. Empty State
-            val isEmpty = page.elements.isEmpty() && page.widgetIds.isEmpty() && page.appKeys.isEmpty() && page.enlargedApps.isEmpty() && page.folders.isEmpty()
+            val isEmpty = page.elements.isEmpty() && page.widgetIds.isEmpty() && page.appKeys.none { it.isNotEmpty() } && page.enlargedApps.isEmpty() && page.folders.isEmpty()
             b.homeEmpty.isVisible = isEmpty
 
             // Customize sheet on long press empty area
