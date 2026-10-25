@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="ea_tap_to_allow">Tap to allow</string>
+    <string name="ea_save">Save</string>
+    <string name="ea_on">On</string>
+    <string name="ea_off">Off</string>
+    <string name="ea_unavailable">Unavailable</string>
+    <string name="ea_duration_hm">%1$dH %2$dM</string>
+    <string name="ea_duration_m">%1$dM</string>
+
+    <!-- Pedometer -->
+    <string name="ea_steps">Steps</string>
+    <string name="ea_no_step_sensor">No step sensor</string>
+    <string name="ea_ped_needs_activity">Physical activity access</string>
+    <string name="ea_walk_to_start">Walk to start</string>
+    <string name="ea_pct_of_goal">%1$d%% of goal</string>
+    <string name="ea_pct_of_goal_n">%1$d%% of %2$d</string>
+    <string name="ea_no_fitness_app">No fitness app installed</string>
+    <string name="ea_ped_settings_title">Step goal</string>
+    <string name="ea_ped_goal_label">Daily goal (steps)</string>
+    <string name="ea_ped_goal_hint">Steps are counted by your phone\'s step sensor and reset at midnight.</string>
+    <string name="ea_ped_goal_invalid">Enter a goal between %1$d and %2$d</string>
+    <string name="ea_ped_cd">%1$d steps today, %2$d%% of %3$d step goal</string>
+    <string name="ea_ped_cd_allow">Step counter. Tap to allow physical activity access</string>
+    <string name="ea_ped_cd_waiting">Step counter. Waiting for steps</string>
+
+    <!-- Compass -->
+    <string name="ea_no_compass">No compass</string>
+    <string name="ea_calibrate">Calibrate: wave in a figure 8</string>
+    <string name="ea_compass_cd">Heading %1$d degrees %2$s</string>
+    <string-array name="ea_cardinals">
+        <item>N</item>
+        <item>NE</item>
+        <item>E</item>
+        <item>SE</item>
+        <item>S</item>
+        <item>SW</item>
+        <item>W</item>
+        <item>NW</item>
+    </string-array>
+
+    <!-- Screen time -->
+    <string name="ea_usage_access">Usage access</string>
+    <string name="ea_usage_allow">Screen time. Tap to allow usage access</string>
+    <string name="ea_screen_time_cd">Screen time today %1$s</string>
+
+    <!-- Storage -->
+    <string name="ea_storage">Storage</string>
+    <string name="ea_gb_free">GB free</string>
+    <string name="ea_free_of">Free of %1$s GB</string>
+    <string name="ea_used_pct">%1$d%% used of %2$s GB</string>
+    <string name="ea_storage_cd">%1$s GB free of %2$s GB, %3$d%% used</string>
+
+    <!-- System monitor -->
+    <string name="ea_system">System</string>
+    <string name="ea_ram">RAM</string>
+    <string name="ea_temp">Temp</string>
+    <string name="ea_uptime">Uptime</string>
+    <string name="ea_ram_used_of">%1$s / %2$s GB</string>
+    <string name="ea_uptime_dh">%1$dD %2$dH</string>
+    <string name="ea_sys_cd_ram">Memory %1$d%% used, %2$s</string>
+    <string name="ea_sys_cd_temp">battery temperature %1$s</string>
+    <string name="ea_sys_cd_uptime">uptime %1$s</string>
+
+    <!-- Battery -->
+    <string name="ea_battery">Battery</string>
+    <string name="ea_battery_pct">Charge</string>
+    <string name="ea_battery_low">Battery low</string>
+    <string name="ea_charging">Charging</string>
+    <string name="ea_charged">Charged</string>
+    <string name="ea_full_in">Full in %1$s</string>
+    <string name="ea_battery_cd">Battery %1$d%%, %2$s</string>
+    <string name="ea_battery_date_cd">Battery %1$d%%. %2$s</string>
+
+    <!-- Quick toggles -->
+    <string name="ea_wifi">Wi-Fi</string>
+    <string name="ea_bluetooth">Bluetooth</string>
+    <string name="ea_torch">Torch</string>
+    <string name="ea_sound">Sound</string>
+    <string name="ea_vibrate">Vibrate</string>
+    <string name="ea_silent">Silent</string>
+    <string name="ea_torch_busy">Torch is unavailable while the camera is in use</string>
+    <string name="ea_dnd_access_needed">Allow Do Not Disturb access so the launcher can switch to or from silent mode</string>
+</resources>

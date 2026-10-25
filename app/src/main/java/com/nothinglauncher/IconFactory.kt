@@ -39,6 +39,12 @@ object IconFactory {
     class Layers(val background: Drawable?, val foreground: Drawable?, val monochrome: Drawable?)
 
     fun render(resources: Resources, source: Drawable, style: LauncherPrefs.IconStyle, sizePx: Int): Drawable {
+        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+        return render(resources, source, style, sizePx, isLight)
+    }
+
+    /** Renders with an explicit light/dark palette (the launcher can force a theme). */
+    fun render(resources: Resources, source: Drawable, style: LauncherPrefs.IconStyle, sizePx: Int, isLight: Boolean): Drawable {
         val layers = if (source is AdaptiveIconDrawable) {
             Layers(
                 source.background,
@@ -46,7 +52,6 @@ object IconFactory {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) source.monochrome else null
             )
         } else null
-        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
         return renderInternal(resources, source, layers, style, sizePx, isLight)
     }
 

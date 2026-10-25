@@ -4,29 +4,29 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
-import org.json.JSONObject
 
 /**
- * Typed access to every persisted launcher setting and layout list.
+ * Typed access to every persisted launcher setting.
  *
- * Writes to *settings* bump [settingsVersion] so the home screen can cheaply detect
- * "something changed while I was in the background" and re-apply itself.
- * Layout/data writes (pinned apps, recents…) deliberately do not bump it.
+ * Keys are shared with v1–v8 so settings survive upgrades. Writes to *settings* bump
+ * [settingsVersion] so the home screen can cheaply detect "something changed while I was in
+ * the background" and re-apply itself. The home layout itself lives in [data.LauncherDb]; the
+ * v8 layout keys are only read once by the migration and are never deleted (safe rollback).
  */
 class LauncherPrefs(context: Context) {
 
     enum class IconStyle { MONO, COLOR }
     enum class Background { DOTS, BLACK, WALLPAPER }
-    enum class SwipeDown { NOTIFICATIONS, SEARCH }
+    enum class SwipeDown { NOTIFICATIONS, SEARCH, QUICK_SETTINGS, NONE }
     enum class Accent { RED, WHITE }
     enum class ThemeMode { SYSTEM, DARK, LIGHT }
     enum class IconSize { SMALL, MEDIUM, LARGE }
+    enum class DoubleTap { LOCK, NONE }
 
     private val appContext = context.applicationContext
-    private val sp: SharedPreferences =
-        appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val sp: SharedPreferences = appContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    // ---- Settings -----------------------------------------------------------------------
+    // ---- Look -----------------------------------------------------------------------------
 
     var themeMode: ThemeMode
         get() = enumOf(sp.getString(K_THEME_MODE, null), ThemeMode.SYSTEM)
@@ -44,13 +44,19 @@ class LauncherPrefs(context: Context) {
         get() = enumOf(sp.getString(K_BACKGROUND, null), Background.DOTS)
         set(value) = putSetting(K_BACKGROUND, value.name)
 
-    var swipeDown: SwipeDown
-        get() = enumOf(sp.getString(K_SWIPE_DOWN, null), SwipeDown.NOTIFICATIONS)
-        set(value) = putSetting(K_SWIPE_DOWN, value.name)
-
     var accent: Accent
         get() = enumOf(sp.getString(K_ACCENT, null), Accent.RED)
         set(value) = putSetting(K_ACCENT, value.name)
+
+    // ---- Home -----------------------------------------------------------------------------
+
+    var gridColumns: Int
+        get() = sp.getInt(K_COLUMNS, 4).coerceIn(MIN_COLUMNS, MAX_COLUMNS)
+        set(value) = putSetting(K_COLUMNS, value.coerceIn(MIN_COLUMNS, MAX_COLUMNS))
+
+    var gridRows: Int
+        get() = sp.getInt(K_ROWS, 6).coerceIn(MIN_ROWS, MAX_ROWS)
+        set(value) = putSetting(K_ROWS, value.coerceIn(MIN_ROWS, MAX_ROWS))
 
     var showHomeLabels: Boolean
         get() = sp.getBoolean(K_LABELS, true)
@@ -60,92 +66,139 @@ class LauncherPrefs(context: Context) {
         get() = sp.getBoolean(K_DOCK_LABELS, false)
         set(value) = putSetting(K_DOCK_LABELS, value)
 
-    var doubleTapToSleep: Boolean
-        get() = sp.getBoolean(K_DOUBLE_TAP, true)
-        set(value) = putSetting(K_DOUBLE_TAP, value)
+    var showSearchBar: Boolean
+        get() = sp.getBoolean(K_SEARCH_BAR, true)
+        set(value) = putSetting(K_SEARCH_BAR, value)
 
-    var gridColumns: Int
-        get() = sp.getInt(K_COLUMNS, 4).coerceIn(3, 5)
-        set(value) = putSetting(K_COLUMNS, value.coerceIn(3, 5))
+    var addNewAppsToHome: Boolean
+        get() = sp.getBoolean(K_ADD_NEW_APPS, true)
+        set(value) = putSetting(K_ADD_NEW_APPS, value)
+
+    var notificationDots: Boolean
+        get() = sp.getBoolean(K_DOTS, true)
+        set(value) = putSetting(K_DOTS, value)
+
+    var lockLayout: Boolean
+        get() = sp.getBoolean(K_LOCK_LAYOUT, false)
+        set(value) = putSetting(K_LOCK_LAYOUT, value)
 
     var showSeconds: Boolean
         get() = sp.getBoolean(K_SECONDS, true)
         set(value) = putSetting(K_SECONDS, value)
 
+    var quickNote: String
+        get() = sp.getString(K_QUICK_NOTE, DEFAULT_NOTE) ?: DEFAULT_NOTE
+        set(value) = putSetting(K_QUICK_NOTE, value)
+
+    /** Index of the page the Home button returns to. */
+    var defaultPage: Int
+        get() = sp.getInt(K_DEFAULT_PAGE, 0).coerceAtLeast(0)
+        set(value) = putSetting(K_DEFAULT_PAGE, value.coerceAtLeast(0))
+
+    // ---- Gestures -------------------------------------------------------------------------
+
+    var swipeDown: SwipeDown
+        get() = enumOf(sp.getString(K_SWIPE_DOWN, null), SwipeDown.NOTIFICATIONS)
+        set(value) = putSetting(K_SWIPE_DOWN, value.name)
+
+    /** v1–v8 stored a boolean under [K_DOUBLE_TAP]; it maps onto LOCK/NONE. */
+    var doubleTap: DoubleTap
+        get() = if (sp.getBoolean(K_DOUBLE_TAP, true)) DoubleTap.LOCK else DoubleTap.NONE
+        set(value) = putSetting(K_DOUBLE_TAP, value == DoubleTap.LOCK)
+
+    // ---- Drawer ---------------------------------------------------------------------------
+
     var showRecents: Boolean
         get() = sp.getBoolean(K_RECENTS, true)
         set(value) = putSetting(K_RECENTS, value)
-
-    var quickNote: String
-        get() = sp.getString(K_QUICK_NOTE, "NOTHING BUT TIME") ?: "NOTHING BUT TIME"
-        set(value) = putSetting(K_QUICK_NOTE, value)
-
-    var showDotGrid: Boolean
-        get() = sp.getBoolean(K_SHOW_DOT_GRID, true)
-        set(value) = putSetting(K_SHOW_DOT_GRID, value)
 
     var autoKeyboard: Boolean
         get() = sp.getBoolean(K_KEYBOARD, false)
         set(value) = putSetting(K_KEYBOARD, value)
 
+    var recents: List<String>
+        get() = sp.getString(K_RECENT_LIST, null)?.let(::parseStrings) ?: emptyList()
+        set(value) {
+            sp.edit().putString(K_RECENT_LIST, JSONArray(value.take(MAX_RECENTS)).toString()).apply()
+        }
+
+    var hiddenApps: Set<String>
+        get() = sp.getStringSet(K_HIDDEN, emptySet())?.toSet() ?: emptySet()
+        set(value) {
+            // Hidden apps affect what the launcher shows, so treat as a setting.
+            sp.edit().putStringSet(K_HIDDEN, value.toSet()).putInt(K_VERSION, settingsVersion + 1).apply()
+        }
+
+    // ---- State ----------------------------------------------------------------------------
+
     val settingsVersion: Int get() = sp.getInt(K_VERSION, 0)
+
+    var onboardingDone: Boolean
+        get() = sp.getBoolean(K_ONBOARDING_DONE, false)
+        set(value) = sp.edit().putBoolean(K_ONBOARDING_DONE, value).apply()
+
+    /** Layout schema the data has been migrated to (8 = SharedPreferences JSON, 9 = SQLite). */
+    var layoutSchema: Int
+        get() = sp.getInt(K_LAYOUT_SCHEMA, 0)
+        set(value) = sp.edit().putInt(K_LAYOUT_SCHEMA, value).commit().let { }
+
+    /** versionCode of the APK that last ran; used to detect upgrades. */
+    var lastRunVersionCode: Int
+        get() = sp.getInt(K_LAST_VERSION_CODE, 0)
+        set(value) = sp.edit().putInt(K_LAST_VERSION_CODE, value).apply()
+
+    /** AppWidget id currently going through bind/configure (survives process death). */
+    var pendingWidgetId: Int
+        get() = sp.getInt(K_PENDING_WIDGET, -1)
+        set(value) = sp.edit().putInt(K_PENDING_WIDGET, value).commit().let { }
+
+    var activePageIndex: Int
+        get() = sp.getInt(K_ACTIVE_PAGE, 0)
+        set(value) = sp.edit().putInt(K_ACTIVE_PAGE, value).apply()
 
     fun accentColor(): Int = ContextCompat.getColor(
         appContext,
         if (accent == Accent.RED) R.color.nothing_red else R.color.nothing_white
     )
 
-    // ---- Layout data --------------------------------------------------------------------
+    /** True if anything from an older launcher version exists (used to skip onboarding). */
+    val hasAnyV8Data: Boolean
+        get() = sp.contains(K_PAGES_V3) || sp.contains(K_DOCK) || sp.contains(K_HOME) ||
+            sp.contains(K_LEGACY_HOME) || sp.contains(K_LEGACY_DOCK) || sp.contains(K_VERSION)
 
-    var pages: List<WorkspacePage>?
-        get() = sp.getString(K_PAGES_V3, null)?.let(::parsePages)
-        set(value) = putData(K_PAGES_V3, value?.let(::serializePages))
+    // ---- v1–v8 layout (read-only, for migration) -----------------------------------------
 
-    var activePageIndex: Int
-        get() = sp.getInt(K_ACTIVE_PAGE, 0)
-        set(value) = sp.edit().putInt(K_ACTIVE_PAGE, value).apply()
-
-    /** Ordered component keys pinned to home page 0 (backward-compatible). */
-    var homeItems: List<String>?
-        get() = pages?.firstOrNull()?.appKeys ?: sp.getString(K_HOME, null)?.let(::parseStrings)
-        set(value) = putData(K_HOME, value?.let { JSONArray(it).toString() })
-
-    var dockItems: List<String>?
-        get() = sp.getString(K_DOCK, null)?.let(::parseStrings)
-        set(value) = putData(K_DOCK, value?.let { JSONArray(it).toString() })
-
-    /** Package-name lists written by v1 of the launcher; read once for migration. */
+    val v8Pages: List<WorkspacePage>? get() = sp.getString(K_PAGES_V3, null)?.let(::parsePages)
+    val v8HomeItems: List<String>? get() = sp.getString(K_HOME, null)?.let(::parseStrings)
+    val v8DockItems: List<String>? get() = sp.getString(K_DOCK, null)?.let(::parseStrings)
     val legacyHomePackages: List<String>? get() = sp.getString(K_LEGACY_HOME, null)?.let(::parseStrings)
     val legacyDockPackages: List<String>? get() = sp.getString(K_LEGACY_DOCK, null)?.let(::parseStrings)
+    val v8WidgetIds: List<Int>
+        get() = sp.getString(K_WIDGETS, null)?.let(::parseStrings)?.mapNotNull { it.toIntOrNull() } ?: emptyList()
 
-    var recents: List<String>
-        get() = sp.getString(K_RECENT_LIST, null)?.let(::parseStrings) ?: emptyList()
-        set(value) = putData(K_RECENT_LIST, JSONArray(value.take(MAX_RECENTS)).toString())
+    // ---- Backup support -------------------------------------------------------------------
 
-    var hiddenApps: Set<String>
-        get() = sp.getStringSet(K_HIDDEN, emptySet())?.toSet() ?: emptySet()
-        set(value) {
-            // Hidden apps affect what the home screen shows, so treat as a setting.
-            sp.edit().putStringSet(K_HIDDEN, value.toSet()).putInt(K_VERSION, settingsVersion + 1).apply()
+    /** Every user-facing setting as a plain map (for export). */
+    fun exportSettings(): Map<String, Any?> =
+        sp.all.filterKeys { it in EXPORTABLE_KEYS }
+
+    fun importSettings(values: Map<String, Any?>) {
+        val e = sp.edit()
+        values.forEach { (k, v) ->
+            if (k !in EXPORTABLE_KEYS) return@forEach
+            when (v) {
+                is Boolean -> e.putBoolean(k, v)
+                is Int -> e.putInt(k, v)
+                is Long -> e.putInt(k, v.toInt())
+                is String -> e.putString(k, v)
+                is Set<*> -> e.putStringSet(k, v.filterIsInstance<String>().toSet())
+                null -> e.remove(k)
+            }
         }
-
-    var widgetIds: List<Int>
-        get() {
-            val fromPages = pages?.flatMap { it.widgetIds }
-            if (fromPages != null && fromPages.isNotEmpty()) return fromPages
-            return sp.getString(K_WIDGETS, null)?.let(::parseStrings)?.mapNotNull { it.toIntOrNull() } ?: emptyList()
-        }
-        set(value) = putData(K_WIDGETS, JSONArray(value.map { it.toString() }).toString())
-
-    fun resetLayout() {
-        sp.edit()
-            .remove(K_HOME).remove(K_DOCK).remove(K_LEGACY_HOME).remove(K_LEGACY_DOCK)
-            .remove(K_WIDGETS).remove(K_PAGES_V3).remove(K_ACTIVE_PAGE)
-            .putInt(K_VERSION, settingsVersion + 1)
-            .apply()
+        e.putInt(K_VERSION, settingsVersion + 1).apply()
     }
 
-    // ---- Helpers ------------------------------------------------------------------------
+    // ---- Helpers --------------------------------------------------------------------------
 
     private fun putSetting(key: String, value: Any) {
         val e = sp.edit()
@@ -155,10 +208,6 @@ class LauncherPrefs(context: Context) {
             else -> e.putString(key, value.toString())
         }
         e.putInt(K_VERSION, settingsVersion + 1).apply()
-    }
-
-    private fun putData(key: String, value: String?) {
-        if (value == null) sp.edit().remove(key).apply() else sp.edit().putString(key, value).apply()
     }
 
     private fun parseStrings(json: String): List<String>? = try {
@@ -173,51 +222,26 @@ class LauncherPrefs(context: Context) {
         List(arr.length()) { i ->
             val obj = arr.getJSONObject(i)
             val id = obj.optString("id", "page_$i")
-            val apps = obj.optJSONArray("apps")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
-            val elements = obj.optJSONArray("elements")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
-            val widgets = obj.optJSONArray("widgets")?.let { a -> List(a.length()) { a.getInt(it) } } ?: emptyList()
-            val enlarged = obj.optJSONArray("enlarged")?.let { a -> List(a.length()) { a.getString(it) } } ?: emptyList()
+            val apps = obj.optJSONArray("apps")?.let { a -> List(a.length()) { a.optString(it, "") } } ?: emptyList()
+            val elements = obj.optJSONArray("elements")?.let { a -> List(a.length()) { a.optString(it, "") } } ?: emptyList()
+            val widgets = obj.optJSONArray("widgets")?.let { a -> List(a.length()) { a.optInt(it, -1) } } ?: emptyList()
+            val enlarged = obj.optJSONArray("enlarged")?.let { a -> List(a.length()) { a.optString(it, "") } } ?: emptyList()
             val foldersArr = obj.optJSONArray("folders")
             val folders = if (foldersArr != null) {
                 List(foldersArr.length()) { fIdx ->
                     val fObj = foldersArr.getJSONObject(fIdx)
-                    val fId = fObj.optString("id", "f_$fIdx")
-                    val fName = fObj.optString("name", "FOLDER")
-                    val fApps = fObj.optJSONArray("apps")?.let { fa -> List(fa.length()) { fa.getString(it) } } ?: emptyList()
-                    val fEnlarged = fObj.optBoolean("isEnlarged", false)
-                    WorkspaceFolder(fId, fName, fApps, fEnlarged)
+                    WorkspaceFolder(
+                        id = fObj.optString("id", "f_$fIdx"),
+                        name = fObj.optString("name", "FOLDER"),
+                        appKeys = fObj.optJSONArray("apps")?.let { fa -> List(fa.length()) { fa.optString(it, "") } } ?: emptyList(),
+                        isEnlarged = fObj.optBoolean("isEnlarged", false)
+                    )
                 }
             } else emptyList()
-            WorkspacePage(id, apps, elements, widgets, enlarged, folders)
+            WorkspacePage(id, apps, elements, widgets.filter { it > 0 }, enlarged, folders)
         }
     } catch (e: Exception) {
         null
-    }
-
-    private fun serializePages(pages: List<WorkspacePage>): String {
-        val arr = JSONArray()
-        pages.forEach { p ->
-            val obj = JSONObject().apply {
-                put("id", p.id)
-                put("apps", JSONArray(p.appKeys))
-                put("elements", JSONArray(p.elements))
-                put("widgets", JSONArray(p.widgetIds))
-                put("enlarged", JSONArray(p.enlargedApps))
-                val fArr = JSONArray()
-                p.folders.forEach { f ->
-                    val fObj = JSONObject().apply {
-                        put("id", f.id)
-                        put("name", f.name)
-                        put("apps", JSONArray(f.appKeys))
-                        put("isEnlarged", f.isEnlarged)
-                    }
-                    fArr.put(fObj)
-                }
-                put("folders", fArr)
-            }
-            arr.put(obj)
-        }
-        return arr.toString()
     }
 
     private inline fun <reified T : Enum<T>> enumOf(name: String?, default: T): T =
@@ -226,6 +250,11 @@ class LauncherPrefs(context: Context) {
     companion object {
         const val PREFS_NAME = "launcher_prefs"
         const val MAX_RECENTS = 10
+        const val MIN_COLUMNS = 3
+        const val MAX_COLUMNS = 6
+        const val MIN_ROWS = 4
+        const val MAX_ROWS = 8
+        const val DEFAULT_NOTE = "NOTHING BUT TIME"
 
         private const val K_THEME_MODE = "theme_mode"
         private const val K_ICON_STYLE = "icon_style"
@@ -237,9 +266,15 @@ class LauncherPrefs(context: Context) {
         private const val K_DOCK_LABELS = "show_dock_labels"
         private const val K_DOUBLE_TAP = "double_tap_to_sleep"
         private const val K_COLUMNS = "grid_columns"
+        private const val K_ROWS = "grid_rows"
         private const val K_SECONDS = "show_seconds"
         private const val K_RECENTS = "show_recents"
         private const val K_KEYBOARD = "auto_keyboard"
+        private const val K_SEARCH_BAR = "show_search_bar"
+        private const val K_ADD_NEW_APPS = "add_new_apps"
+        private const val K_DOTS = "notification_dots"
+        private const val K_LOCK_LAYOUT = "lock_layout"
+        private const val K_DEFAULT_PAGE = "default_page"
         private const val K_VERSION = "settings_version"
         private const val K_HOME = "home_items_v2"
         private const val K_DOCK = "dock_items_v2"
@@ -251,6 +286,15 @@ class LauncherPrefs(context: Context) {
         private const val K_PAGES_V3 = "workspace_pages_v3"
         private const val K_ACTIVE_PAGE = "active_page_index"
         private const val K_QUICK_NOTE = "quick_note_text"
-        private const val K_SHOW_DOT_GRID = "show_dot_grid"
+        private const val K_ONBOARDING_DONE = "onboarding_done_v9"
+        private const val K_LAYOUT_SCHEMA = "layout_schema"
+        private const val K_LAST_VERSION_CODE = "last_version_code"
+        private const val K_PENDING_WIDGET = "pending_widget_id"
+
+        private val EXPORTABLE_KEYS = setOf(
+            K_THEME_MODE, K_ICON_STYLE, K_ICON_SIZE, K_BACKGROUND, K_SWIPE_DOWN, K_ACCENT, K_LABELS,
+            K_DOCK_LABELS, K_DOUBLE_TAP, K_COLUMNS, K_ROWS, K_SECONDS, K_RECENTS, K_KEYBOARD,
+            K_SEARCH_BAR, K_ADD_NEW_APPS, K_DOTS, K_LOCK_LAYOUT, K_DEFAULT_PAGE, K_HIDDEN, K_QUICK_NOTE
+        )
     }
 }

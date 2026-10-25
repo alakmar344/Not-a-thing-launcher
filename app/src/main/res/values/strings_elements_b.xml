@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared -->
+    <string name="eb_save">Save</string>
+    <string name="eb_dot_sep">" · "</string>
+
+    <!-- Weather element -->
+    <string name="eb_weather_title">Weather</string>
+    <string name="eb_weather_tap_to_set">Tap to set location</string>
+    <string name="eb_weather_tap_to_allow_location">Tap to allow location</string>
+    <string name="eb_weather_loading">Loading</string>
+    <string name="eb_weather_updating">Updating…</string>
+    <string name="eb_weather_offline">Offline</string>
+    <string name="eb_weather_offline_retry">Offline · tap to retry</string>
+    <string name="eb_weather_location_unavailable">Location unavailable · tap to retry</string>
+    <string name="eb_weather_updated">Updated %1$s</string>
+    <string name="eb_weather_high_low">H %1$s  L %2$s</string>
+    <string name="eb_weather_device_location">Current location</string>
+    <string name="eb_weather_settings_title">Weather</string>
+    <string name="eb_weather_location_label">Location</string>
+    <string name="eb_weather_use_device">Use device location</string>
+    <string name="eb_weather_choose_city">Choose city</string>
+    <string name="eb_weather_city_field">City</string>
+    <string name="eb_weather_city_hint">e.g. London</string>
+    <string name="eb_weather_units_label">Units</string>
+    <string name="eb_weather_celsius">Celsius (°C)</string>
+    <string name="eb_weather_fahrenheit">Fahrenheit (°F)</string>
+    <string name="eb_weather_searching">Searching…</string>
+    <string name="eb_weather_city_not_found">No city found with that name.</string>
+    <string name="eb_weather_city_empty">Type a city name first.</string>
+    <string name="eb_weather_lookup_failed">Couldn\'t reach the weather service. Check your connection.</string>
+    <string name="eb_weather_source">Data: Open-Meteo.com</string>
+    <string name="eb_weather_cd">Weather in %1$s: %2$s, %3$s</string>
+    <string name="eb_weather_cd_unset">Weather. Tap to set location</string>
+
+    <string name="eb_wx_clear">Clear</string>
+    <string name="eb_wx_mostly_clear">Mostly clear</string>
+    <string name="eb_wx_partly_cloudy">Partly cloudy</string>
+    <string name="eb_wx_overcast">Overcast</string>
+    <string name="eb_wx_fog">Fog</string>
+    <string name="eb_wx_drizzle">Drizzle</string>
+    <string name="eb_wx_rain">Rain</string>
+    <string name="eb_wx_freezing_rain">Freezing rain</string>
+    <string name="eb_wx_snow">Snow</string>
+    <string name="eb_wx_showers">Showers</string>
+    <string name="eb_wx_thunderstorm">Thunderstorm</string>
+    <string name="eb_wx_unknown">Unknown</string>
+
+    <!-- Media element -->
+    <string name="eb_media_title">Media</string>
+    <string name="eb_media_allow_access">Tap to allow notification access</string>
+    <string name="eb_media_nothing_playing">Nothing playing</string>
+    <string name="eb_media_resume_hint">Tap play to resume</string>
+    <string name="eb_media_unknown_title">Unknown title</string>
+    <string name="eb_media_previous">Previous</string>
+    <string name="eb_media_play">Play</string>
+    <string name="eb_media_pause">Pause</string>
+    <string name="eb_media_next">Next</string>
+    <string name="eb_media_cd_playing">%1$s by %2$s, playing in %3$s</string>
+    <string name="eb_media_cd_paused">%1$s by %2$s, paused in %3$s</string>
+
+    <!-- Voice memo element + service -->
+    <string name="eb_vm_title">Voice memo</string>
+    <string name="eb_vm_tap_to_record">Tap to record</string>
+    <string name="eb_vm_recording">Recording · tap to save</string>
+    <string name="eb_vm_saved">Saved %1$s</string>
+    <string name="eb_vm_tap_to_open">Tap here to open</string>
+    <string name="eb_vm_allow_mic">Tap to allow microphone</string>
+    <string name="eb_vm_error_mic_busy">Microphone is busy or unavailable</string>
+    <string name="eb_vm_error_storage">Couldn\'t create the recording file</string>
+    <string name="eb_vm_error_start">Couldn\'t start recording</string>
+    <string name="eb_vm_error_too_short">Recording too short, not saved</string>
+    <string name="eb_vm_open_failed">No app can play this recording</string>
+    <string name="eb_vm_channel_name">Voice memos</string>
+    <string name="eb_vm_channel_desc">Shown while a voice memo is being recorded</string>
+    <string name="eb_vm_notif_title">Recording voice memo</string>
+    <string name="eb_vm_notif_text">Tap Stop to save the recording</string>
+    <string name="eb_vm_stop">Stop</string>
+    <string name="eb_vm_file_prefix">Memo</string>
+    <string name="eb_vm_cd_idle">Voice memo recorder. Tap to record</string>
+    <string name="eb_vm_cd_recording">Recording voice memo, %1$s. Tap to stop and save</string>
+</resources>
