@@ -135,8 +135,14 @@ class HomeIconAdapter(
 
     companion object {
         fun applyLabelShadow(binding: ItemAppBinding, enabled: Boolean) {
-            if (enabled) binding.appLabel.setShadowLayer(6f, 0f, 1f, 0xCC000000.toInt())
-            else binding.appLabel.setShadowLayer(0f, 0f, 0f, 0)
+            if (enabled) {
+                binding.appLabel.setTextColor(android.graphics.Color.WHITE)
+                binding.appLabel.setShadowLayer(6f, 0f, 1f, 0xCC000000.toInt())
+            }
+            else {
+                binding.appLabel.setTextColor(androidx.core.content.ContextCompat.getColor(binding.root.context, R.color.text_primary))
+                binding.appLabel.setShadowLayer(0f, 0f, 0f, 0)
+            }
         }
     }
 }

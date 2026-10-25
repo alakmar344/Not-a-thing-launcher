@@ -210,6 +210,7 @@ class HomeFragment : Fragment() {
         val prefs = viewModel.prefs
         binding.pageIndicator.accentColor = prefs.accentColor()
         binding.dock.showLabels = prefs.showDockLabels
+        binding.dock.labelShadow = prefs.background == LauncherPrefs.Background.WALLPAPER
         workspaceAdapter.notifyDataSetChanged()
     }
 
