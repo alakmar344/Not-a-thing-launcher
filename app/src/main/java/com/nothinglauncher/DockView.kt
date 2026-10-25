@@ -28,6 +28,15 @@ class DockView @JvmOverloads constructor(
             }
         }
 
+    var labelShadow: Boolean = false
+        set(value) {
+            if (field != value) {
+                field = value
+                current = emptyList() // force rebuild
+                lastApps?.let { setApps(it) }
+            }
+        }
+
     private val iconSize = resources.getDimensionPixelSize(R.dimen.dock_icon_size)
     private var current: List<String> = emptyList()
     private var lastApps: List<AppInfo>? = null
@@ -69,7 +78,13 @@ class DockView @JvmOverloads constructor(
                 val label = TextView(context).apply {
                     text = app.label
                     textSize = 10f
-                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                    if (labelShadow) {
+                        setTextColor(android.graphics.Color.WHITE)
+                        setShadowLayer(6f, 0f, 1f, 0xCC000000.toInt())
+                    } else {
+                        setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                        setShadowLayer(0f, 0f, 0f, 0)
+                    }
                     gravity = Gravity.CENTER
                     maxLines = 1
                     ellipsize = TextUtils.TruncateAt.END

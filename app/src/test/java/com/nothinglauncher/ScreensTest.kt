@@ -100,7 +100,18 @@ class ScreensTest {
             AppInfo(label, "com.example.${label.lowercase().replace(" ", "")}", ".Main", fakeIcon(color, glyph, style))
         }
 
-    private fun screen(content: View, background: Drawable = DotGridDrawable(context.resources.displayMetrics.density)): View {
+    private fun defaultBackground(): Drawable {
+        val bg = ContextCompat.getColor(context, R.color.nothing_bg)
+        val dot = ContextCompat.getColor(context, R.color.dot_off)
+        return DotGridDrawable(context.resources.displayMetrics.density, backgroundColor = bg, dotColor = dot)
+    }
+
+    private fun elementLp(): LinearLayout.LayoutParams =
+        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(10)
+        }
+
+    private fun screen(content: View, background: Drawable = defaultBackground()): View {
         val root = FrameLayout(context)
         root.background = background
         root.addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
@@ -206,16 +217,14 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
-        val density = context.resources.displayMetrics.density
-        val elLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = (10 * density).toInt()
-        }
 
         val weatherB = WidgetWeatherBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(weatherB.root, elLp)
+        pageB.elementsContainer.addView(weatherB.root, elementLp())
 
         val togB = WidgetQuickTogglesBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(togB.root, elLp)
+        val accent = ContextCompat.getColor(context, R.color.nothing_red)
+        togB.togglesDot.background?.mutate()?.setTint(accent)
+        pageB.elementsContainer.addView(togB.root, elementLp())
 
         val all = apps()
         val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
@@ -243,19 +252,15 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
-        val density = context.resources.displayMetrics.density
-        val elLp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = (10 * density).toInt()
-        }
 
         val stB = WidgetScreenTimeBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(stB.root, elLp)
+        pageB.elementsContainer.addView(stB.root, elementLp())
 
         val storB = WidgetStorageBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(storB.root, elLp)
+        pageB.elementsContainer.addView(storB.root, elementLp())
 
         val wcB = WidgetWorldClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(wcB.root, elLp)
+        pageB.elementsContainer.addView(wcB.root, elementLp())
 
         val all = apps()
         val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
@@ -375,7 +380,7 @@ class ScreensTest {
 
     @Test fun settings() {
         val b = ActivitySettingsBinding.inflate(LayoutInflater.from(context))
-        b.settingsRoot.background = DotGridDrawable(context.resources.displayMetrics.density)
+        b.settingsRoot.background = defaultBackground()
         b.settingsColumn.updatePadding(top = dp(24))
         val list = b.settingsList
         val accent = ContextCompat.getColor(context, R.color.nothing_red)
@@ -394,7 +399,7 @@ class ScreensTest {
 
     @Test fun settingsLower() {
         val b = ActivitySettingsBinding.inflate(LayoutInflater.from(context))
-        b.settingsRoot.background = DotGridDrawable(context.resources.displayMetrics.density)
+        b.settingsRoot.background = defaultBackground()
         val list = b.settingsList
         val accent = ContextCompat.getColor(context, R.color.nothing_red)
         b.settingsTitle.isVisible = false
@@ -408,7 +413,7 @@ class ScreensTest {
         SettingsUi.card(list).also { card ->
             SettingsUi.actionRow(card, "Default home app", "Not a Thing is your home screen", trailingIcon = R.drawable.ic_home) {}
             SettingsUi.actionRow(card, "Reset layout", "Restore the default home and dock apps", destructive = true, trailingIcon = R.drawable.ic_refresh) {}
-            SettingsUi.infoRow(card, "About", "Version 8.0 · Type set in Space Mono & Space Grotesk (SIL OFL)")
+            SettingsUi.infoRow(card, "About", "Version 8.7 · Type set in Space Mono & Space Grotesk (SIL OFL)")
         }
         paparazzi.snapshot(b.root)
     }
@@ -461,12 +466,20 @@ class ScreensTest {
         val b = WidgetBatteryDotsBinding.inflate(LayoutInflater.from(context))
         b.batteryDotsView.batteryLevel = 82
         b.batteryDotsView.isCharging = true
-        paparazzi.snapshot(screen(b.root))
+        val container = FrameLayout(context).apply {
+            setPadding(dp(16), dp(24), dp(16), dp(16))
+            addView(b.root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        paparazzi.snapshot(screen(container))
     }
 
     @Test fun widgetQuote() {
         val b = WidgetQuoteBinding.inflate(LayoutInflater.from(context))
         b.quoteDotsView.quoteText = "NOTHING BUT TIME"
-        paparazzi.snapshot(screen(b.root))
+        val container = FrameLayout(context).apply {
+            setPadding(dp(16), dp(24), dp(16), dp(16))
+            addView(b.root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        paparazzi.snapshot(screen(container))
     }
 }
