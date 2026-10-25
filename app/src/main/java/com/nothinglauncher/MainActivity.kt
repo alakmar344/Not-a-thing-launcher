@@ -339,6 +339,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun updateWorkspaceDropHover(rawX: Float, rawY: Float, isApp: Boolean) {
+        homeFragment?.updateDropHover(rawX, rawY, isApp)
+    }
+
+    fun clearWorkspaceDropTarget() {
+        homeFragment?.clearWorkspaceDropTarget()
+    }
+
     private fun setupBackHandler() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -847,6 +855,12 @@ class MainActivity : AppCompatActivity() {
         val actions = mutableListOf(
             AppPopup.Action(R.drawable.ic_folder, getString(R.string.folder_open)) {
                 showFolderSheet(pageIndex, folder)
+            },
+            AppPopup.Action(
+                if (viewModel.isFolderEnlarged(pageIndex, folder.id)) R.drawable.ic_minimize else R.drawable.ic_maximize,
+                getString(if (viewModel.isFolderEnlarged(pageIndex, folder.id)) R.string.action_shrink else R.string.action_enlarge)
+            ) {
+                viewModel.toggleEnlargeFolder(pageIndex, folder.id)
             },
             AppPopup.Action(R.drawable.ic_add, getString(R.string.folder_add_apps)) {
                 showAddAppToFolderPicker(pageIndex, folder)

@@ -32,11 +32,168 @@ data class WorkspaceFolder(
     val isEnlarged: Boolean = false
 )
 
+data class WorkspaceItem(
+    val id: String,
+    val type: Type,
+    val cellX: Int,
+    val cellY: Int,
+    val spanX: Int = 1,
+    val spanY: Int = 1,
+    val appKey: String = "",
+    val folder: WorkspaceFolder? = null,
+    val elementId: String = "",
+    val widgetId: Int = -1
+) {
+    enum class Type {
+        APP, FOLDER, MAX_APP, BESPOKE, WIDGET
+    }
+}
+
 data class WorkspacePage(
     val id: String,
+    val items: List<WorkspaceItem> = emptyList(),
     val appKeys: List<String> = emptyList(),
     val elements: List<String> = emptyList(),
     val widgetIds: List<Int> = emptyList(),
     val enlargedApps: List<String> = emptyList(),
     val folders: List<WorkspaceFolder> = emptyList()
-)
+) {
+    /**
+     * Secondary constructor that constructs a WorkspacePage from unified items,
+     * maintaining legacy list properties automatically.
+     */
+    constructor(id: String, items: List<WorkspaceItem>) : this(
+        id = id,
+        items = items,
+        appKeys = items.filter { it.type == WorkspaceItem.Type.APP }.map { it.appKey },
+        elements = items.filter { it.type == WorkspaceItem.Type.BESPOKE }.map { it.elementId },
+        widgetIds = items.filter { it.type == WorkspaceItem.Type.WIDGET }.map { it.widgetId },
+        enlargedApps = items.filter { it.type == WorkspaceItem.Type.MAX_APP }.map { it.appKey },
+        folders = items.filter { it.type == WorkspaceItem.Type.FOLDER }.mapNotNull { it.folder }
+    )
+
+    companion object {
+        /**
+         * Allocates non-overlapping (cellX, cellY) positions for legacy items on a grid of [columns].
+         */
+        fun buildItemsFromLegacy(
+            columns: Int,
+            elements: List<String>,
+            widgetIds: List<Int>,
+            enlargedApps: List<String>,
+            folders: List<WorkspaceFolder>,
+            appKeys: List<String>
+        ): List<WorkspaceItem> {
+            val cols = columns.coerceAtLeast(1)
+            val occupied = mutableMapOf<Pair<Int, Int>, Boolean>()
+
+            fun isFree(c: Int, r: Int, spanX: Int, spanY: Int): Boolean {
+                if (c + spanX > cols) return false
+                for (dx in 0 until spanX) {
+                    for (dy in 0 until spanY) {
+                        if (occupied[Pair(c + dx, r + dy)] == true) return false
+                    }
+                }
+                return true
+            }
+
+            fun occupy(c: Int, r: Int, spanX: Int, spanY: Int) {
+                for (dx in 0 until spanX) {
+                    for (dy in 0 until spanY) {
+                        occupied[Pair(c + dx, r + dy)] = true
+                    }
+                }
+            }
+
+            fun findNextSlot(spanX: Int, spanY: Int): Pair<Int, Int> {
+                var r = 0
+                while (true) {
+                    for (c in 0..cols - spanX) {
+                        if (isFree(c, r, spanX, spanY)) {
+                            occupy(c, r, spanX, spanY)
+                            return Pair(c, r)
+                        }
+                    }
+                    r++
+                }
+            }
+
+            val result = mutableListOf<WorkspaceItem>()
+
+            // 1. Bespoke elements: span full width, 1 or 2 rows
+            elements.forEach { elId ->
+                val spanY = if (elId == BespokeElement.CLOCK.id || elId == BespokeElement.BATTERY_CALENDAR.id) 2 else 1
+                val (c, r) = findNextSlot(cols, spanY)
+                result += WorkspaceItem(
+                    id = "bespoke_$elId",
+                    type = WorkspaceItem.Type.BESPOKE,
+                    cellX = c,
+                    cellY = r,
+                    spanX = cols,
+                    spanY = spanY,
+                    elementId = elId
+                )
+            }
+
+            // 2. Widgets: span full width, 2 rows
+            widgetIds.forEach { wId ->
+                val (c, r) = findNextSlot(cols, 2)
+                result += WorkspaceItem(
+                    id = "widget_$wId",
+                    type = WorkspaceItem.Type.WIDGET,
+                    cellX = c,
+                    cellY = r,
+                    spanX = cols,
+                    spanY = 2,
+                    widgetId = wId
+                )
+            }
+
+            // 3. Enlarged 2x2 apps
+            enlargedApps.forEach { key ->
+                val span = if (cols >= 2) 2 else 1
+                val (c, r) = findNextSlot(span, span)
+                result += WorkspaceItem(
+                    id = "max_$key",
+                    type = WorkspaceItem.Type.MAX_APP,
+                    cellX = c,
+                    cellY = r,
+                    spanX = span,
+                    spanY = span,
+                    appKey = key
+                )
+            }
+
+            // 4. Folders
+            folders.forEach { f ->
+                val span = if (f.isEnlarged && cols >= 2) 2 else 1
+                val (c, r) = findNextSlot(span, span)
+                result += WorkspaceItem(
+                    id = "folder_${f.id}",
+                    type = WorkspaceItem.Type.FOLDER,
+                    cellX = c,
+                    cellY = r,
+                    spanX = span,
+                    spanY = span,
+                    folder = f
+                )
+            }
+
+            // 5. Apps
+            appKeys.filter { it.isNotEmpty() }.forEach { key ->
+                val (c, r) = findNextSlot(1, 1)
+                result += WorkspaceItem(
+                    id = "app_$key",
+                    type = WorkspaceItem.Type.APP,
+                    cellX = c,
+                    cellY = r,
+                    spanX = 1,
+                    spanY = 1,
+                    appKey = key
+                )
+            }
+
+            return result
+        }
+    }
+}

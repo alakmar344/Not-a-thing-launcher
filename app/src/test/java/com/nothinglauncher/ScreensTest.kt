@@ -23,6 +23,7 @@ import com.nothinglauncher.databinding.ActivitySettingsBinding
 import com.nothinglauncher.databinding.DialogConfirmBinding
 import com.nothinglauncher.databinding.FragmentAppDrawerBinding
 import com.nothinglauncher.databinding.FragmentHomeBinding
+import com.nothinglauncher.databinding.ItemAppBinding
 import com.nothinglauncher.databinding.ItemWorkspacePageBinding
 import com.nothinglauncher.databinding.SheetCustomizeBinding
 import com.nothinglauncher.databinding.WidgetBatteryBinding
@@ -128,12 +129,14 @@ class ScreensTest {
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
         pageB.root.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         pageB.pageContent.updatePadding(top = dp(12))
+        pageB.cellLayout.countX = columns
 
-        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, true)
+        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
         clockB.clock.previewTime = 10 to 24
         clockB.secondsTicker.previewSecond = 37
         clockB.clockDate.text = "Thursday, 23 October"
         clockB.clockMeridiem.text = "24H"
+        pageB.cellLayout.addView(clockB.root, CellLayout.LayoutParams(0, 0, columns, 2))
 
         val density = context.resources.displayMetrics.density
         val row = LinearLayout(context).apply {
@@ -153,17 +156,18 @@ class ScreensTest {
         val halfLp2 = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = (6 * density).toInt() }
         row.addView(batB.root, halfLp1)
         row.addView(calB.root, halfLp2)
-        pageB.elementsContainer.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-            topMargin = (10 * density).toInt()
-        })
+        pageB.cellLayout.addView(row, CellLayout.LayoutParams(0, 2, columns, 1))
 
         val all = apps(style)
-        val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
-        adapter.iconSizePx = context.resources.getDimensionPixelSize(if (columns >= 5) R.dimen.icon_size_compact else R.dimen.icon_size)
-        adapter.showLabels = labels
-        pageB.homeGrid.layoutManager = GridLayoutManager(context, columns)
-        pageB.homeGrid.adapter = adapter
-        adapter.setItems(all.take(columns * 2))
+        all.take(columns * 2).forEachIndexed { index, app ->
+            val col = index % columns
+            val r = 3 + (index / columns)
+            val appB = ItemAppBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+            appB.appIcon.setImageDrawable(app.icon)
+            appB.appLabel.text = app.label
+            appB.appLabel.isVisible = labels
+            pageB.cellLayout.addView(appB.root, CellLayout.LayoutParams(col, r, 1, 1))
+        }
 
         b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -191,12 +195,12 @@ class ScreensTest {
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
         pageB.pageContent.updatePadding(top = dp(12))
 
-        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, true)
+        val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
         clockB.clock.previewTime = 21 to 7
         clockB.secondsTicker.previewSecond = 5
         clockB.clockDate.text = "Thursday, 23 October"
+        pageB.cellLayout.addView(clockB.root, CellLayout.LayoutParams(0, 0, 4, 2))
 
-        pageB.homeGrid.isVisible = false
         pageB.homeEmpty.isVisible = true
 
         b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -217,21 +221,23 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.cellLayout.countX = 4
 
-        val weatherB = WidgetWeatherBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(weatherB.root, elementLp())
+        val weatherB = WidgetWeatherBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+        pageB.cellLayout.addView(weatherB.root, CellLayout.LayoutParams(0, 0, 4, 1))
 
-        val togB = WidgetQuickTogglesBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
+        val togB = WidgetQuickTogglesBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
         val accent = ContextCompat.getColor(context, R.color.nothing_red)
         togB.togglesDot.background?.mutate()?.setTint(accent)
-        pageB.elementsContainer.addView(togB.root, elementLp())
+        pageB.cellLayout.addView(togB.root, CellLayout.LayoutParams(0, 1, 4, 1))
 
         val all = apps()
-        val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
-        adapter.iconSizePx = context.resources.getDimensionPixelSize(R.dimen.icon_size)
-        pageB.homeGrid.layoutManager = GridLayoutManager(context, 4)
-        pageB.homeGrid.adapter = adapter
-        adapter.setItems(all.subList(12, 16))
+        all.subList(12, 16).forEachIndexed { col, app ->
+            val appB = ItemAppBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+            appB.appIcon.setImageDrawable(app.icon)
+            appB.appLabel.text = app.label
+            pageB.cellLayout.addView(appB.root, CellLayout.LayoutParams(col, 2, 1, 1))
+        }
 
         b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
@@ -252,22 +258,26 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.cellLayout.countX = 4
 
-        val stB = WidgetScreenTimeBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(stB.root, elementLp())
+        val stB = WidgetScreenTimeBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+        pageB.cellLayout.addView(stB.root, CellLayout.LayoutParams(0, 0, 4, 1))
 
-        val storB = WidgetStorageBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(storB.root, elementLp())
+        val storB = WidgetStorageBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+        pageB.cellLayout.addView(storB.root, CellLayout.LayoutParams(0, 1, 4, 1))
 
-        val wcB = WidgetWorldClockBinding.inflate(LayoutInflater.from(context), pageB.elementsContainer, false)
-        pageB.elementsContainer.addView(wcB.root, elementLp())
+        val wcB = WidgetWorldClockBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+        pageB.cellLayout.addView(wcB.root, CellLayout.LayoutParams(0, 2, 4, 1))
 
         val all = apps()
-        val adapter = HomeIconAdapter({ _, _ -> }, { _, _ -> })
-        adapter.iconSizePx = context.resources.getDimensionPixelSize(R.dimen.icon_size)
-        pageB.homeGrid.layoutManager = GridLayoutManager(context, 4)
-        pageB.homeGrid.adapter = adapter
-        adapter.setItems(all.take(8))
+        all.take(8).forEachIndexed { index, app ->
+            val col = index % 4
+            val r = 3 + (index / 4)
+            val appB = ItemAppBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
+            appB.appIcon.setImageDrawable(app.icon)
+            appB.appLabel.text = app.label
+            pageB.cellLayout.addView(appB.root, CellLayout.LayoutParams(col, r, 1, 1))
+        }
 
         b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
         b.workspaceRecycler.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {

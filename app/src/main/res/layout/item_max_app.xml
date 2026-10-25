@@ -1,51 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/maxAppRoot"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:layout_marginBottom="10dp"
+    android:layout_height="match_parent"
     android:background="@drawable/bg_tile_dark"
     android:clickable="true"
     android:focusable="true"
     android:foreground="@drawable/fg_ripple_tile"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
     android:padding="14dp">
 
-    <ImageView
-        android:id="@+id/maxAppIcon"
-        android:layout_width="52dp"
-        android:layout_height="52dp"
-        android:contentDescription="@null" />
+    <!-- Signature Nothing Red Accent Dot in Top Corner -->
+    <View
+        android:id="@+id/maxAppDot"
+        android:layout_width="6dp"
+        android:layout_height="6dp"
+        android:layout_gravity="top|end"
+        android:background="@drawable/dot_red" />
 
+    <!-- Centered Content: Large Icon and Label -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="14dp"
-        android:layout_weight="1"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
         android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/maxAppIcon"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:contentDescription="@null"
+            android:scaleType="fitCenter" />
 
         <TextView
             android:id="@+id/maxAppLabel"
             style="@style/Text.Body"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:textColor="@color/text_primary"
-            android:textSize="15sp" />
-
-        <TextView
-            style="@style/Text.Micro"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="ENLARGED · 2×2"
-            android:textColor="@color/text_secondary" />
+            android:textSize="13sp" />
     </LinearLayout>
-
-    <View
-        android:id="@+id/maxAppDot"
-        android:layout_width="6dp"
-        android:layout_height="6dp"
-        android:layout_marginEnd="4dp"
-        android:background="@drawable/dot_red" />
-</LinearLayout>
+</FrameLayout>

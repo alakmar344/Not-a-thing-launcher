@@ -326,7 +326,51 @@ class LauncherPrefs(context: Context) {
                     )
                 }
             }
-            WorkspacePage(id, apps, elements, widgets, enlarged, folders)
+
+            val itemsArr = obj.optJSONArray("items")
+            val items = mutableListOf<WorkspaceItem>()
+            if (itemsArr != null && itemsArr.length() > 0) {
+                for (itIdx in 0 until itemsArr.length()) {
+                    val itObj = itemsArr.optJSONObject(itIdx) ?: continue
+                    val typeStr = itObj.optString("type", "")
+                    val type = try { WorkspaceItem.Type.valueOf(typeStr) } catch (_: Exception) { null } ?: continue
+                    val folderObj = itObj.optJSONObject("folder")
+                    val folder = if (folderObj != null) {
+                        WorkspaceFolder(
+                            id = folderObj.optString("id", "f_$itIdx"),
+                            name = folderObj.optString("name", "FOLDER"),
+                            appKeys = folderObj.optJSONArray("apps").toStringList(),
+                            isEnlarged = folderObj.optBoolean("isEnlarged", false)
+                        )
+                    } else null
+                    items += WorkspaceItem(
+                        id = itObj.optString("id", "item_$itIdx"),
+                        type = type,
+                        cellX = itObj.optInt("cellX", 0),
+                        cellY = itObj.optInt("cellY", 0),
+                        spanX = itObj.optInt("spanX", 1),
+                        spanY = itObj.optInt("spanY", 1),
+                        appKey = itObj.optString("appKey", ""),
+                        folder = folder,
+                        elementId = itObj.optString("elementId", ""),
+                        widgetId = itObj.optInt("widgetId", -1)
+                    )
+                }
+            }
+
+            val finalItems = if (items.isNotEmpty()) items else {
+                WorkspacePage.buildItemsFromLegacy(gridColumns, elements, widgets, enlarged, folders, apps)
+            }
+
+            WorkspacePage(
+                id = id,
+                items = finalItems,
+                appKeys = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.APP }.map { it.appKey } else apps,
+                elements = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.BESPOKE }.map { it.elementId } else elements,
+                widgetIds = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.WIDGET }.map { it.widgetId } else widgets,
+                enlargedApps = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.MAX_APP }.map { it.appKey } else enlarged,
+                folders = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.FOLDER }.mapNotNull { it.folder } else folders
+            )
         }
     } catch (e: Exception) {
         null
@@ -362,6 +406,31 @@ class LauncherPrefs(context: Context) {
                     fArr.put(fObj)
                 }
                 put("folders", fArr)
+
+                val itemsArr = JSONArray()
+                p.items.forEach { itm ->
+                    val itmObj = JSONObject().apply {
+                        put("id", itm.id)
+                        put("type", itm.type.name)
+                        put("cellX", itm.cellX)
+                        put("cellY", itm.cellY)
+                        put("spanX", itm.spanX)
+                        put("spanY", itm.spanY)
+                        put("appKey", itm.appKey)
+                        put("elementId", itm.elementId)
+                        put("widgetId", itm.widgetId)
+                        if (itm.folder != null) {
+                            put("folder", JSONObject().apply {
+                                put("id", itm.folder.id)
+                                put("name", itm.folder.name)
+                                put("apps", JSONArray(itm.folder.appKeys))
+                                put("isEnlarged", itm.folder.isEnlarged)
+                            })
+                        }
+                    }
+                    itemsArr.put(itmObj)
+                }
+                put("items", itemsArr)
             }
             arr.put(obj)
         }

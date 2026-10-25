@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/folder1x1Root"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="2dp"
+    android:background="@drawable/fg_ripple_icon"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingTop="10dp"
+    android:paddingBottom="10dp">
+
+    <FrameLayout
+        android:id="@+id/folderIconContainer"
+        android:layout_width="@dimen/icon_size"
+        android:layout_height="@dimen/icon_size"
+        android:background="@drawable/bg_folder_icon"
+        android:padding="8dp">
+
+        <GridLayout
+            android:id="@+id/folderMiniGrid"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:columnCount="2"
+            android:rowCount="2">
+
+            <ImageView
+                android:id="@+id/miniIcon1"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_margin="1dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/miniIcon2"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_margin="1dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/miniIcon3"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_margin="1dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter" />
+
+            <ImageView
+                android:id="@+id/miniIcon4"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_margin="1dp"
+                android:contentDescription="@null"
+                android:scaleType="fitCenter" />
+        </GridLayout>
+    </FrameLayout>
+
+    <TextView
+        android:id="@+id/folderLabel"
+        style="@style/Text.AppLabel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:text="@string/folder_name_default" />
+</LinearLayout>

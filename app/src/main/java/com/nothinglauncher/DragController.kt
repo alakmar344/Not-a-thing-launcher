@@ -204,8 +204,10 @@ class DragController(private val activity: MainActivity, private val binding: Ac
                 // Highlight the dock slot under the finger.
                 if (activity.isPointOverDock(rawX, rawY)) {
                     activity.showDockDropTarget(rawX)
+                    activity.clearWorkspaceDropTarget()
                 } else {
                     activity.clearDockDropTarget()
+                    activity.updateWorkspaceDropHover(rawX, rawY, currentItem is DragItem.App)
                 }
 
                 // Check edge screen paging
@@ -450,6 +452,7 @@ class DragController(private val activity: MainActivity, private val binding: Ac
     private fun finishDrag() {
         isDragging = false
         activity.clearDockDropTarget()
+        activity.clearWorkspaceDropTarget()
         hideDropZoneBar()
 
         dragFloatingView?.animate()
