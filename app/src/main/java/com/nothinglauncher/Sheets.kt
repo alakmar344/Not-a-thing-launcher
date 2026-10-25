@@ -29,20 +29,14 @@ object Sheets {
         val dialog = Dialog(context, R.style.Theme_NothingLauncher_Sheet)
         dialog.setContentView(content)
         dialog.setCanceledOnTouchOutside(true)
-        dialog.window?.apply {
-            setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
-            setGravity(Gravity.BOTTOM)
+        val height = if (maxHeightFraction > 0f) {
+            (context.resources.displayMetrics.heightPixels * maxHeightFraction).toInt()
+        } else {
+            WindowManager.LayoutParams.WRAP_CONTENT
         }
-        if (maxHeightFraction > 0f) {
-            val max = (context.resources.displayMetrics.heightPixels * maxHeightFraction).toInt()
-            content.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
-                override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, ol: Int, ot: Int, or: Int, ob: Int) {
-                    if (v.height > max) {
-                        v.removeOnLayoutChangeListener(this)
-                        dialog.window?.setLayout(WindowManager.LayoutParams.MATCH_PARENT, max)
-                    }
-                }
-            })
+        dialog.window?.apply {
+            setLayout(WindowManager.LayoutParams.MATCH_PARENT, height)
+            setGravity(Gravity.BOTTOM)
         }
         return dialog
     }

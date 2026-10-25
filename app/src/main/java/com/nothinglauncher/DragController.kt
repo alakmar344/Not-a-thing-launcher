@@ -393,14 +393,7 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         val targetPage = activity.currentPageIndex
         when (item) {
             is DragItem.App -> {
-                if (item.fromSource == DragSource.DRAWER) {
-                    activity.viewModel.pinToPage(targetPage, item.app)
-                    activity.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    AppLauncher.toast(activity, R.string.drag_app_pinned)
-                } else if (item.fromSource == DragSource.HOME_PAGE && item.pageIndex != targetPage) {
-                    activity.viewModel.moveAppBetweenPages(item.app, item.pageIndex, targetPage)
-                    activity.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                }
+                activity.handleWorkspaceAppDrop(item.app, item.fromSource, item.pageIndex, targetPage, rawX, rawY)
             }
             is DragItem.MaxApp -> {
                 if (item.pageIndex != targetPage) {
@@ -422,7 +415,10 @@ class DragController(private val activity: MainActivity, private val binding: Ac
                 }
             }
             is DragItem.Folder -> {
-                // Folder remains on current page or moves
+                if (item.pageIndex != targetPage) {
+                    activity.viewModel.moveFolderBetweenPages(item.folder, item.pageIndex, targetPage)
+                    activity.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                }
             }
         }
     }

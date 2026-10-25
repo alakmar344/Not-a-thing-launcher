@@ -165,13 +165,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
 
         val sanitizedPages = savedPages.map { page ->
             page.copy(
-                appKeys = if (installed.isEmpty()) page.appKeys else page.appKeys.filter { it !in hidden && it in byKey }
+                appKeys = if (installed.isEmpty()) page.appKeys else page.appKeys.map { key ->
+                    if (key.isEmpty() || (key !in hidden && key in byKey)) key else ""
+                }
             )
         }
         _workspacePages.value = sanitizedPages
 
         // All apps on the workspace
-        val allHomeKeys = sanitizedPages.flatMap { it.appKeys }.distinct()
+        val allHomeKeys = sanitizedPages.flatMap { it.appKeys }.filter { it.isNotEmpty() }.distinct()
         _homeApps.value = allHomeKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
         _recentApps.value = prefs.recents.mapNotNull { byKey[it] }.filter { it.key !in hidden }
     }
@@ -181,7 +183,38 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun getAppsForPage(page: WorkspacePage): List<AppInfo> {
         val byKey = installed.associateBy { it.key }
         val hidden = prefs.hiddenApps
-        return page.appKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+        return page.appKeys.filter { it.isNotEmpty() }.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+    }
+
+    fun getSlotItemsForPage(page: WorkspacePage, columns: Int, minRows: Int = 4): List<AppInfo?> {
+        val byKey = installed.associateBy { it.key }
+        val hidden = prefs.hiddenApps
+        val validCols = columns.coerceAtLeast(1)
+        val calculatedRows = ((page.appKeys.size + validCols - 1) / validCols).coerceAtLeast(minRows)
+        val totalSlots = calculatedRows * validCols
+        val result = ArrayList<AppInfo?>(totalSlots)
+        for (i in 0 until totalSlots) {
+            val key = page.appKeys.getOrNull(i)
+            if (!key.isNullOrEmpty() && key !in hidden) {
+                result.add(byKey[key])
+            } else {
+                result.add(null)
+            }
+        }
+        return result
+    }
+
+    fun savePageSlots(pageIndex: Int, slots: List<AppInfo?>) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val lastIdx = slots.indexOfLast { it != null }
+        val keys = if (lastIdx == -1) {
+            emptyList()
+        } else {
+            slots.take(lastIdx + 1).map { it?.key ?: "" }
+        }
+        current[pageIndex] = current[pageIndex].copy(appKeys = keys)
+        savePages(current)
     }
 
     fun isOnHome(app: AppInfo): Boolean =
@@ -194,62 +227,64 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     fun isDockFull() = _dockApps.value.orEmpty().size >= MAX_DOCK
 
     fun addPage(): Int {
-        val current = _workspacePages.value.orEmpty()
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        val newIndex = current.size
         val newPage = WorkspacePage(
-            id = "page_" + UUID.randomUUID().toString().take(8),
+            id = "page_$newIndex",
             appKeys = emptyList(),
             elements = emptyList(),
             widgetIds = emptyList()
         )
-        val updated = current + newPage
-        savePages(updated)
-        return updated.size - 1
+        current.add(newPage)
+        savePages(current)
+        return newIndex
     }
 
-    fun removePage(pageIndex: Int): Boolean {
+    fun removePage(index: Int): Boolean {
         val current = _workspacePages.value.orEmpty().toMutableList()
-        if (current.size <= 1 || pageIndex !in current.indices) return false
-        val removed = current.removeAt(pageIndex)
-        // Move any leftover apps to page 0
+        if (current.size <= 1 || index !in current.indices) return false
+        val removed = current.removeAt(index)
+        // Consolidate any apps from the removed page into page 0
         if (removed.appKeys.isNotEmpty()) {
             val p0 = current[0]
-            val merged = (p0.appKeys + removed.appKeys).distinct()
+            val merged = (p0.appKeys + removed.appKeys).filter { it.isNotEmpty() }.distinct()
             current[0] = p0.copy(appKeys = merged)
         }
-        savePages(current)
+        val updated = current.mapIndexed { idx, p -> p.copy(id = "page_$idx") }
+        savePages(updated)
         return true
     }
 
     fun addElementToPage(pageIndex: Int, elementId: String) {
         val current = _workspacePages.value.orEmpty().toMutableList()
         if (pageIndex !in current.indices) return
-        val target = current[pageIndex]
-        if (elementId in target.elements) return
-        current[pageIndex] = target.copy(elements = target.elements + elementId)
+        val page = current[pageIndex]
+        if (elementId in page.elements) return
+        current[pageIndex] = page.copy(elements = page.elements + elementId)
         savePages(current)
     }
 
     fun removeElementFromPage(pageIndex: Int, elementId: String) {
         val current = _workspacePages.value.orEmpty().toMutableList()
         if (pageIndex !in current.indices) return
-        val target = current[pageIndex]
-        current[pageIndex] = target.copy(elements = target.elements - elementId)
+        val page = current[pageIndex]
+        current[pageIndex] = page.copy(elements = page.elements - elementId)
         savePages(current)
     }
 
     fun addWidgetToPage(pageIndex: Int, widgetId: Int) {
         val current = _workspacePages.value.orEmpty().toMutableList()
-        val idx = pageIndex.coerceIn(0, (current.size - 1).coerceAtLeast(0))
-        if (idx in current.indices) {
-            val target = current[idx]
-            current[idx] = target.copy(widgetIds = target.widgetIds + widgetId)
-            savePages(current)
-        }
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        current[pageIndex] = page.copy(widgetIds = page.widgetIds + widgetId)
+        savePages(current)
     }
 
     fun removeWidget(widgetId: Int) {
         val current = _workspacePages.value.orEmpty().map { page ->
-            page.copy(widgetIds = page.widgetIds - widgetId)
+            if (widgetId in page.widgetIds) {
+                page.copy(widgetIds = page.widgetIds - widgetId)
+            } else page
         }
         savePages(current)
     }
@@ -264,20 +299,81 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         savePages(current)
     }
 
-    fun moveAppBetweenPages(app: AppInfo, fromIndex: Int, toIndex: Int) {
+    fun placeAppAtSlot(pageIndex: Int, app: AppInfo, targetSlot: Int) {
         val current = _workspacePages.value.orEmpty().toMutableList()
-        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
+        if (current.isEmpty()) addPage()
+        val idx = pageIndex.coerceIn(0, current.size - 1)
+        val page = current[idx]
+        val list = page.appKeys.toMutableList()
+        val existingIdx = list.indexOf(app.key)
+        if (existingIdx != -1) {
+            list[existingIdx] = ""
+        }
+        val safeSlot = targetSlot.coerceAtLeast(0)
+        while (list.size <= safeSlot) {
+            list.add("")
+        }
+        list[safeSlot] = app.key
+        while (list.isNotEmpty() && list.last().isEmpty()) {
+            list.removeAt(list.size - 1)
+        }
+        current[idx] = page.copy(appKeys = list)
+        savePages(current)
+    }
+
+    fun moveAppToPageSlot(app: AppInfo, fromIndex: Int, toIndex: Int, targetSlot: Int? = null) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (fromIndex !in current.indices || toIndex !in current.indices) return
+
+        if (fromIndex == toIndex) {
+            if (targetSlot != null) {
+                placeAppAtSlot(toIndex, app, targetSlot)
+            }
+            return
+        }
+
         val fromPage = current[fromIndex]
         val toPage = current[toIndex]
-        current[fromIndex] = fromPage.copy(appKeys = fromPage.appKeys - app.key)
-        current[toIndex] = toPage.copy(appKeys = (toPage.appKeys + app.key).distinct())
+
+        val fromList = fromPage.appKeys.map { if (it == app.key) "" else it }.toMutableList()
+        while (fromList.isNotEmpty() && fromList.last().isEmpty()) {
+            fromList.removeAt(fromList.size - 1)
+        }
+        current[fromIndex] = fromPage.copy(appKeys = fromList)
+
+        val toList = toPage.appKeys.toMutableList()
+        val slot = targetSlot ?: toList.indexOfFirst { it.isEmpty() }.takeIf { it != -1 } ?: toList.size
+        while (toList.size <= slot) {
+            toList.add("")
+        }
+        toList[slot] = app.key
+        while (toList.isNotEmpty() && toList.last().isEmpty()) {
+            toList.removeAt(toList.size - 1)
+        }
+        current[toIndex] = toPage.copy(appKeys = toList)
         savePages(current)
+    }
+
+    fun moveAppBetweenPages(app: AppInfo, fromIndex: Int, toIndex: Int) {
+        moveAppToPageSlot(app, fromIndex, toIndex, null)
     }
 
     fun removeFromHome(app: AppInfo) {
         val current = _workspacePages.value.orEmpty().map { page ->
-            page.copy(appKeys = page.appKeys - app.key)
+            page.copy(appKeys = page.appKeys.map { if (it == app.key) "" else it })
         }
+        savePages(current)
+    }
+
+    fun removeFromPage(pageIndex: Int, appKey: String) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val updated = page.appKeys.map { if (it == appKey) "" else it }.toMutableList()
+        while (updated.isNotEmpty() && updated.last().isEmpty()) {
+            updated.removeAt(updated.size - 1)
+        }
+        current[pageIndex] = page.copy(appKeys = updated)
         savePages(current)
     }
 
@@ -312,8 +408,30 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val page = current[pageIndex]
         val folderId = "f_${UUID.randomUUID().toString().take(8)}"
         val newFolder = WorkspaceFolder(id = folderId, name = name, appKeys = listOf(initialAppKey))
+        val updatedKeys = page.appKeys.map { if (it == initialAppKey) "" else it }.toMutableList()
+        while (updatedKeys.isNotEmpty() && updatedKeys.last().isEmpty()) {
+            updatedKeys.removeAt(updatedKeys.size - 1)
+        }
         current[pageIndex] = page.copy(
-            appKeys = page.appKeys - initialAppKey,
+            appKeys = updatedKeys,
+            folders = page.folders + newFolder
+        )
+        savePages(current)
+        return folderId
+    }
+
+    fun createFolderFromDrop(pageIndex: Int, targetAppKey: String, droppedAppKey: String): String? {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (pageIndex !in current.indices) return null
+        val page = current[pageIndex]
+        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
+        val newFolder = WorkspaceFolder(id = folderId, name = "FOLDER", appKeys = listOf(targetAppKey, droppedAppKey))
+        val updatedKeys = page.appKeys.map { if (it == targetAppKey || it == droppedAppKey) "" else it }.toMutableList()
+        while (updatedKeys.isNotEmpty() && updatedKeys.last().isEmpty()) {
+            updatedKeys.removeAt(updatedKeys.size - 1)
+        }
+        current[pageIndex] = page.copy(
+            appKeys = updatedKeys,
             folders = page.folders + newFolder
         )
         savePages(current)
@@ -329,8 +447,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         val folder = page.folders[fIdx]
         val updatedFolder = folder.copy(appKeys = (folder.appKeys + appKey).distinct())
         val updatedFolders = page.folders.toMutableList().apply { set(fIdx, updatedFolder) }
+        val updatedKeys = page.appKeys.map { if (it == appKey) "" else it }.toMutableList()
+        while (updatedKeys.isNotEmpty() && updatedKeys.last().isEmpty()) {
+            updatedKeys.removeAt(updatedKeys.size - 1)
+        }
         current[pageIndex] = page.copy(
-            appKeys = page.appKeys - appKey,
+            appKeys = updatedKeys,
             folders = updatedFolders
         )
         savePages(current)
@@ -382,12 +504,22 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         savePages(current)
     }
 
+    fun moveFolderBetweenPages(folder: WorkspaceFolder, fromIndex: Int, toIndex: Int) {
+        val current = _workspacePages.value.orEmpty().toMutableList()
+        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
+        val fromPage = current[fromIndex]
+        val toPage = current[toIndex]
+        current[fromIndex] = fromPage.copy(folders = fromPage.folders.filterNot { it.id == folder.id })
+        current[toIndex] = toPage.copy(folders = toPage.folders + folder)
+        savePages(current)
+    }
+
     private fun savePages(pages: List<WorkspacePage>) {
         prefs.pages = pages
         _workspacePages.value = pages
         val byKey = installed.associateBy { it.key }
         val hidden = prefs.hiddenApps
-        _homeApps.value = pages.flatMap { it.appKeys }.distinct().mapNotNull { byKey[it] }.filter { it.key !in hidden }
+        _homeApps.value = pages.flatMap { it.appKeys }.filter { it.isNotEmpty() }.distinct().mapNotNull { byKey[it] }.filter { it.key !in hidden }
     }
 
     // ---- Dock mutations ------------------------------------------------------------------

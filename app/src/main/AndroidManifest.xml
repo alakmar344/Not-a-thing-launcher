@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Pull down the notification shade with a swipe on home. -->
     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
     <!-- Required (API 28+) to open the system uninstall dialog for an app. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Package visibility (Android 11+): a launcher must be able to see launchable apps,
          widget providers and the default handlers used to pick sensible dock apps. -->
