@@ -11,3 +11,6 @@ local.properties
 app/build/
 *.jks
 *.keystore
+keystore.properties
+keystore/password.txt
+build_*.log

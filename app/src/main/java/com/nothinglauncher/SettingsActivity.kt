@@ -1,9 +1,12 @@
 package com.nothinglauncher
 
+import android.Manifest
 import android.app.Dialog
 import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.hardware.Sensor
+import android.hardware.SensorManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -15,6 +18,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.nothinglauncher.databinding.ActivitySettingsBinding
 import com.nothinglauncher.databinding.ItemSettingRowBinding
+import java.text.NumberFormat
 
 /** Launcher settings, built in the same dot-matrix / monochrome language as home. */
 class SettingsActivity : AppCompatActivity() {
@@ -24,8 +28,33 @@ class SettingsActivity : AppCompatActivity() {
     private var defaultRow: ItemSettingRowBinding? = null
     private var hiddenRow: ItemSettingRowBinding? = null
     private var dialog: Dialog? = null
+    private val capabilityRows = mutableListOf<CapabilityRow>()
+
+    private class CapabilityRow(
+        val binding: ItemSettingRowBinding,
+        val onStatus: () -> CharSequence
+    )
 
     private val roleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        refreshDynamicRows()
+    }
+
+    private val stepPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            StepRepository.refresh()
+            AppLauncher.toast(this, R.string.setting_activity_on)
+        } else {
+            AppLauncher.toast(this, R.string.pedometer_permission_denied)
+        }
+        refreshDynamicRows()
+    }
+
+    private val micPermissionLauncher = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            AppLauncher.toast(this, R.string.setting_microphone_on)
+        } else {
+            AppLauncher.toast(this, R.string.recorder_mic_denied)
+        }
         refreshDynamicRows()
     }
 
@@ -63,6 +92,7 @@ class SettingsActivity : AppCompatActivity() {
     private fun build() {
         val list = binding.settingsList
         list.removeAllViews()
+        capabilityRows.clear()
         val accent = prefs.accentColor()
 
         SettingsUi.section(list, getString(R.string.section_home), accent)
@@ -140,6 +170,75 @@ class SettingsActivity : AppCompatActivity() {
             }
         }
 
+        SettingsUi.section(list, getString(R.string.setting_capabilities), accent)
+        SettingsUi.card(list).also { card ->
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_usage_access), null, trailingIcon = R.drawable.ic_time) {
+                    LauncherSystem.openUsageAccessSettings(this)
+                },
+                onStatus = {
+                    getString(if (LauncherSystem.hasUsageAccess(this)) R.string.setting_usage_on else R.string.setting_usage_off)
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_notification_access), null, trailingIcon = R.drawable.ic_play) {
+                    LauncherSystem.openNotificationAccessSettings(this)
+                },
+                onStatus = {
+                    getString(if (LauncherSystem.hasNotificationAccess(this)) R.string.setting_notification_on else R.string.setting_notification_off)
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_accessibility), null, trailingIcon = R.drawable.ic_tune) {
+                    LauncherSystem.openAccessibilitySettings(this)
+                },
+                onStatus = {
+                    getString(if (LauncherSystem.hasAccessibility(this)) R.string.setting_accessibility_on else R.string.setting_accessibility_off)
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_activity_recognition), null, trailingIcon = R.drawable.ic_walk) {
+                    requestMotionAccess()
+                },
+                onStatus = {
+                    when {
+                        !hasStepSensor() -> getString(R.string.setting_activity_unavailable)
+                        LauncherSystem.hasActivityRecognition(this) -> getString(R.string.setting_activity_on)
+                        else -> getString(R.string.setting_activity_off)
+                    }
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_microphone), null, trailingIcon = R.drawable.ic_mic) {
+                    requestMicrophoneAccess()
+                },
+                onStatus = {
+                    getString(if (LauncherSystem.hasRecordAudio(this)) R.string.setting_microphone_on else R.string.setting_microphone_off)
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_weather_city), null, trailingIcon = R.drawable.ic_globe) {
+                    showWeatherCityEditor()
+                },
+                onStatus = {
+                    val city = prefs.weatherCity.trim()
+                    if (city.isEmpty()) getString(R.string.setting_weather_auto)
+                    else getString(R.string.setting_weather_manual, city)
+                }
+            )
+            capabilityRows += CapabilityRow(
+                SettingsUi.actionRow(card, getString(R.string.setting_step_goal), null, trailingIcon = R.drawable.ic_walk) {
+                    showStepGoalEditor()
+                },
+                onStatus = {
+                    getString(
+                        R.string.setting_step_goal_sub,
+                        NumberFormat.getIntegerInstance().format(prefs.stepGoal)
+                    )
+                }
+            )
+        }
+
         SettingsUi.section(list, getString(R.string.section_gestures), accent)
         SettingsUi.card(list).also { card ->
             SettingsUi.choiceRow(
@@ -160,6 +259,13 @@ class SettingsActivity : AppCompatActivity() {
                     build()
                 }
                 AppLauncher.openWallpaperPicker(this)
+            }
+            SettingsUi.actionRow(card, getString(R.string.setting_onboarding), getString(R.string.setting_onboarding_sub), trailingIcon = R.drawable.ic_apps) {
+                dialog?.dismiss()
+                AppLauncher.start(
+                    this,
+                    Intent(this, OnboardingActivity::class.java).putExtra(OnboardingActivity.EXTRA_FROM_SETTINGS, true)
+                )
             }
             SettingsUi.actionRow(card, getString(R.string.setting_reset), getString(R.string.setting_reset_sub), destructive = true, trailingIcon = R.drawable.ic_refresh) {
                 dialog?.dismiss()
@@ -187,6 +293,75 @@ class SettingsActivity : AppCompatActivity() {
             val n = prefs.hiddenApps.size
             row.rowSubtitle.text = if (n == 0) getString(R.string.setting_hidden_none) else getString(R.string.setting_hidden_count, n)
             row.rowSubtitle.visibility = android.view.View.VISIBLE
+        }
+        capabilityRows.forEach { row ->
+            row.binding.rowSubtitle.text = row.onStatus()
+            row.binding.rowSubtitle.visibility = android.view.View.VISIBLE
+        }
+    }
+
+    private fun hasStepSensor(): Boolean = try {
+        (getSystemService(SensorManager::class.java))
+            ?.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null
+    } catch (_: Exception) {
+        false
+    }
+
+    private fun requestMotionAccess() {
+        if (!hasStepSensor()) {
+            AppLauncher.toast(this, R.string.setting_activity_unavailable)
+            return
+        }
+        if (LauncherSystem.hasActivityRecognition(this)) {
+            StepRepository.refresh()
+            AppLauncher.toast(this, R.string.setting_activity_on)
+            return
+        }
+        stepPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
+    }
+
+    private fun requestMicrophoneAccess() {
+        if (LauncherSystem.hasRecordAudio(this)) {
+            AppLauncher.toast(this, R.string.setting_microphone_on)
+            return
+        }
+        micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+
+    private fun showWeatherCityEditor() {
+        dialog?.dismiss()
+        dialog = Sheets.showTextInput(
+            this,
+            getString(R.string.weather_city_title),
+            getString(R.string.weather_city_hint),
+            prefs.weatherCity,
+            maxLength = 64
+        ) { city ->
+            WeatherRepository.setCity(this, prefs, city) { refreshDynamicRows() }
+            refreshDynamicRows()
+            AppLauncher.toast(this, R.string.weather_city_saved)
+        }
+    }
+
+    private fun showStepGoalEditor() {
+        dialog?.dismiss()
+        dialog = Sheets.showTextInput(
+            this,
+            getString(R.string.setting_step_goal),
+            getString(R.string.step_goal_hint),
+            prefs.stepGoal.toString(),
+            maxLength = 6,
+            numeric = true
+        ) { raw ->
+            val value = raw.replace(",", "").trim().toIntOrNull()
+            if (value == null || value !in 1000..100000) {
+                AppLauncher.toast(this, R.string.step_goal_invalid)
+                return@showTextInput
+            }
+            prefs.stepGoal = value
+            StepRepository.refresh()
+            refreshDynamicRows()
+            AppLauncher.toast(this, R.string.step_goal_saved)
         }
     }
 

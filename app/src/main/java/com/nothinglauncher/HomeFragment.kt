@@ -101,9 +101,60 @@ class HomeFragment : Fragment() {
         }
     }
 
-        private fun setupDock() {
+    private fun setupDock() {
         binding.dock.onAppClick = { app, v -> host?.launchApp(app, v) }
         binding.dock.onAppLongClick = { app, v -> host?.showAppPopup(app, v, MainActivity.PopupOrigin.DOCK) }
+        binding.dock.onAppDragStart = { app, v, rawX, rawY, _ ->
+            host?.startDrag(
+                DragController.DragItem.App(app, DragController.DragSource.DOCK, 0),
+                v,
+                rawX,
+                rawY
+            )
+        }
+    }
+
+    fun dockDropIndex(rawX: Float): Int =
+        if (_binding == null) 0 else binding.dock.dropIndexAt(rawX)
+
+    fun showDockDropTarget(rawX: Float) {
+        if (_binding == null) return
+        binding.dock.showDropTarget(binding.dock.dropIndexAt(rawX))
+    }
+
+    fun clearDockDropTarget() {
+        if (_binding == null) return
+        binding.dock.clearDropTarget()
+    }
+
+    /** Adds or reorders an app in the dock at the position under [rawX]. */
+    fun handleDockDrop(
+        app: AppInfo,
+        fromSource: DragController.DragSource,
+        fromPage: Int,
+        rawX: Float
+    ): Boolean {
+        if (_binding == null) return false
+        val dropIndex = binding.dock.dropIndexAt(rawX)
+        if (fromSource == DragController.DragSource.DOCK) {
+            val fromIndex = viewModel.dockIndexOf(app.key)
+            if (fromIndex < 0) return false
+            var target = dropIndex
+            if (fromIndex < target) target -= 1
+            val max = (viewModel.dockApps.value?.size ?: 1) - 1
+            return viewModel.moveDockItem(fromIndex, target.coerceIn(0, max))
+        }
+        val added = viewModel.insertIntoDock(app, dropIndex)
+        if (added) {
+            if (fromSource == DragController.DragSource.HOME_PAGE ||
+                fromSource == DragController.DragSource.FOLDER
+            ) {
+                viewModel.removeFromHome(app)
+            }
+            requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            AppLauncher.toast(requireContext(), R.string.add_to_dock)
+        }
+        return added
     }
 
     fun isPointOverDock(rawX: Float, rawY: Float): Boolean {
@@ -233,6 +284,43 @@ class HomeFragment : Fragment() {
         binding.pageIndicator.currentPage = index
     }
 
+    fun updateDropHover(rawX: Float, rawY: Float, isApp: Boolean) {
+        if (_binding == null) return
+        val pageHolder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return
+        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return
+        val cell = cellLayout.pointToCell(rawX, rawY)
+        if (cell == null) {
+            cellLayout.clearDropTarget()
+            return
+        }
+        val (col, row) = cell
+        val page = viewModel.workspacePages.value?.getOrNull(currentPageIndex)
+        val existingItem = page?.items?.firstOrNull {
+            col in it.cellX until (it.cellX + it.spanX) && row in it.cellY until (it.cellY + it.spanY)
+        }
+        when {
+            existingItem?.type == WorkspaceItem.Type.APP && isApp -> {
+                cellLayout.setDropTarget(existingItem.cellX, existingItem.cellY, existingItem.spanX, existingItem.spanY, isFolderMerge = true)
+            }
+            existingItem?.type == WorkspaceItem.Type.FOLDER && isApp -> {
+                cellLayout.setDropTarget(existingItem.cellX, existingItem.cellY, existingItem.spanX, existingItem.spanY, isFolderMerge = false)
+            }
+            existingItem != null -> {
+                cellLayout.clearDropTarget()
+            }
+            else -> {
+                cellLayout.setDropTarget(col, row, 1, 1, isFolderMerge = false)
+            }
+        }
+    }
+
+    fun clearWorkspaceDropTarget() {
+        if (_binding == null) return
+        val pageHolder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return
+        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return
+        cellLayout.clearDropTarget()
+    }
+
     fun handleAppDropOnPage(
         app: AppInfo,
         fromSource: DragController.DragSource,
@@ -243,63 +331,47 @@ class HomeFragment : Fragment() {
     ): Boolean {
         if (_binding == null) return false
         val pageHolder = workspaceLayoutManager.findViewByPosition(targetPage) ?: return false
+        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return false
+        cellLayout.clearDropTarget()
 
-        // 1. Check if dropped over a folder in foldersContainer
-        val foldersContainer = pageHolder.findViewById<ViewGroup>(R.id.foldersContainer)
-        if (foldersContainer != null && foldersContainer.childCount > 0) {
-            for (i in 0 until foldersContainer.childCount) {
-                val child = foldersContainer.getChildAt(i)
-                val loc = IntArray(2)
-                child.getLocationOnScreen(loc)
-                val left = loc[0].toFloat()
-                val top = loc[1].toFloat()
-                val right = left + child.width
-                val bottom = top + child.height
-                if (rawX in left..right && rawY in top..bottom) {
-                    val page = viewModel.workspacePages.value?.getOrNull(targetPage) ?: return false
-                    val folder = page.folders.getOrNull(i) ?: return false
+        val cell = cellLayout.pointToCell(rawX, rawY) ?: return false
+        val (col, row) = cell
+        val page = viewModel.workspacePages.value?.getOrNull(targetPage) ?: return false
+        val existingItem = page.items.firstOrNull {
+            col in it.cellX until (it.cellX + it.spanX) && row in it.cellY until (it.cellY + it.spanY)
+        }
+
+        if (existingItem != null) {
+            when (existingItem.type) {
+                WorkspaceItem.Type.FOLDER -> {
+                    val folder = existingItem.folder ?: return false
                     if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
                         viewModel.removeFromPage(fromPage, app.key)
                     }
+                    if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
                     viewModel.addAppToFolder(targetPage, folder.id, app.key)
                     requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                     AppLauncher.toast(requireContext(), R.string.folder_add_apps)
                     return true
                 }
-            }
-        }
-
-        // 2. Check if dropped over homeGrid
-        val homeGrid = pageHolder.findViewById<RecyclerView>(R.id.homeGrid) ?: return false
-        val gridLoc = IntArray(2)
-        homeGrid.getLocationOnScreen(gridLoc)
-        val localX = rawX - gridLoc[0]
-        val localY = rawY - gridLoc[1]
-
-        val gridAdapter = homeGrid.adapter as? HomeIconAdapter
-        val columns = viewModel.prefs.gridColumns.coerceAtLeast(1)
-
-        val child = homeGrid.findChildViewUnder(localX, localY)
-        if (child != null && gridAdapter != null) {
-            val pos = homeGrid.getChildAdapterPosition(child)
-            if (pos != RecyclerView.NO_POSITION) {
-                val targetApp = gridAdapter.getItem(pos)
-                if (targetApp != null && targetApp.key != app.key) {
-                    // Dropped onto an existing app icon -> MERGE INTO FOLDER!
-                    if (fromSource == DragController.DragSource.HOME_PAGE) {
-                        viewModel.removeFromPage(fromPage, app.key)
+                WorkspaceItem.Type.APP -> {
+                    if (existingItem.appKey != app.key) {
+                        // Dropped onto an existing app icon -> MERGE INTO FOLDER!
+                        if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
+                            viewModel.removeFromPage(fromPage, app.key)
+                        }
+                        if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
+                        viewModel.createFolderFromDrop(targetPage, existingItem.appKey, app.key, existingItem.cellX, existingItem.cellY)
+                        requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        AppLauncher.toast(requireContext(), R.string.drag_folder_created)
+                        return true
                     }
-                    viewModel.createFolderFromDrop(targetPage, targetApp.key, app.key)
-                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    AppLauncher.toast(requireContext(), R.string.drag_folder_created)
-                    return true
-                } else if (targetApp == null) {
-                    // Dropped onto an empty spacer slot
-                    if (fromSource == DragController.DragSource.HOME_PAGE) {
-                        viewModel.moveAppToPageSlot(app, fromPage, targetPage, pos)
-                    } else {
-                        viewModel.placeAppAtSlot(targetPage, app, pos)
-                    }
+                }
+                else -> {
+                    // Over widget or max app, find nearest free cell
+                    val (fc, fr) = viewModel.findFreeCell(page, 1, 1)
+                    if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
+                    viewModel.placeAppAtCell(targetPage, app, fc, fr)
                     requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                     AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
                     return true
@@ -307,29 +379,19 @@ class HomeFragment : Fragment() {
             }
         }
 
-        // 3. If within or below grid bounds, calculate slot based on row/column
-        if (localX >= 0 && localX <= homeGrid.width && localY >= 0) {
-            val colWidth = (homeGrid.width.toFloat() / columns).coerceAtLeast(1f)
-            val col = (localX / colWidth).toInt().coerceIn(0, columns - 1)
-            val firstChildHeight = homeGrid.getChildAt(0)?.height?.toFloat()
-            val rowHeight = (firstChildHeight ?: (84f * resources.displayMetrics.density)).coerceAtLeast(1f)
-            val row = (localY / rowHeight).toInt().coerceAtLeast(0)
-            val targetSlot = row * columns + col
-
-            if (fromSource == DragController.DragSource.HOME_PAGE) {
-                viewModel.moveAppToPageSlot(app, fromPage, targetPage, targetSlot)
-            } else {
-                viewModel.placeAppAtSlot(targetPage, app, targetSlot)
-            }
-            requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-            AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
-            return true
+        // Empty cell drop
+        if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
+            viewModel.removeFromPage(fromPage, app.key)
         }
-
-        return false
+        if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
+        viewModel.placeAppAtCell(targetPage, app, col, row)
+        requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
+        return true
     }
 
     override fun onDestroyView() {
+        if (::workspaceAdapter.isInitialized) workspaceAdapter.unbindAll()
         super.onDestroyView()
         _binding = null
     }

@@ -45,4 +45,17 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/recorderPlay"
+        style="@style/Text.Label"
+        android:layout_width="match_parent"
+        android:layout_height="32dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_tile_dark"
+        android:foreground="@drawable/fg_ripple_tile"
+        android:gravity="center"
+        android:text="@string/recorder_play_last"
+        android:textColor="@color/text_primary"
+        android:visibility="gone" />
 </LinearLayout>

@@ -19,6 +19,7 @@
             android:background="@drawable/bg_drag_handle" />
 
         <com.nothinglauncher.DotMatrixView
+            android:id="@+id/noteTitle"
             android:layout_width="wrap_content"
             android:layout_height="18dp"
             android:layout_marginTop="16dp"

@@ -39,11 +39,15 @@ class CountdownDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
-    var daysRemaining: Int = 24
+    var daysRemaining: Int = 0
         set(value) { field = value.coerceAtLeast(0); invalidate() }
 
-    var eventTitle: String = "MILESTONE"
-        set(value) { field = value.uppercase(); invalidate() }
+    var eventTitle: String = context.getString(R.string.countdown_no_target)
+        set(value) { field = value.uppercase(); contentDescription = "$field, $daysRemaining"; invalidate() }
+
+    /** False when no date is configured or the date has already passed. */
+    var targetActive: Boolean = false
+        set(value) { field = value; invalidate() }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -79,7 +83,11 @@ class CountdownDotsView @JvmOverloads constructor(
         canvas.drawText("DAYS", suffixX, suffixY, labelPaint)
 
         // Subtitle line at bottom
-        val subText = "$eventTitle · TARGET ACTIVE"
+        val subText = if (targetActive) {
+            "$eventTitle · ${context.getString(R.string.countdown_target)}"
+        } else {
+            eventTitle
+        }
         canvas.drawText(subText, 0f, h - 2f * density, labelPaint)
     }
 }

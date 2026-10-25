@@ -38,6 +38,11 @@
         <item name="android:windowShowWallpaper">false</item>
     </style>
 
+    <style name="Theme.NothingLauncher.Onboarding">
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
+    </style>
+
     <!-- Floating sheets & dialogs: we draw our own card, the window stays transparent. -->
     <style name="Theme.NothingLauncher.Sheet" parent="Theme.MaterialComponents.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>

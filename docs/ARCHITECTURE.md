@@ -72,14 +72,24 @@ graph TD
 - **Dialog & Sheet Orchestrator**: Displays the long-press Home Customisation sheet, Wallpaper & Style sheet, Note editor, and AppWidget configuration flows.
 - **System Callbacks**: Handles navigation bar/status bar contrast (`WindowCompat`), home button intents (`ACTION_MAIN`), and the Android back gesture callback (`OnBackPressedCallback`).
 
-### 2.2 `HomeFragment.kt` & `WorkspacePageAdapter.kt`
+### 2.2 `HomeFragment.kt`, `WorkspacePageAdapter.kt` & `CellLayout.kt`
 - **Multi-Page Horizontal Workspace**: Implements a horizontal `RecyclerView` locked to page bounds with Android's `PagerSnapHelper`.
 - **Dynamic Paging**: Users can swipe horizontally across unlimited home workspace pages. The minimalist dot indicator (`PageIndicatorView`) animates dot width and position synchronously with scroll offsets.
-- **Page Composition**:
-  - Top Clock & Bespoke Elements Row (LED-panel clock, battery circle, calendar tile).
-  - Configurable Bespoke Elements: Battery Gauge, Quick Note, Weather, Quick Toggles, Step Counter, Compass, Screen Time, Storage & RAM, and World Clock.
-  - Third-party Android AppWidgets hosted via `AppWidgetHost`.
-  - App Grid with support for standard 1×1 icons and 2×2 Max Icons.
+- **Unified Native 2D Grid (`CellLayout`)**:
+  - Custom Android `ViewGroup` arranging items on a discrete `(cellX, cellY, spanX, spanY)` 2D coordinate matrix.
+  - Sits directly inside `NestedScrollView` to combine fixed-grid layout with smooth scrolling when extensive widgets are placed.
+  - Replaced legacy segregated vertical LinearLayouts with a unified item hierarchy (`WorkspaceItem.Type`: `APP`, `FOLDER`, `MAX_APP`, `BESPOKE`, `WIDGET`).
+- **Nothing OS Item Presentations**:
+  - **Standard 1×1 App Icons**: Themed monochrome icons rendered via `IconFactory` with NDot typography labels.
+  - **1×1 Circular Folders**: Circular dark translucent disc with 2×2 mini-icons preview.
+  - **2×2 Enlarged Folders**: Interactive 4-app tiles with direct launch slots, count badges, and signature red dot.
+  - **2×2 Max Icons**: True square tiles with 60dp monochrome icons, uppercase label, and corner red dot.
+  - **Bespoke Nothing Elements**: Real-time dot-matrix displays (Clock, Battery/Calendar, Weather, Quick Toggles, Pedometer, Compass, Screen Time, Storage, Media Player, etc.).
+  - **Third-Party AppWidgets**: Native Android widgets hosted via `AppWidgetHost` inside customizable card containers.
+- **Native Drag & Drop Engine**:
+  - Real-time `CellLayout` coordinate resolution (`pointToCell`).
+  - Pulsing folder-merge accent outline when hovering over app icons.
+  - Slot targeting and top-screen drop action zones (Remove, Uninstall, App Info).
 
 ### 2.3 `AppDrawerFragment.kt`
 - **Alphabetical Indexing & Fast Scroller**: Custom `AlphabetScrollerView` allows instantaneous scrubbing across alphabet sections with haptic tick feedback.

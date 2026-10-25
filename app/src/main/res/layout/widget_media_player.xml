@@ -24,6 +24,7 @@
             android:background="@drawable/dot_red" />
 
         <TextView
+            android:id="@+id/mediaLabel"
             style="@style/Text.Label"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

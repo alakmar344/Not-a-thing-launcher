@@ -5,6 +5,8 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
+**Version 9.0** is a full-functionality pass: every claim below is backed by native Android APIs — real drag-and-drop across pages, dock and drop-zone targets, real widget hosting through `AppWidgetHost`, live media-session playback controls, a first-run onboarding flow that offers the system HOME-role handoff, and versioned layout persistence that upgrades installs **without losing user data, settings, or layouts**.
+
 ![Home, drawer, long-press menu and customize sheet](docs/showcase_1.png)
 
 ![Settings, search, colour icons and the empty / low-battery state](docs/showcase_2.png)
@@ -17,6 +19,7 @@ A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — w
 
 Comprehensive documentation has been prepared across dedicated architecture, feature, and visual guides:
 
+- **[Release v9.0 Notes](docs/RELEASE_V9.md)** — Native rebuild changelog, permissions, upgrade and signing details.
 - **[Release v8.0 Notes](docs/RELEASE_V8.md)** — Detailed overview of Release v8, bug fixes, changelog, and APK binaries.
 - **[Feature Catalog](docs/FEATURES.md)** — Deep-dive into multi-page workspaces, bespoke Nothing elements, Max Icons (2×2), dynamic folders, gesture navigation, and theming.
 - **[System Architecture](docs/ARCHITECTURE.md)** — Core components (`MainActivity`, `WorkspacePageAdapter`, `AppDrawerFragment`), data model, DotFont rendering engine, and state management.
@@ -24,16 +27,72 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 
 ---
 
-## ⬇️ Download Latest APK (Build v8)
+## ⬇️ Download Latest APK (Build v9)
 
-- **[Download Latest APK (Release v8)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
+- **[Download Latest APK (Release v9)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
 - `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
-After installing, press Home and choose **Not a Thing Launcher**, or open the launcher's *Settings → Default home app*.
+Install it like any APK. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
+
+### Local signed artifact
+
+The repository build produces a production-signed APK at:
+
+```text
+dist/Not-a-Thing-Launcher-9.0-release.apk
+```
+
+`dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
+
+---
+
+## 🔐 Release signing & update compatibility
+
+Release builds read signing material from two **ignored** files:
+
+- `keystore/release.jks` — the RSA key pair.
+- `keystore.properties` — store/key passwords and the `nothinglauncher` alias.
+
+Keep both files for every future release of `com.nothinglauncher`. Losing them means Android will reject updates signed with a different key. The build fails rather than silently falling back to the debug key when the release signing configuration is missing.
+
+Build locally (Windows):
+
+```powershell
+.\gradlew.bat :app:assembleDebug --console=plain
+.\gradlew.bat :app:assembleRelease --console=plain
+```
+
+The release build enables R8 shrinking. Verify the signer before distributing:
+
+```powershell
+& "$env:ANDROID_HOME\build-tools\34.0.0\apksigner.bat" verify --print-certs `
+  app\build\outputs\apk\release\app-release.apk
+```
+
+---
+
+## 🆕 What v9.0 Fixed & Added
+
+| Area | Change |
+|---|---|
+| **Unified CellLayout Grid** | Custom 2D matrix ViewGroup replacing segmented stacks. Freely place and interleave apps, 1×1 circular folders, 2×2 enlarged folders, 2×2 max icons, bespoke elements, and hosted AppWidgets on a single continuous page. |
+| **Nothing OS Folders & Max Tiles** | 1×1 circular dark disc folder icons with 2×2 mini previews; 2×2 enlarged interactive folder tiles with 4 direct launch slots; 2×2 square Max Icon tiles with monochrome icon and red dot accent. |
+| **Onboarding** | First launch now really opens the welcome tour (it previously existed but was never wired), including the set-as-default prompt. Re-runnable from *Settings → Show welcome tour*. |
+| **Double-Tap to Sleep** | Uses the accessibility global action (`GLOBAL_ACTION_LOCK_SCREEN`); the old code broadcast a no-op intent. If the optional service is off, the launcher explains instead of failing silently. |
+| **Media Controller element** | Now a real player: live track/artist, real play/pause/next/previous via `MediaSessionManager` transport controls, disabled-but-honest state before notification access is granted, tap-to-open current player app. |
+| **Folder rename** | New *Rename* chip inside the folder sheet (previously `renameFolder` existed with no UI). |
+| **Element & widget reordering** | Long-press popups for bespoke elements and hosted widgets gained *Move Up / Move Down* alongside *Remove*, making pages fully editable. |
+| **Settings → Permissions & capabilities** | Rows for Usage access, Notification access and Accessibility gestures with live on/off subtitles. |
+| **Motion & microphone permissions** | Dedicated rows request `ACTIVITY_RECOGNITION` and `RECORD_AUDIO` in context, report sensor/permission state honestly, and refresh the live pedometer or recorder immediately. |
+| **Weather & step personalisation** | Weather location can be a fixed city or automatic network lookup; the daily step goal is editable from Settings. Both persist across upgrades. |
+| **Folder app actions** | Long-press an app inside a folder for Open, Move to home, Enlarge, Dock and App info. Dragging out of a folder is supported and never leaves a duplicate. |
+| **Widget management** | Hosted widgets can be configured, made taller/shorter, reset to provider height, reordered within a page, moved between pages, or removed. |
+| **Drag/drop integrity** | Home apps, dock apps, enlarged apps and folder contents share a single-copy invariant; dock copies are intentional. Drops route through native workspace, dock, folder-merge and top action zones. |
+| **Data safety on upgrade** | `versionCode 11` replaces 8.x in place; `SCHEMA_VERSION` migrations keep `onboarding_complete` behavior for existing users. Release builds are signed with a stable project key so future versions install over this one. |
 
 ---
 

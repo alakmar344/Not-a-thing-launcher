@@ -1,8 +1,10 @@
 package com.nothinglauncher
 
+import android.app.Activity
 import android.content.Context
 import android.content.pm.ShortcutInfo
 import android.content.res.ColorStateList
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.view.Gravity
@@ -92,10 +94,10 @@ class AppPopup(private val context: Context) {
         icon: Drawable?,
         shortcuts: List<ShortcutInfo>,
         actions: List<Action>,
-        onShortcut: (ShortcutInfo, View) -> Unit = { _, _ -> }
+        onShortcut: (ShortcutInfo, View) -> Unit = { _, _ -> },
+        anchorBounds: Rect? = null
     ) {
         dismiss()
-        if (!anchor.isAttachedToWindow) return
         val rows = shortcuts.map { s ->
             ShortcutRow(
                 label = (s.shortLabel ?: s.longLabel ?: "").toString(),
@@ -116,11 +118,21 @@ class AppPopup(private val context: Context) {
         val density = context.resources.displayMetrics.density
         val margin = (12 * density).toInt()
         val gap = (6 * density).toInt()
-        val loc = IntArray(2)
-        anchor.getLocationOnScreen(loc)
-        val anchorTop = loc[1]
-        val anchorBottom = loc[1] + anchor.height
-        val anchorCenterX = loc[0] + anchor.width / 2
+        val anchorTop: Int
+        val anchorBottom: Int
+        val anchorCenterX: Int
+        if (anchorBounds != null) {
+            anchorTop = anchorBounds.top
+            anchorBottom = anchorBounds.bottom
+            anchorCenterX = anchorBounds.centerX()
+        } else {
+            if (!anchor.isAttachedToWindow) return
+            val loc = IntArray(2)
+            anchor.getLocationOnScreen(loc)
+            anchorTop = loc[1]
+            anchorBottom = loc[1] + anchor.height
+            anchorCenterX = loc[0] + anchor.width / 2
+        }
 
         val x = (anchorCenterX - popupW / 2).coerceIn(margin, (screenW - popupW - margin).coerceAtLeast(margin))
         val topLimit = (40 * density).toInt()
@@ -130,6 +142,15 @@ class AppPopup(private val context: Context) {
             else -> ((screenH - popupH) / 2).coerceAtLeast(topLimit)
         }
 
+        // The folder sheet owns the anchor view but must dismiss before its action menu can
+        // receive touches. In that case the popup is positioned from the captured bounds and
+        // attached to the activity window instead of the now-detached view.
+        val host = if (anchor.isAttachedToWindow) {
+            anchor
+        } else {
+            (context as? Activity)?.window?.decorView
+        } ?: return
+
         val pw = PopupWindow(content, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true).apply {
             setBackgroundDrawable(ColorDrawable(0))
             isOutsideTouchable = true
@@ -138,7 +159,7 @@ class AppPopup(private val context: Context) {
         }
         window = pw
         try {
-            pw.showAtLocation(anchor, Gravity.NO_GRAVITY, x, y)
+            pw.showAtLocation(host, Gravity.NO_GRAVITY, x, y)
         } catch (e: Exception) {
             window = null
         }
