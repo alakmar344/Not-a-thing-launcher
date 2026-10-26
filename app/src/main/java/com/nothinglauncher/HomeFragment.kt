@@ -289,8 +289,16 @@ class HomeFragment : Fragment() {
 
     /** True when ([rawX], [rawY]) is over empty workspace (not over an icon or widget). */
     fun isEmptyWorkspaceAt(rawX: Float, rawY: Float): Boolean {
+        if (_binding == null) return false
+        val holder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return false
+        val pageScroll = holder.findViewById<View>(R.id.pageScroll) ?: return false
+        val loc = IntArray(2)
+        pageScroll.getLocationOnScreen(loc)
+        val insidePage = rawX >= loc[0] && rawX <= loc[0] + pageScroll.width &&
+            rawY >= loc[1] && rawY <= loc[1] + pageScroll.height
+        if (!insidePage) return false
         val cellLayout = cellLayoutFor(currentPageIndex) ?: return false
-        if (!cellLayout.containsRawPoint(rawX, rawY)) return isPointOverDock(rawX, rawY).not()
+        if (!cellLayout.containsRawPoint(rawX, rawY)) return true
         val cell = cellLayout.pointToCell(rawX, rawY) ?: return true
         val page = viewModel.workspacePages.value?.getOrNull(currentPageIndex) ?: return true
         return page.itemAt(cell.first, cell.second) == null

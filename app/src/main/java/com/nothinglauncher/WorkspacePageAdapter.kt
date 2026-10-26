@@ -352,7 +352,8 @@ class WorkspacePageAdapter(
                     batB.root.setOnClickListener { AppLauncher.openBatterySettings(ctx) }
                     attachTileGestures(
                         batB.root,
-                        { DragController.DragItem.Bespoke(BespokeElement.BATTERY_CALENDAR, pageIndex, itemId) }
+                        { DragController.DragItem.Bespoke(BespokeElement.BATTERY_CALENDAR, pageIndex, itemId) },
+                        row
                     ) { host.showElementPopup(pageIndex, BespokeElement.BATTERY_CALENDAR, batB.root) }
 
                     val calB = WidgetCalendarBinding.inflate(inflater, row, false)
@@ -364,7 +365,8 @@ class WorkspacePageAdapter(
                     calB.root.setOnClickListener { AppLauncher.openCalendar(ctx) }
                     attachTileGestures(
                         calB.root,
-                        { DragController.DragItem.Bespoke(BespokeElement.BATTERY_CALENDAR, pageIndex, itemId) }
+                        { DragController.DragItem.Bespoke(BespokeElement.BATTERY_CALENDAR, pageIndex, itemId) },
+                        row
                     ) { host.showElementPopup(pageIndex, BespokeElement.BATTERY_CALENDAR, calB.root) }
 
                     val halfLp1 = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
@@ -720,13 +722,14 @@ class WorkspacePageAdapter(
         private fun attachTileGestures(
             view: View,
             getItem: () -> DragController.DragItem,
+            dragView: View? = null,
             onMenu: () -> Unit
         ) {
             LongPressDragHelper.attach(
                 view,
                 onClick = null,
                 onLongPress = { onMenu() },
-                onDragStart = { v, rawX, rawY -> host.startDrag(getItem(), v, rawX, rawY) }
+                onDragStart = { v, rawX, rawY -> host.startDrag(getItem(), dragView ?: v, rawX, rawY) }
             )
         }
 
