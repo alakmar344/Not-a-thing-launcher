@@ -32,12 +32,20 @@ class HomeFragment : Fragment() {
     private lateinit var workspaceLayoutManager: LinearLayoutManager
     private val snapHelper = PagerSnapHelper()
 
-    val currentPageIndex: Int
-        get() {
-            if (_binding == null) return viewModel.prefs.activePageIndex
-            val snapView = snapHelper.findSnapView(workspaceLayoutManager)
-            return if (snapView != null) workspaceLayoutManager.getPosition(snapView).coerceAtLeast(0) else viewModel.prefs.activePageIndex
-        }
+    /**
+     * The page the user is on (or being scrolled to). Tracked explicitly so a drop right after
+     * an edge flip lands on the new page even while the snap animation is still running.
+     */
+    var currentPageIndex: Int = 0
+        private set
+
+    private fun setCurrentPage(index: Int) {
+        val count = workspaceAdapter.itemCount
+        val idx = if (count == 0) 0 else index.coerceIn(0, count - 1)
+        currentPageIndex = idx
+        viewModel.prefs.activePageIndex = idx
+        if (_binding != null) binding.pageIndicator.currentPage = idx
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
@@ -77,28 +85,21 @@ class HomeFragment : Fragment() {
         binding.workspaceRecycler.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    val idx = currentPageIndex
-                    viewModel.prefs.activePageIndex = idx
-                    binding.pageIndicator.currentPage = idx
+                    val snapView = snapHelper.findSnapView(workspaceLayoutManager) ?: return
+                    val idx = workspaceLayoutManager.getPosition(snapView)
+                    if (idx != RecyclerView.NO_POSITION) setCurrentPage(idx)
                 }
             }
 
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val snapView = snapHelper.findSnapView(workspaceLayoutManager)
-                if (snapView != null) {
-                    val idx = workspaceLayoutManager.getPosition(snapView)
-                    if (idx != RecyclerView.NO_POSITION && idx != binding.pageIndicator.currentPage) {
-                        binding.pageIndicator.currentPage = idx
-                        viewModel.prefs.activePageIndex = idx
-                    }
-                }
+                if (recyclerView.scrollState != RecyclerView.SCROLL_STATE_DRAGGING) return
+                val snapView = snapHelper.findSnapView(workspaceLayoutManager) ?: return
+                val idx = workspaceLayoutManager.getPosition(snapView)
+                if (idx != RecyclerView.NO_POSITION && idx != currentPageIndex) setCurrentPage(idx)
             }
         })
 
-        binding.pageIndicator.onPageSelected = { page ->
-            binding.workspaceRecycler.smoothScrollToPosition(page)
-            viewModel.prefs.activePageIndex = page
-        }
+        binding.pageIndicator.onPageSelected = { page -> scrollToPage(page) }
     }
 
     private fun setupDock() {
@@ -175,26 +176,20 @@ class HomeFragment : Fragment() {
 
     private fun setupGestures() {
         val density = resources.displayMetrics.density
+        // Double-tap to sleep on empty space; observed for every touch on home so it also works
+        // over the page grid (whose cells consume taps).
         val gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
-            override fun onLongPress(e: MotionEvent) {
-                if (host?.isPopupShowing() != true) {
-                    binding.workspaceRecycler.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    host?.showCustomizeSheet()
-                }
-            }
             override fun onDoubleTap(e: MotionEvent): Boolean {
-                if (viewModel.prefs.doubleTapToSleep) {
+                if (viewModel.prefs.doubleTapToSleep && host?.dragController?.isDragging != true &&
+                    isEmptyWorkspaceAt(e.rawX, e.rawY)
+                ) {
                     host?.lockScreen()
                     return true
                 }
                 return false
             }
         })
-
-        binding.workspaceRecycler.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
-            false
-        }
+        binding.homeRoot.touchObserver = { event -> gestureDetector.onTouchEvent(event) }
 
         binding.homeRoot.listener = object : SwipeGestureLayout.Listener {
             override fun canStartDrag(direction: Int, downX: Float, downY: Float): Boolean {
@@ -239,13 +234,19 @@ class HomeFragment : Fragment() {
     }
 
     private fun observeViewModel() {
+        var firstLayout = true
         viewModel.workspacePages.observe(viewLifecycleOwner) { pages ->
             workspaceAdapter.setPages(pages)
             binding.pageIndicator.pageCount = pages.size
-            val active = viewModel.prefs.activePageIndex.coerceIn(0, (pages.size - 1).coerceAtLeast(0))
-            binding.pageIndicator.currentPage = active
-            if (workspaceLayoutManager.findFirstVisibleItemPosition() != active) {
-                binding.workspaceRecycler.post {
+            val wanted = if (firstLayout) viewModel.prefs.activePageIndex else currentPageIndex
+            firstLayout = false
+            val active = wanted.coerceIn(0, (pages.size - 1).coerceAtLeast(0))
+            setCurrentPage(active)
+            binding.workspaceRecycler.post {
+                if (_binding == null) return@post
+                val snap = snapHelper.findSnapView(workspaceLayoutManager)
+                val shown = snap?.let { workspaceLayoutManager.getPosition(it) } ?: RecyclerView.NO_POSITION
+                if (shown != active && binding.workspaceRecycler.scrollState == RecyclerView.SCROLL_STATE_IDLE) {
                     binding.workspaceRecycler.scrollToPosition(active)
                 }
             }
@@ -270,123 +271,193 @@ class HomeFragment : Fragment() {
         workspaceAdapter.notifyDataSetChanged()
     }
 
+    /** Home button / back on home: return to the first page, scrolled to the top (stock). */
     fun scrollToTop() {
         if (_binding == null) return
-        binding.workspaceRecycler.smoothScrollToPosition(0)
-        viewModel.prefs.activePageIndex = 0
-        binding.pageIndicator.currentPage = 0
+        scrollToPage(0)
+        for (i in 0 until workspaceLayoutManager.childCount) {
+            (workspaceLayoutManager.getChildAt(i)?.findViewById<View>(R.id.pageScroll) as? androidx.core.widget.NestedScrollView)
+                ?.smoothScrollTo(0, 0)
+        }
     }
 
     fun scrollToPage(index: Int) {
         if (_binding == null) return
         binding.workspaceRecycler.smoothScrollToPosition(index)
-        viewModel.prefs.activePageIndex = index
-        binding.pageIndicator.currentPage = index
+        setCurrentPage(index)
     }
 
-    fun updateDropHover(rawX: Float, rawY: Float, isApp: Boolean) {
+    /** True when ([rawX], [rawY]) is over empty workspace (not over an icon or widget). */
+    fun isEmptyWorkspaceAt(rawX: Float, rawY: Float): Boolean {
+        if (_binding == null) return false
+        val holder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return false
+        val pageScroll = holder.findViewById<View>(R.id.pageScroll) ?: return false
+        val loc = IntArray(2)
+        pageScroll.getLocationOnScreen(loc)
+        val insidePage = rawX >= loc[0] && rawX <= loc[0] + pageScroll.width &&
+            rawY >= loc[1] && rawY <= loc[1] + pageScroll.height
+        if (!insidePage) return false
+        val cellLayout = cellLayoutFor(currentPageIndex) ?: return false
+        if (!cellLayout.containsRawPoint(rawX, rawY)) return true
+        val cell = cellLayout.pointToCell(rawX, rawY) ?: return true
+        val page = viewModel.workspacePages.value?.getOrNull(currentPageIndex) ?: return true
+        return page.itemAt(cell.first, cell.second) == null
+    }
+
+    // ---- Workspace drag & drop ------------------------------------------------------------
+
+    /** What dropping the dragged item at the current point would do. */
+    sealed class DropPlan {
+        abstract val page: Int
+        data class Place(override val page: Int, val col: Int, val row: Int, val spanX: Int, val spanY: Int) : DropPlan()
+        data class CreateFolder(override val page: Int, val target: WorkspaceItem) : DropPlan()
+        data class AddToFolder(override val page: Int, val target: WorkspaceItem) : DropPlan()
+    }
+
+    private fun cellLayoutFor(page: Int): CellLayout? {
+        if (_binding == null) return null
+        val holder = workspaceLayoutManager.findViewByPosition(page) ?: return null
+        return holder.findViewById(R.id.cellLayout)
+    }
+
+    private fun spanOf(item: DragController.DragItem): Pair<Int, Int> {
+        val cols = viewModel.prefs.gridColumns
+        val wsItem = item.itemId?.let { viewModel.itemById(item.pageIndex, it) }
+        return when {
+            wsItem != null -> wsItem.spanX.coerceIn(1, cols) to wsItem.spanY
+            item is DragController.DragItem.MaxApp -> 2.coerceAtMost(cols) to 2.coerceAtMost(cols)
+            item is DragController.DragItem.Bespoke -> cols to 1
+            else -> 1 to 1
+        }
+    }
+
+    fun planDrop(item: DragController.DragItem, centerX: Float, centerY: Float, rawX: Float, rawY: Float): DropPlan? {
+        val pageIdx = currentPageIndex
+        val cellLayout = cellLayoutFor(pageIdx) ?: return null
+        val page = viewModel.workspacePages.value?.getOrNull(pageIdx) ?: return null
+        val cols = viewModel.prefs.gridColumns
+        val ignoreId = if (item.pageIndex == pageIdx) item.itemId else null
+        val (sx, sy) = spanOf(item)
+
+        // Single icons can be merged into folders when released over the middle of another icon.
+        if (item is DragController.DragItem.App) {
+            val cell = cellLayout.pointToCell(rawX, rawY)
+            if (cell != null) {
+                val target = page.itemAt(cell.first, cell.second, ignoreId)
+                if (target != null && isNearCentre(cellLayout, target, rawX, rawY)) {
+                    when (target.type) {
+                        WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP ->
+                            if (target.appKey != item.app.key) return DropPlan.CreateFolder(pageIdx, target)
+                        WorkspaceItem.Type.FOLDER ->
+                            if (item.app.key !in target.folder?.appKeys.orEmpty()) return DropPlan.AddToFolder(pageIdx, target)
+                        else -> Unit
+                    }
+                }
+            }
+        }
+
+        val (col, row) = if (sx == 1 && sy == 1) {
+            cellLayout.pointToCell(rawX, rawY) ?: cellLayout.cellForDragCenter(centerX, centerY, 1, 1)
+        } else {
+            cellLayout.cellForDragCenter(centerX, centerY, sx, sy)
+        }
+        val targetCol = if (item is DragController.DragItem.Bespoke) 0 else col
+        val (c, r) = GridMath.nearestFree(page.items, cols, targetCol, row, sx, sy, ignoreId)
+        return DropPlan.Place(pageIdx, c, r, sx, sy)
+    }
+
+    private fun isNearCentre(cellLayout: CellLayout, target: WorkspaceItem, rawX: Float, rawY: Float): Boolean {
+        val loc = IntArray(2)
+        cellLayout.getLocationOnScreen(loc)
+        val stepX = cellLayout.cellWidth + cellLayout.cellGapX
+        val stepY = cellLayout.cellHeight + cellLayout.cellGapY
+        val left = loc[0] + cellLayout.paddingStart + target.cellX * stepX
+        val top = loc[1] + cellLayout.paddingTop + target.cellY * stepY
+        val w = target.spanX * cellLayout.cellWidth + (target.spanX - 1) * cellLayout.cellGapX
+        val h = target.spanY * cellLayout.cellHeight + (target.spanY - 1) * cellLayout.cellGapY
+        val cx = left + w / 2f
+        val cy = top + h / 2f
+        return kotlin.math.abs(rawX - cx) < w * 0.36f && kotlin.math.abs(rawY - cy) < h * 0.36f
+    }
+
+    fun updateDropHover(item: DragController.DragItem, centerX: Float, centerY: Float, rawX: Float, rawY: Float) {
+        val cellLayout = cellLayoutFor(currentPageIndex) ?: return
+        when (val plan = planDrop(item, centerX, centerY, rawX, rawY)) {
+            is DropPlan.CreateFolder -> cellLayout.setDropTarget(plan.target.cellX, plan.target.cellY, plan.target.spanX, plan.target.spanY, isFolderMerge = true)
+            is DropPlan.AddToFolder -> cellLayout.setDropTarget(plan.target.cellX, plan.target.cellY, plan.target.spanX, plan.target.spanY, isFolderMerge = true)
+            is DropPlan.Place -> cellLayout.setDropTarget(plan.col, plan.row, plan.spanX, plan.spanY, isFolderMerge = false)
+            null -> cellLayout.clearDropTarget()
+        }
+        autoScrollPage(rawY)
+    }
+
+    /** Scrolls the current page vertically while an item is held near its top/bottom edge. */
+    private fun autoScrollPage(rawY: Float) {
         if (_binding == null) return
-        val pageHolder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return
-        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return
-        val cell = cellLayout.pointToCell(rawX, rawY)
-        if (cell == null) {
-            cellLayout.clearDropTarget()
-            return
-        }
-        val (col, row) = cell
-        val page = viewModel.workspacePages.value?.getOrNull(currentPageIndex)
-        val existingItem = page?.items?.firstOrNull {
-            col in it.cellX until (it.cellX + it.spanX) && row in it.cellY until (it.cellY + it.spanY)
-        }
+        val holder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return
+        val scroll = holder.findViewById<View>(R.id.pageScroll) ?: return
+        val loc = IntArray(2)
+        scroll.getLocationOnScreen(loc)
+        val zone = 56 * resources.displayMetrics.density
+        val step = (12 * resources.displayMetrics.density).toInt()
         when {
-            existingItem?.type == WorkspaceItem.Type.APP && isApp -> {
-                cellLayout.setDropTarget(existingItem.cellX, existingItem.cellY, existingItem.spanX, existingItem.spanY, isFolderMerge = true)
-            }
-            existingItem?.type == WorkspaceItem.Type.FOLDER && isApp -> {
-                cellLayout.setDropTarget(existingItem.cellX, existingItem.cellY, existingItem.spanX, existingItem.spanY, isFolderMerge = false)
-            }
-            existingItem != null -> {
-                cellLayout.clearDropTarget()
-            }
-            else -> {
-                cellLayout.setDropTarget(col, row, 1, 1, isFolderMerge = false)
-            }
+            rawY < loc[1] + zone && scroll.canScrollVertically(-1) -> scroll.scrollBy(0, -step)
+            rawY > loc[1] + scroll.height - zone && rawY < loc[1] + scroll.height && scroll.canScrollVertically(1) -> scroll.scrollBy(0, step)
         }
+    }
+
+    fun setSpringLoaded(enabled: Boolean, topPx: Int) {
+        if (_binding == null) return
+        val recycler = binding.workspaceRecycler
+        val offset = if (enabled) {
+            val loc = IntArray(2)
+            recycler.getLocationOnScreen(loc)
+            val contentTop = loc[1] - recycler.translationY + recycler.paddingTop
+            (topPx - contentTop).coerceAtLeast(0f)
+        } else 0f
+        recycler.animate().translationY(offset).setDuration(180L).start()
     }
 
     fun clearWorkspaceDropTarget() {
         if (_binding == null) return
-        val pageHolder = workspaceLayoutManager.findViewByPosition(currentPageIndex) ?: return
-        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return
-        cellLayout.clearDropTarget()
+        for (i in 0 until workspaceLayoutManager.childCount) {
+            workspaceLayoutManager.getChildAt(i)?.findViewById<CellLayout>(R.id.cellLayout)?.clearDropTarget()
+        }
     }
 
-    fun handleAppDropOnPage(
-        app: AppInfo,
-        fromSource: DragController.DragSource,
-        fromPage: Int,
-        targetPage: Int,
-        rawX: Float,
-        rawY: Float
-    ): Boolean {
-        if (_binding == null) return false
-        val pageHolder = workspaceLayoutManager.findViewByPosition(targetPage) ?: return false
-        val cellLayout = pageHolder.findViewById<CellLayout>(R.id.cellLayout) ?: return false
-        cellLayout.clearDropTarget()
-
-        val cell = cellLayout.pointToCell(rawX, rawY) ?: return false
-        val (col, row) = cell
-        val page = viewModel.workspacePages.value?.getOrNull(targetPage) ?: return false
-        val existingItem = page.items.firstOrNull {
-            col in it.cellX until (it.cellX + it.spanX) && row in it.cellY until (it.cellY + it.spanY)
-        }
-
-        if (existingItem != null) {
-            when (existingItem.type) {
-                WorkspaceItem.Type.FOLDER -> {
-                    val folder = existingItem.folder ?: return false
-                    if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
-                        viewModel.removeFromPage(fromPage, app.key)
-                    }
-                    if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
-                    viewModel.addAppToFolder(targetPage, folder.id, app.key)
-                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    AppLauncher.toast(requireContext(), R.string.folder_add_apps)
-                    return true
-                }
-                WorkspaceItem.Type.APP -> {
-                    if (existingItem.appKey != app.key) {
-                        // Dropped onto an existing app icon -> MERGE INTO FOLDER!
-                        if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
-                            viewModel.removeFromPage(fromPage, app.key)
+    /** Executes a drop on the visible page. Returns false when nothing could be dropped. */
+    fun handleWorkspaceDrop(item: DragController.DragItem, centerX: Float, centerY: Float, rawX: Float, rawY: Float): Boolean {
+        val plan = planDrop(item, centerX, centerY, rawX, rawY) ?: return false
+        clearWorkspaceDropTarget()
+        val fromDock = item is DragController.DragItem.App && item.fromSource == DragController.DragSource.DOCK
+        when (plan) {
+            is DropPlan.CreateFolder -> {
+                val app = (item as DragController.DragItem.App).app
+                viewModel.createFolderFromDrop(plan.page, plan.target.appKey, app.key) ?: return false
+                if (fromDock) viewModel.removeFromDock(app)
+            }
+            is DropPlan.AddToFolder -> {
+                val app = (item as DragController.DragItem.App).app
+                val folderId = plan.target.folder?.id ?: return false
+                viewModel.addAppToFolder(plan.page, folderId, app.key)
+                if (fromDock) viewModel.removeFromDock(app)
+            }
+            is DropPlan.Place -> {
+                val id = item.itemId
+                if (id != null && viewModel.itemById(item.pageIndex, id) != null) {
+                    viewModel.moveItem(item.pageIndex, id, plan.page, plan.col, plan.row)
+                } else {
+                    when (item) {
+                        is DragController.DragItem.App -> {
+                            viewModel.placeApp(item.app, plan.page, plan.col, plan.row)
+                            if (fromDock) viewModel.removeFromDock(item.app)
                         }
-                        if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
-                        viewModel.createFolderFromDrop(targetPage, existingItem.appKey, app.key, existingItem.cellX, existingItem.cellY)
-                        requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                        AppLauncher.toast(requireContext(), R.string.drag_folder_created)
-                        return true
+                        is DragController.DragItem.MaxApp -> viewModel.placeApp(item.app, plan.page, plan.col, plan.row)
+                        else -> return false
                     }
-                }
-                else -> {
-                    // Over widget or max app, find nearest free cell
-                    val (fc, fr) = viewModel.findFreeCell(page, 1, 1)
-                    if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
-                    viewModel.placeAppAtCell(targetPage, app, fc, fr)
-                    requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
-                    return true
                 }
             }
         }
-
-        // Empty cell drop
-        if (fromSource == DragController.DragSource.HOME_PAGE && fromPage != targetPage) {
-            viewModel.removeFromPage(fromPage, app.key)
-        }
-        if (fromSource == DragController.DragSource.DOCK) viewModel.removeFromDock(app)
-        viewModel.placeAppAtCell(targetPage, app, col, row)
-        requireActivity().window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        AppLauncher.toast(requireContext(), R.string.drag_app_pinned)
         return true
     }
 

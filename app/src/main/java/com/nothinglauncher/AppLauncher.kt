@@ -195,6 +195,11 @@ object AppLauncher {
         } catch (e: SecurityException) {
             if (showError) toast(context, R.string.cannot_open)
             false
+        } catch (e: RuntimeException) {
+            // e.g. IllegalArgumentException / FileUriExposedException from a malformed intent,
+            // or OEM resolver crashes; never take the home screen down with it.
+            if (showError) toast(context, R.string.cannot_open)
+            false
         }
     }
 

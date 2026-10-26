@@ -64,6 +64,9 @@ object IconFactory {
         sizePx: Int,
         isLight: Boolean
     ): Drawable {
+        // Bitmap.createBitmap throws for 0/negative sizes (e.g. a not-yet-measured view).
+        @Suppress("NAME_SHADOWING")
+        val sizePx = sizePx.coerceAtLeast(1)
         val bitmap = try {
             when (style) {
                 LauncherPrefs.IconStyle.MONO -> renderMono(source, layers, sizePx, isLight)

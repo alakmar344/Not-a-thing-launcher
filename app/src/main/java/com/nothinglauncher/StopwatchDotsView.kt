@@ -78,6 +78,15 @@ class StopwatchDotsView @JvmOverloads constructor(
         invalidate()
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Resume ticking after a detach/re-attach (page rebinds, drag & drop) while running.
+        if (isRunning) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
     override fun onDetachedFromWindow() {
         removeCallbacks(ticker)
         super.onDetachedFromWindow()
@@ -94,7 +103,8 @@ class StopwatchDotsView @JvmOverloads constructor(
         val seconds = (totalMs / 1000) % 60
         val tenths = (totalMs / 100) % 10
 
-        val timeStr = String.format("%02d:%02d.%d", minutes, seconds, tenths)
+        // Locale.US: DotFont only has ASCII digits (Arabic/Persian locales would render blanks).
+        val timeStr = String.format(java.util.Locale.US, "%02d:%02d.%d", minutes, seconds, tenths)
 
         val dotPitch = 4.2f * density
         val dotRadius = 1.6f * density

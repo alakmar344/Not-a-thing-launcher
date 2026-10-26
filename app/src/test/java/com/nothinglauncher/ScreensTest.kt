@@ -156,12 +156,12 @@ class ScreensTest {
         val halfLp2 = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = (6 * density).toInt() }
         row.addView(batB.root, halfLp1)
         row.addView(calB.root, halfLp2)
-        pageB.cellLayout.addView(row, CellLayout.LayoutParams(0, 2, columns, 1))
+        pageB.cellLayout.addView(row, CellLayout.LayoutParams(0, 2, columns, 2))
 
         val all = apps(style)
         all.take(columns * 2).forEachIndexed { index, app ->
             val col = index % columns
-            val r = 3 + (index / columns)
+            val r = 4 + (index / columns)
             val appB = ItemAppBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
             appB.appIcon.setImageDrawable(app.icon)
             appB.appLabel.text = app.label
@@ -193,6 +193,7 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(28))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.root.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         pageB.pageContent.updatePadding(top = dp(12))
 
         val clockB = WidgetClockBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
@@ -221,6 +222,7 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.root.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         pageB.cellLayout.countX = 4
 
         val weatherB = WidgetWeatherBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
@@ -229,14 +231,14 @@ class ScreensTest {
         val togB = WidgetQuickTogglesBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
         val accent = ContextCompat.getColor(context, R.color.nothing_red)
         togB.togglesDot.background?.mutate()?.setTint(accent)
-        pageB.cellLayout.addView(togB.root, CellLayout.LayoutParams(0, 1, 4, 1))
+        pageB.cellLayout.addView(togB.root, CellLayout.LayoutParams(0, 1, 4, 2))
 
         val all = apps()
         all.subList(12, 16).forEachIndexed { col, app ->
             val appB = ItemAppBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)
             appB.appIcon.setImageDrawable(app.icon)
             appB.appLabel.text = app.label
-            pageB.cellLayout.addView(appB.root, CellLayout.LayoutParams(col, 2, 1, 1))
+            pageB.cellLayout.addView(appB.root, CellLayout.LayoutParams(col, 3, 1, 1))
         }
 
         b.workspaceRecycler.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZONTAL, false)
@@ -258,6 +260,7 @@ class ScreensTest {
         b.bottomBar.updatePadding(bottom = dp(16 + 12))
 
         val pageB = ItemWorkspacePageBinding.inflate(LayoutInflater.from(context))
+        pageB.root.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         pageB.cellLayout.countX = 4
 
         val stB = WidgetScreenTimeBinding.inflate(LayoutInflater.from(context), pageB.cellLayout, false)

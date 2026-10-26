@@ -62,17 +62,31 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
     private var downRawY = 0f
     private var longPressed = false
 
+    private var longPressRawX = 0f
+    private var longPressRawY = 0f
+    private var lastRawX = 0f
+    private var lastRawY = 0f
+
     private val longPressRunnable = Runnable {
         if (parent != null && isAttachedToWindow) {
             longPressed = true
+            longPressRawX = lastRawX
+            longPressRawY = lastRawY
+            // Stock behaviour: the menu shows while the finger is down, and a following move
+            // drags the widget. Scroll containers must not steal the rest of the gesture.
+            parent?.requestDisallowInterceptTouchEvent(true)
             performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            onLongPress?.invoke()
         }
     }
 
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) longPressed = false
         if (longPressed) {
-            // Keep the gesture until onTouchEvent can either start a drag (move) or open
-            // the menu (release). Opening a focusable popup here would cancel the drag.
+            // Take the gesture from the widget's own views so a move can start a drag.
+            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) {
+                longPressed = false
+            }
             return true
         }
         when (ev.actionMasked) {
@@ -81,11 +95,15 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
                 downY = ev.y
                 downRawX = ev.rawX
                 downRawY = ev.rawY
+                lastRawX = ev.rawX
+                lastRawY = ev.rawY
                 longPressed = false
                 removeCallbacks(longPressRunnable)
                 postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
             }
             MotionEvent.ACTION_MOVE -> {
+                lastRawX = ev.rawX
+                lastRawY = ev.rawY
                 if (abs(ev.x - downX) > slop || abs(ev.y - downY) > slop) {
                     removeCallbacks(longPressRunnable)
                 }
@@ -98,10 +116,12 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
             MotionEvent.ACTION_MOVE -> {
+                lastRawX = event.rawX
+                lastRawY = event.rawY
                 if (longPressed) {
-                    val dx = abs(event.rawX - downRawX)
-                    val dy = abs(event.rawY - downRawY)
-                    if (dx > slop * 1.5f || dy > slop * 1.5f) {
+                    val dx = abs(event.rawX - longPressRawX)
+                    val dy = abs(event.rawY - longPressRawY)
+                    if (dx > slop || dy > slop) {
                         removeCallbacks(longPressRunnable)
                         longPressed = false
                         onDragStart?.invoke(this, event.rawX, event.rawY)
@@ -113,7 +133,6 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
                 removeCallbacks(longPressRunnable)
                 if (longPressed) {
                     longPressed = false
-                    onLongPress?.invoke()
                     return true
                 }
             }

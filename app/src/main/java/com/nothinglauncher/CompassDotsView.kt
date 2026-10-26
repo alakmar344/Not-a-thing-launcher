@@ -35,7 +35,7 @@ class CompassDotsView @JvmOverloads constructor(
     }
 
     var headingDegrees: Int = 0
-        set(value) { field = value % 360; invalidate() }
+        set(value) { field = value.mod(360); invalidate() } // mod: never negative
 
     var directionText: String = "N"
         set(value) { field = value; invalidate() }

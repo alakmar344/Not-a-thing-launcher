@@ -8,7 +8,9 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
-import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.TimeZone
 
 /**
@@ -50,20 +52,54 @@ class WorldClockDotsView @JvmOverloads constructor(
     private var localTime: String = "12:00"
     private var utcTime: String = "07:00"
 
+    private var running = false
+
+    /** Re-format on every minute boundary; previously the tile froze at its bind time. */
+    private val ticker = object : Runnable {
+        override fun run() {
+            if (!running) return
+            updateTimes()
+            postDelayed(this, 60_000L - System.currentTimeMillis() % 60_000L)
+        }
+    }
+
     init {
         updateTimes()
     }
 
     fun updateTimes() {
-        val is24 = DateFormat.is24HourFormat(context)
-        val format = if (is24) "HH:mm" else "hh:mm"
-
-        val localCal = Calendar.getInstance()
-        localTime = DateFormat.format(format, localCal).toString()
-
-        val utcCal = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-        utcTime = DateFormat.format(format, utcCal).toString()
+        val is24 = try { DateFormat.is24HourFormat(context) } catch (_: Exception) { true }
+        val pattern = if (is24) "HH:mm" else "hh:mm"
+        // Locale.US keeps ASCII digits, the only ones DotFont can draw.
+        val local = SimpleDateFormat(pattern, Locale.US)
+        localTime = local.format(Date())
+        val utc = SimpleDateFormat(pattern, Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
+        utcTime = utc.format(Date())
         invalidate()
+    }
+
+    private fun updateRunning() {
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(ticker)
+        if (running) post(ticker)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateRunning()
+    }
+
+    override fun onDetachedFromWindow() {
+        running = false
+        removeCallbacks(ticker)
+        super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
     }
 
     override fun onDraw(canvas: Canvas) {

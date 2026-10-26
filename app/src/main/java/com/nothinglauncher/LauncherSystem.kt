@@ -167,6 +167,12 @@ class LauncherAccessibilityService : AccessibilityService() {
         instance = this
     }
 
+    override fun onUnbind(intent: Intent?): Boolean {
+        // The service is unbound (user turned it off) before onDestroy; drop the stale handle.
+        if (instance === this) instance = null
+        return super.onUnbind(intent)
+    }
+
     override fun onDestroy() {
         if (instance === this) instance = null
         super.onDestroy()
@@ -181,10 +187,8 @@ class LauncherAccessibilityService : AccessibilityService() {
         return performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
     }
 
-    fun expandNotifications(): Boolean {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
-        return performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
-    }
+    // GLOBAL_ACTION_NOTIFICATIONS exists since API 16, so it works on every supported release.
+    fun expandNotifications(): Boolean = performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
 
     companion object {
         @Volatile

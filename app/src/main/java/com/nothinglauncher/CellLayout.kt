@@ -146,6 +146,38 @@ class CellLayout @JvmOverloads constructor(
         }
     }
 
+    /**
+     * Called (posted, once per measure pass) when a [LayoutParams.fitContent] child needs more
+     * rows than it was given, so the owner can grow its span instead of clipping it.
+     */
+    var onChildNeedsRows: ((child: View, rows: Int) -> Unit)? = null
+    private var pendingRowRequests = mutableMapOf<View, Int>()
+
+    /**
+     * Grid cell for an item of span ([spanX], [spanY]) whose dragged preview is centred on
+     * screen point ([rawCenterX], [rawCenterY]) - the same "centre of the drag view" rule
+     * Launcher3 uses, so wide items land where they visually hover.
+     */
+    fun cellForDragCenter(rawCenterX: Float, rawCenterY: Float, spanX: Int, spanY: Int): Pair<Int, Int> {
+        val loc = IntArray(2)
+        getLocationOnScreen(loc)
+        val stepX = (cellWidth + cellGapX).coerceAtLeast(1).toFloat()
+        val stepY = (cellHeight + cellGapY).coerceAtLeast(1).toFloat()
+        val sx = spanX.coerceIn(1, countX)
+        val localX = rawCenterX - loc[0] - paddingStart - (sx * cellWidth + (sx - 1) * cellGapX) / 2f
+        val localY = rawCenterY - loc[1] - paddingTop - (spanY * cellHeight + (spanY - 1) * cellGapY) / 2f
+        val col = Math.round(localX / stepX).coerceIn(0, countX - sx)
+        val row = Math.round(localY / stepY).coerceAtLeast(0)
+        return col to row
+    }
+
+    /** True when the screen point lies inside this grid's visible bounds. */
+    fun containsRawPoint(rawX: Float, rawY: Float): Boolean {
+        val loc = IntArray(2)
+        getLocationOnScreen(loc)
+        return rawX >= loc[0] && rawX <= loc[0] + width && rawY >= loc[1] && rawY <= loc[1] + height
+    }
+
     /** Translates window (rawX, rawY) into grid (cellX, cellY). Returns null if outside bounds. */
     fun pointToCell(rawX: Float, rawY: Float): Pair<Int, Int>? {
         val loc = IntArray(2)
@@ -195,6 +227,24 @@ class CellLayout @JvmOverloads constructor(
             val childW = childSpanX * cellWidth + (childSpanX - 1) * cellGapX
             val childH = childSpanY * cellHeight + (childSpanY - 1) * cellGapY
 
+            if (lp.fitContent && onChildNeedsRows != null && cellHeight > 0) {
+                child.measure(
+                    MeasureSpec.makeMeasureSpec(childW.coerceAtLeast(0), MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED)
+                )
+                val natural = child.measuredHeight
+                if (natural > childH + 1) {
+                    val rows = ((natural + cellGapY + cellHeight - 1) / (cellHeight + cellGapY)).coerceAtLeast(childSpanY + 1)
+                    if (pendingRowRequests[child] != rows) {
+                        pendingRowRequests[child] = rows
+                        post {
+                            if (pendingRowRequests.remove(child) != null && child.parent === this) {
+                                onChildNeedsRows?.invoke(child, rows)
+                            }
+                        }
+                    }
+                }
+            }
             child.measure(
                 MeasureSpec.makeMeasureSpec(childW.coerceAtLeast(0), MeasureSpec.EXACTLY),
                 MeasureSpec.makeMeasureSpec(childH.coerceAtLeast(0), MeasureSpec.EXACTLY)
@@ -246,6 +296,12 @@ class CellLayout @JvmOverloads constructor(
         }
     }
 
+    override fun onDetachedFromWindow() {
+        pulseAnimator?.cancel()
+        pendingRowRequests.clear()
+        super.onDetachedFromWindow()
+    }
+
     override fun checkLayoutParams(p: ViewGroup.LayoutParams?): Boolean = p is LayoutParams
 
     override fun generateLayoutParams(attrs: AttributeSet?): ViewGroup.LayoutParams =
@@ -266,6 +322,9 @@ class CellLayout @JvmOverloads constructor(
         var cellY: Int = 0
         var spanX: Int = 1
         var spanY: Int = 1
+
+        /** Measure the child at its natural height and report when it needs more rows. */
+        var fitContent: Boolean = false
 
         constructor(cellX: Int, cellY: Int, spanX: Int = 1, spanY: Int = 1) : super(
             MATCH_PARENT,
@@ -288,6 +347,7 @@ class CellLayout @JvmOverloads constructor(
             this.cellY = source.cellY
             this.spanX = source.spanX
             this.spanY = source.spanY
+            this.fitContent = source.fitContent
         }
     }
 }

@@ -7,6 +7,9 @@
     <!-- Required (API 28+) to open the system uninstall dialog for an app. -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
+    <!-- Screen Time element: without this declaration the app is not listed (or cannot be
+         enabled) on the system "Usage access" screen, so the AppOps grant is impossible. -->
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
 
     <!-- Live weather (Open-Meteo) and automatic city lookup. -->
     <uses-permission android:name="android.permission.INTERNET" />

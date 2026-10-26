@@ -337,7 +337,8 @@ class SettingsActivity : AppCompatActivity() {
             prefs.weatherCity,
             maxLength = 64
         ) { city ->
-            WeatherRepository.setCity(this, prefs, city) { refreshDynamicRows() }
+            // The fetch can finish after this screen is gone.
+            WeatherRepository.setCity(this, prefs, city) { if (!isDestroyed) refreshDynamicRows() }
             refreshDynamicRows()
             AppLauncher.toast(this, R.string.weather_city_saved)
         }
@@ -365,12 +366,8 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun isDefaultHome(): Boolean = try {
-        val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-        packageManager.resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName == packageName
-    } catch (e: Exception) {
-        false
-    }
+    // RoleManager is authoritative on Q+; resolveActivity can lag behind a role change.
+    private fun isDefaultHome(): Boolean = LauncherSystem.isDefaultHome(this)
 
     private fun requestDefaultHome() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
