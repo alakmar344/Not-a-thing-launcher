@@ -227,9 +227,17 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         )
         resetDropZoneHighlights()
         dropBar.animate().translationY(0f).alpha(1f).setDuration(200).setInterpolator(easeInterpolator).start()
+        // Spring-loaded workspace (stock): move the grid below the drop targets so the first
+        // row stays reachable while dragging.
+        val barLoc = IntArray(2)
+        dropBar.getLocationOnScreen(barLoc)
+        val lp = dropBar.layoutParams as? ViewGroup.MarginLayoutParams
+        val barBottom = (lp?.topMargin ?: 0) + dropBar.height.coerceAtLeast((64 * density).toInt())
+        activity.setSpringLoaded(true, barBottom + (8 * density).toInt())
     }
 
     private fun hideDropZoneBar() {
+        activity.setSpringLoaded(false, 0)
         dropBar.animate().translationY(-80f * density).alpha(0f).setDuration(160)
             .setInterpolator(easeInterpolator)
             .withEndAction {

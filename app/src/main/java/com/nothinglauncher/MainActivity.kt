@@ -163,6 +163,17 @@ class MainActivity : AppCompatActivity() {
         applyDrawerProgress(0f)
         applyBackground()
         setupBackHandler()
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.dropZoneInclude.dropZoneBar) { v, insets ->
+            val top = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars()).top
+            (v.layoutParams as? android.view.ViewGroup.MarginLayoutParams)?.let { lp ->
+                val wanted = top + (8 * resources.displayMetrics.density).toInt()
+                if (lp.topMargin != wanted) {
+                    lp.topMargin = wanted
+                    v.layoutParams = lp
+                }
+            }
+            insets
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -269,6 +280,11 @@ class MainActivity : AppCompatActivity() {
             return newIdx
         }
         return -1
+    }
+
+    /** Shifts the workspace grid below [topPx] while a drag is in progress (spring-loaded). */
+    fun setSpringLoaded(enabled: Boolean, topPx: Int) {
+        homeFragment?.setSpringLoaded(enabled, topPx)
     }
 
     fun isPointOverDock(rawX: Float, rawY: Float): Boolean =

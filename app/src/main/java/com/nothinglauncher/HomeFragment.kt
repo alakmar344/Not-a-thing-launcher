@@ -406,6 +406,18 @@ class HomeFragment : Fragment() {
         }
     }
 
+    fun setSpringLoaded(enabled: Boolean, topPx: Int) {
+        if (_binding == null) return
+        val recycler = binding.workspaceRecycler
+        val offset = if (enabled) {
+            val loc = IntArray(2)
+            recycler.getLocationOnScreen(loc)
+            val contentTop = loc[1] - recycler.translationY + recycler.paddingTop
+            (topPx - contentTop).coerceAtLeast(0f)
+        } else 0f
+        recycler.animate().translationY(offset).setDuration(180L).start()
+    }
+
     fun clearWorkspaceDropTarget() {
         if (_binding == null) return
         for (i in 0 until workspaceLayoutManager.childCount) {
