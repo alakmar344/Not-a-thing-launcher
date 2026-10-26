@@ -34,31 +34,46 @@ class MediaDotsView @JvmOverloads constructor(
         set(value) { accentPaint.color = value; invalidate() }
 
     var isPlaying: Boolean = true
-        set(value) { field = value; invalidate() }
+        set(value) { field = value; updateRunning(); invalidate() }
 
     private val barCounts = IntArray(16) { Random.nextInt(1, 6) }
+    private var running = false
 
     private val animator = object : Runnable {
         override fun run() {
-            if (isPlaying) {
-                for (i in barCounts.indices) {
-                    val change = Random.nextInt(-1, 2)
-                    barCounts[i] = (barCounts[i] + change).coerceIn(1, 5)
-                }
-                invalidate()
+            if (!running) return
+            for (i in barCounts.indices) {
+                val change = Random.nextInt(-1, 2)
+                barCounts[i] = (barCounts[i] + change).coerceIn(1, 5)
             }
+            invalidate()
             postDelayed(this, 140)
         }
     }
 
+    /** Only animate while playing and actually on screen (it used to spin at 7 Hz forever). */
+    private fun updateRunning() {
+        val shouldRun = isPlaying && isAttachedToWindow && windowVisibility == VISIBLE
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(animator)
+        if (running) post(animator)
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        post(animator)
+        updateRunning()
     }
 
     override fun onDetachedFromWindow() {
+        running = false
         removeCallbacks(animator)
         super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
     }
 
     override fun onDraw(canvas: Canvas) {

@@ -99,8 +99,12 @@ object WidgetPickerDialog {
         } catch (e: Exception) {
             emptyList()
         } ?: emptyList()
+        // Keyguard-only / search-box-only providers cannot be hosted on a home screen.
+        val homeProviders = providers.filter {
+            it.widgetCategory and AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN != 0
+        }
         val collator = Collator.getInstance().apply { strength = Collator.PRIMARY }
-        val byApp = providers.groupBy { it.provider.packageName }
+        val byApp = homeProviders.groupBy { it.provider.packageName }
         val apps = byApp.keys.map { pkg ->
             val name = try { pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString() } catch (e: PackageManager.NameNotFoundException) { pkg }
             pkg to name

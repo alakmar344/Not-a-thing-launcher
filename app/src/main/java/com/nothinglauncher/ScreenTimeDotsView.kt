@@ -60,8 +60,13 @@ class ScreenTimeDotsView @JvmOverloads constructor(
 
     private var dailyBars = FloatArray(7)
 
+    private var refreshing = false
+    private var refreshPending = false
+    private var running = false
+
     private val refreshTicker = object : Runnable {
         override fun run() {
+            if (!running) return
             refresh()
             postDelayed(this, 60_000L)
         }
@@ -71,17 +76,36 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         refresh()
     }
 
+    private fun updateRunning() {
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(refreshTicker)
+        if (running) post(refreshTicker)
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        removeCallbacks(refreshTicker)
-        post(refreshTicker)
+        updateRunning()
     }
 
     override fun onDetachedFromWindow() {
+        running = false
         removeCallbacks(refreshTicker)
         super.onDetachedFromWindow()
     }
 
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
+    }
+
+    private class Snapshot(val days: LongArray, val unlocks: Int)
+
+    /**
+     * Seven UsageStats queries plus a full event scan are far too slow for the UI thread
+     * (hundreds of ms on busy devices), so the numbers are gathered on a worker thread.
+     */
     fun refresh() {
         if (isInEditMode) return
         hasAccess = try { LauncherSystem.hasUsageAccess(context) } catch (_: Throwable) { false }
@@ -98,7 +122,25 @@ class ScreenTimeDotsView @JvmOverloads constructor(
             invalidate()
             return
         }
+        if (refreshing) {
+            refreshPending = true
+            return
+        }
+        refreshing = true
+        worker.execute {
+            val snapshot = try { query(usm) } catch (_: Throwable) { null }
+            post {
+                refreshing = false
+                if (snapshot != null) applySnapshot(snapshot)
+                if (refreshPending) {
+                    refreshPending = false
+                    refresh()
+                }
+            }
+        }
+    }
 
+    private fun query(usm: UsageStatsManager): Snapshot {
         val days = LongArray(7)
         val calendar = Calendar.getInstance()
         calendar.set(Calendar.HOUR_OF_DAY, 0)
@@ -109,17 +151,25 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         val todayStart = calendar.timeInMillis
 
         for (offset in 0 until 7) {
-            val dayStart = todayStart - offset * DAY_MS
-            val dayEnd = minOf(dayStart + DAY_MS, end)
+            // Step back by calendar days so DST changes don't shift the day boundaries.
+            val day = calendar.clone() as Calendar
+            day.add(Calendar.DAY_OF_YEAR, -offset)
+            val dayStart = day.timeInMillis
+            day.add(Calendar.DAY_OF_YEAR, 1)
+            val dayEnd = minOf(day.timeInMillis, end)
             days[6 - offset] = foregroundMillis(usm, dayStart, dayEnd)
         }
+        return Snapshot(days, unlockCount(usm, todayStart, end))
+    }
 
+    private fun applySnapshot(snapshot: Snapshot) {
+        val days = snapshot.days
         val today = days.last()
         val hours = today / HOUR_MS
         val minutes = (today / MINUTE_MS) % 60
         timeText = if (today <= 0L) "0m" else "${hours}h ${minutes}m"
 
-        val unlocks = unlockCount(usm, todayStart, end)
+        val unlocks = snapshot.unlocks
         subtitleText = if (unlocks >= 0) {
             context.getString(R.string.screen_time_unlocks, unlocks)
         } else {
@@ -207,7 +257,9 @@ class ScreenTimeDotsView @JvmOverloads constructor(
     }
 
     private companion object {
-        const val DAY_MS = 24 * 60 * 60 * 1000L
+        val worker: java.util.concurrent.ExecutorService = java.util.concurrent.Executors.newSingleThreadExecutor { r ->
+            Thread(r, "screen-time").apply { isDaemon = true }
+        }
         const val HOUR_MS = 60 * 60 * 1000L
         const val MINUTE_MS = 60 * 1000L
     }

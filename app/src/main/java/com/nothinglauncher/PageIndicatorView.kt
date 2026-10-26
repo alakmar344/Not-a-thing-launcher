@@ -74,10 +74,20 @@ class PageIndicatorView @JvmOverloads constructor(
     }
 
     fun setPageImmediately(page: Int) {
-        animator?.cancel()
+        // Assigning currentPage starts a new animation; cancel it *after* the assignment,
+        // otherwise the indicator still slides from the old page.
         currentPage = page.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+        animator?.cancel()
+        animator = null
         animatedPage = currentPage.toFloat()
         invalidate()
+    }
+
+    override fun onDetachedFromWindow() {
+        animator?.cancel()
+        animator = null
+        animatedPage = currentPage.toFloat()
+        super.onDetachedFromWindow()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -122,8 +132,14 @@ class PageIndicatorView @JvmOverloads constructor(
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (pageCount <= 1) return false
         if (event.actionMasked == MotionEvent.ACTION_UP) {
-            val segmentW = width / pageCount.toFloat()
-            val clicked = (event.x / segmentW).toInt().coerceIn(0, pageCount - 1)
+            // Map the tap onto the (centred) dot row rather than the full view width.
+            val dotD = 6f * density
+            val spacing = 8f * density
+            val activeW = 16f * density
+            val totalW = (pageCount - 1) * (dotD + spacing) + activeW
+            val startX = (width - totalW) / 2f
+            val slot = totalW / pageCount
+            val clicked = ((event.x - startX) / slot).toInt().coerceIn(0, pageCount - 1)
             if (clicked != currentPage) {
                 currentPage = clicked
                 onPageSelected?.invoke(clicked)

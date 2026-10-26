@@ -58,7 +58,7 @@ object MediaSessionRepository {
 
     fun addListener(listener: (State) -> Unit): State {
         listeners += listener
-        main.post { listener(current) }
+        main.post { if (listener in listeners) listener(current) }
         return current
     }
 

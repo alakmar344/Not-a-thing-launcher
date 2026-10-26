@@ -65,6 +65,8 @@ class HabitTrackerDotsView @JvmOverloads constructor(
     private var downRawX = 0f
     private var downRawY = 0f
     private var longPressed = false
+    /** Set once the finger moved past slop or a drag was handed off; the UP must not toggle. */
+    private var gestureConsumed = false
 
     private val longPressRunnable = Runnable {
         if (!isAttachedToWindow) return@Runnable
@@ -88,19 +90,23 @@ class HabitTrackerDotsView @JvmOverloads constructor(
                 downRawX = event.rawX
                 downRawY = event.rawY
                 longPressed = false
+                gestureConsumed = false
                 removeCallbacks(longPressRunnable)
                 postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
             }
             MotionEvent.ACTION_MOVE -> {
+                if (gestureConsumed) return true
                 if (!longPressed) {
                     if (abs(event.x - downX) > slop || abs(event.y - downY) > slop) {
                         removeCallbacks(longPressRunnable)
+                        gestureConsumed = true
                     }
                 } else if (abs(event.rawX - downRawX) > slop * 1.5f ||
                     abs(event.rawY - downRawY) > slop * 1.5f
                 ) {
                     removeCallbacks(longPressRunnable)
                     longPressed = false
+                    gestureConsumed = true
                     onDragStart?.invoke(event.rawX, event.rawY)
                     return true
                 }
@@ -112,14 +118,23 @@ class HabitTrackerDotsView @JvmOverloads constructor(
                     onLongPress?.invoke()
                     return true
                 }
-                toggleAt(event.x)
+                if (!gestureConsumed) toggleAt(event.x)
+                gestureConsumed = false
             }
             MotionEvent.ACTION_CANCEL -> {
                 removeCallbacks(longPressRunnable)
                 longPressed = false
+                gestureConsumed = false
             }
         }
         return true
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(longPressRunnable)
+        longPressed = false
+        gestureConsumed = false
+        super.onDetachedFromWindow()
     }
 
     private fun toggleAt(x: Float) {

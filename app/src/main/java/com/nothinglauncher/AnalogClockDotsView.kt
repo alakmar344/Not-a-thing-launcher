@@ -36,21 +36,38 @@ class AnalogClockDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    private var running = false
+
     private val ticker = object : Runnable {
         override fun run() {
+            if (!running) return
             invalidate()
-            postDelayed(this, 1000)
+            postDelayed(this, 1000L - System.currentTimeMillis() % 1000L)
         }
+    }
+
+    private fun updateRunning() {
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(ticker)
+        if (running) post(ticker)
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
-        post(ticker)
+        updateRunning()
     }
 
     override fun onDetachedFromWindow() {
+        running = false
         removeCallbacks(ticker)
         super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
     }
 
     override fun onDraw(canvas: Canvas) {

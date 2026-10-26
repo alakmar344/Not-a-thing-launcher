@@ -44,8 +44,43 @@ class SystemMonitorDotsView @JvmOverloads constructor(
     private var totalRamGb: Float = 8.0f
     private var usedPercent: Int = 52
 
+    private var running = false
+
+    /** RAM changes constantly; refresh while the tile is on screen instead of only on bind. */
+    private val refresher = object : Runnable {
+        override fun run() {
+            if (!running) return
+            updateStats()
+            postDelayed(this, 5_000L)
+        }
+    }
+
     init {
         updateStats()
+    }
+
+    private fun updateRunning() {
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        if (shouldRun == running) return
+        running = shouldRun
+        removeCallbacks(refresher)
+        if (running) post(refresher)
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateRunning()
+    }
+
+    override fun onDetachedFromWindow() {
+        running = false
+        removeCallbacks(refresher)
+        super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updateRunning()
     }
 
     fun updateStats() {
@@ -74,7 +109,8 @@ class SystemMonitorDotsView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         // 1. Draw "X.X GB" in DotFont
-        val ramText = String.format("%.1f GB", availRamGb)
+        // Locale.US: a "3,8" decimal comma or non-ASCII digits have no DotFont glyph.
+        val ramText = String.format(java.util.Locale.US, "%.1f GB", availRamGb)
         val dotPitch = 3.8f * density
         val dotRadius = 1.5f * density
 

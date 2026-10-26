@@ -78,6 +78,15 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
         return isRecording
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        // Keep the timer moving after a detach/re-attach while a recording is active.
+        if (isRecording) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
     override fun onDetachedFromWindow() {
         removeCallbacks(ticker)
         super.onDetachedFromWindow()
@@ -92,7 +101,7 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
         val elapsedSec = if (isRecording) (SystemClock.elapsedRealtime() - recordStartTime) / 1000 else 0L
         val min = elapsedSec / 60
         val sec = elapsedSec % 60
-        val timeStr = String.format("%02d:%02d", min, sec)
+        val timeStr = String.format(java.util.Locale.US, "%02d:%02d", min, sec) // DotFont is ASCII-only
 
         val dotPitch = 3.8f * density
         val dotRadius = 1.5f * density

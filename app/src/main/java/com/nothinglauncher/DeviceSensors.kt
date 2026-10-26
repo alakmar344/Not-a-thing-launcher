@@ -50,7 +50,8 @@ object StepRepository {
         listeners += callback
         ensureSensor()
         refresh()
-        main.post { callback(state) }
+        // Skip the replay if the caller was unbound before the post ran.
+        main.post { if (callback in listeners) callback(state) }
         return state
     }
 
@@ -99,7 +100,9 @@ object StepRepository {
             update(State(sensorAvailable = false, permissionGranted = LauncherSystem.hasActivityRecognition(ctx)))
             return
         }
-        if (!registered && LauncherSystem.hasActivityRecognition(ctx)) {
+        // Only hold the sensor while something on screen is listening (refresh() is also
+        // called from onResume with no pedometer element present).
+        if (!registered && listeners.isNotEmpty() && LauncherSystem.hasActivityRecognition(ctx)) {
             registered = try {
                 sm?.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL, 200_000) == true
             } catch (e: Exception) {
@@ -255,7 +258,7 @@ object CompassRepository {
         appContext = context.applicationContext
         listeners += callback
         ensureSensors()
-        main.post { callback(state) }
+        main.post { if (callback in listeners) callback(state) }
         return state
     }
 
@@ -295,13 +298,16 @@ object CompassRepository {
             update(State(sensorAvailable = false, calibrating = false))
             return
         }
-        if (!registered) {
+        // Rotation vector / magnetometer are power hungry: never register without a listener.
+        if (!registered && listeners.isNotEmpty()) {
             registered = try {
                 if (hasRotation) {
                     sm.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)
                 } else {
-                    sm.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI) &&
+                    val ok = sm.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI) &&
                         sm.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+                    if (!ok) sm.unregisterListener(listener)
+                    ok
                 }
             } catch (e: Exception) {
                 false

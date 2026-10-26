@@ -12,7 +12,10 @@ import java.net.URLEncoder
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 
 /**
  * Live weather for the Weather element (Open-Meteo, no API key).
@@ -38,6 +41,9 @@ object WeatherRepository {
     private val running = AtomicBoolean(false)
     private val lastAttempt = LongArray(1)
     private val listeners = CopyOnWriteArraySet<(Weather?) -> Unit>()
+    private val pendingCallbacks = ConcurrentLinkedQueue<(Weather?) -> Unit>()
+    private val rerunRequested = AtomicBoolean(false)
+    private val cityGeneration = AtomicInteger(0)
 
     private const val CACHE_FRESH_MS = 30 * 60 * 1000L
     private const val RETRY_BACKOFF_MS = 60 * 1000L
@@ -51,7 +57,7 @@ object WeatherRepository {
     fun addListener(prefs: LauncherPrefs, listener: (Weather?) -> Unit): Weather? {
         listeners += listener
         val cached = cached(prefs)
-        main.post { listener(cached) }
+        main.post { if (listener in listeners) listener(cached) }
         return cached
     }
 
@@ -74,30 +80,50 @@ object WeatherRepository {
             callback(cached(prefs))
             return
         }
-        if (!running.compareAndSet(false, true)) return
+        // Every caller gets an answer, even when it joins a fetch that is already running.
+        pendingCallbacks += callback
+        if (!running.compareAndSet(false, true)) {
+            // A forced refresh (e.g. a new city) must not be satisfied by a stale in-flight fetch.
+            if (force) rerunRequested.set(true)
+            return
+        }
         lastAttempt[0] = now
         val appContext = context.applicationContext
-        io.execute {
+        io.execute { runFetch(appContext, prefs) }
+    }
+
+    private fun runFetch(appContext: Context, prefs: LauncherPrefs) {
+        while (true) {
+            rerunRequested.set(false)
+            val generation = cityGeneration.get()
             val result = try {
                 fetch(appContext, prefs)
             } catch (e: Exception) {
                 null
             }
-            running.set(false)
+            // The city changed while we were fetching: discard the result and go again.
+            if (generation != cityGeneration.get() || rerunRequested.get()) continue
             if (result != null) {
                 prefs.weatherCache = serialize(result)
             }
             val resolved = result ?: cached(prefs)
             main.post {
                 listeners.forEach { it(resolved) }
-                callback(resolved)
+                val callbacks = ArrayList<(Weather?) -> Unit>()
+                while (true) callbacks += pendingCallbacks.poll() ?: break
+                callbacks.forEach { it(resolved) }
             }
+            running.set(false)
+            // A forced request may have slipped in between the check above and the reset.
+            if (rerunRequested.get() && running.compareAndSet(false, true)) continue
+            return
         }
     }
 
     fun setCity(context: Context, prefs: LauncherPrefs, city: String, callback: (Weather?) -> Unit) {
         prefs.weatherCity = city
         prefs.weatherCache = null
+        cityGeneration.incrementAndGet()
         refresh(context, prefs, force = true, callback = callback)
     }
 
@@ -135,13 +161,16 @@ object WeatherRepository {
         if (temp.isNaN()) return null
         val code = current.optInt("weather_code", -1)
         val isDay = current.optInt("is_day", 1) == 1
-        val high = daily?.optJSONArray("temperature_2m_max")?.optDouble(0, temp)?.toInt() ?: temp.toInt()
-        val low = daily?.optJSONArray("temperature_2m_min")?.optDouble(0, temp)?.toInt() ?: temp.toInt()
+        // Round like the current temperature (toInt() truncates -2.7 to -2 and 21.9 to 21).
+        val high = (daily?.optJSONArray("temperature_2m_max")?.optDouble(0, temp) ?: temp)
+            .takeUnless { it.isNaN() }?.roundToInt() ?: temp.roundToInt()
+        val low = (daily?.optJSONArray("temperature_2m_min")?.optDouble(0, temp) ?: temp)
+            .takeUnless { it.isNaN() }?.roundToInt() ?: temp.roundToInt()
 
         val displayCity = city.trim().ifEmpty { "LOCAL" }
         return Weather(
             city = displayCity,
-            temperature = Math.round(temp).toInt(),
+            temperature = temp.roundToInt(),
             condition = conditionFor(code),
             high = high,
             low = low,
