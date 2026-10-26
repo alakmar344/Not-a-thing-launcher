@@ -347,12 +347,20 @@ object Sheets {
         val density = context.resources.displayMetrics.densityDpi
         val rows = prefs.hiddenApps.mapNotNull { key ->
             val pkg = key.substringBefore('/')
-            // Search every profile so hidden work-profile apps can be unhidden too.
+            // Keys of work-profile apps end in "#<profile serial>" (see AppInfo.key).
+            val component = key.substringBefore('#')
+            val serial = key.substringAfter('#', "").toLongOrNull()
+            val um = context.getSystemService(android.os.UserManager::class.java)
             val profiles = (try { la?.profiles } catch (e: Exception) { null })
                 ?.takeIf { it.isNotEmpty() } ?: listOf(Process.myUserHandle())
-            val info = profiles.firstNotNullOfOrNull { user ->
+            val candidates = if (serial == null) {
+                listOf(Process.myUserHandle())
+            } else {
+                profiles.filter { u -> try { um?.getSerialNumberForUser(u) == serial } catch (e: Exception) { false } }
+            }
+            val info = candidates.firstNotNullOfOrNull { user ->
                 try {
-                    la?.getActivityList(pkg, user)?.firstOrNull { "${it.componentName.packageName}/${it.componentName.className}" == key }
+                    la?.getActivityList(pkg, user)?.firstOrNull { "${it.componentName.packageName}/${it.componentName.className}" == component }
                 } catch (e: Exception) { null }
             }
             if (info == null) {

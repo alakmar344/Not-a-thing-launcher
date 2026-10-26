@@ -343,13 +343,14 @@ class LauncherPrefs(context: Context) {
                             isEnlarged = folderObj.optBoolean("isEnlarged", false)
                         )
                     } else null
+                    if (type == WorkspaceItem.Type.FOLDER && folder?.appKeys.isNullOrEmpty()) continue
                     items += WorkspaceItem(
                         id = itObj.optString("id", "item_$itIdx"),
                         type = type,
-                        cellX = itObj.optInt("cellX", 0),
-                        cellY = itObj.optInt("cellY", 0),
-                        spanX = itObj.optInt("spanX", 1),
-                        spanY = itObj.optInt("spanY", 1),
+                        cellX = itObj.optInt("cellX", 0).coerceAtLeast(0),
+                        cellY = itObj.optInt("cellY", 0).coerceAtLeast(0),
+                        spanX = itObj.optInt("spanX", 1).coerceAtLeast(1),
+                        spanY = itObj.optInt("spanY", 1).coerceAtLeast(1),
                         appKey = itObj.optString("appKey", ""),
                         folder = folder,
                         elementId = itObj.optString("elementId", ""),
@@ -362,15 +363,7 @@ class LauncherPrefs(context: Context) {
                 WorkspacePage.buildItemsFromLegacy(gridColumns, elements, widgets, enlarged, folders, apps)
             }
 
-            WorkspacePage(
-                id = id,
-                items = finalItems,
-                appKeys = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.APP }.map { it.appKey } else apps,
-                elements = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.BESPOKE }.map { it.elementId } else elements,
-                widgetIds = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.WIDGET }.map { it.widgetId } else widgets,
-                enlargedApps = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.MAX_APP }.map { it.appKey } else enlarged,
-                folders = if (items.isNotEmpty()) finalItems.filter { it.type == WorkspaceItem.Type.FOLDER }.mapNotNull { it.folder } else folders
-            )
+            WorkspacePage(id = id, items = finalItems.distinctBy { it.id })
         }
     } catch (e: Exception) {
         null

@@ -71,8 +71,18 @@ class HabitTrackerDotsView @JvmOverloads constructor(
     private val longPressRunnable = Runnable {
         if (!isAttachedToWindow) return@Runnable
         longPressed = true
+        longPressRawX = lastRawX
+        longPressRawY = lastRawY
+        // Stock behaviour: the menu appears while the finger is still down, and the parents
+        // (page scroller / pager) must not steal the gesture so a drag can follow.
+        parent?.requestDisallowInterceptTouchEvent(true)
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        onLongPress?.invoke()
     }
+    private var longPressRawX = 0f
+    private var longPressRawY = 0f
+    private var lastRawX = 0f
+    private var lastRawY = 0f
 
     var count: Int
         get() = completedCount
@@ -89,20 +99,24 @@ class HabitTrackerDotsView @JvmOverloads constructor(
                 downY = event.y
                 downRawX = event.rawX
                 downRawY = event.rawY
+                lastRawX = event.rawX
+                lastRawY = event.rawY
                 longPressed = false
                 gestureConsumed = false
                 removeCallbacks(longPressRunnable)
                 postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
             }
             MotionEvent.ACTION_MOVE -> {
+                lastRawX = event.rawX
+                lastRawY = event.rawY
                 if (gestureConsumed) return true
                 if (!longPressed) {
                     if (abs(event.x - downX) > slop || abs(event.y - downY) > slop) {
                         removeCallbacks(longPressRunnable)
                         gestureConsumed = true
                     }
-                } else if (abs(event.rawX - downRawX) > slop * 1.5f ||
-                    abs(event.rawY - downRawY) > slop * 1.5f
+                } else if (abs(event.rawX - longPressRawX) > slop ||
+                    abs(event.rawY - longPressRawY) > slop
                 ) {
                     removeCallbacks(longPressRunnable)
                     longPressed = false
@@ -114,8 +128,8 @@ class HabitTrackerDotsView @JvmOverloads constructor(
             MotionEvent.ACTION_UP -> {
                 removeCallbacks(longPressRunnable)
                 if (longPressed) {
+                    // The menu was already shown when the long-press fired.
                     longPressed = false
-                    onLongPress?.invoke()
                     return true
                 }
                 if (!gestureConsumed) toggleAt(event.x)

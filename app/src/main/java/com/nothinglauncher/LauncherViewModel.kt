@@ -63,7 +63,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         override fun onPackageAdded(packageName: String, user: UserHandle) = loadApps()
         override fun onPackageChanged(packageName: String, user: UserHandle) = loadApps()
         override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = loadApps()
-        override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = loadApps()
+        override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
+            if (!replacing) loadApps()
+        }
     }
 
     init {
@@ -96,32 +98,41 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private fun queryApps(style: LauncherPrefs.IconStyle): List<AppInfo> {
         val app = getApplication<Application>()
         val la = launcherApps ?: return emptyList()
-        val user = Process.myUserHandle()
+        val mainUser = Process.myUserHandle()
+        val userManager = app.getSystemService(android.os.UserManager::class.java)
         val density = app.resources.displayMetrics.densityDpi
         val sizePx = app.resources.getDimensionPixelSize(R.dimen.icon_render_size)
         val collator = Collator.getInstance().apply { strength = Collator.PRIMARY }
-        return try {
-            la.getActivityList(null, user)
-                .filter { it.componentName.packageName != app.packageName }
-                .map { info ->
-                    val raw = try { info.getIcon(density) } catch (e: Exception) { null }
-                        ?: app.packageManager.defaultActivityIcon
-                    val flags = info.applicationInfo.flags
-                    AppInfo(
-                        label = info.label?.toString()?.trim().orEmpty().ifEmpty { info.componentName.packageName },
-                        packageName = info.componentName.packageName,
-                        activityName = info.componentName.className,
-                        icon = IconFactory.render(app.resources, raw, style, sizePx),
-                        user = info.user,
-                        isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                            (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                    )
-                }
-                .sortedWith { a, b -> collator.compare(a.label, b.label) }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
+        val profiles = try { la.profiles } catch (e: Exception) { null }?.takeIf { it.isNotEmpty() } ?: listOf(mainUser)
+        return profiles.flatMap { user ->
+            val isMain = user == mainUser
+            val serial = if (isMain) 0L else (try { userManager?.getSerialNumberForUser(user) } catch (e: Exception) { null } ?: -1L)
+            val quiet = !isMain && (try { userManager?.isQuietModeEnabled(user) } catch (e: Exception) { null } == true)
+            if (quiet) return@flatMap emptyList()
+            try {
+                la.getActivityList(null, user)
+                    .filter { !(isMain && it.componentName.packageName == app.packageName) }
+                    .map { info ->
+                        val raw = try {
+                            if (isMain) info.getIcon(density) else info.getBadgedIcon(density)
+                        } catch (e: Exception) { null } ?: app.packageManager.defaultActivityIcon
+                        val flags = info.applicationInfo.flags
+                        AppInfo(
+                            label = info.label?.toString()?.trim().orEmpty().ifEmpty { info.componentName.packageName },
+                            packageName = info.componentName.packageName,
+                            activityName = info.componentName.className,
+                            icon = IconFactory.render(app.resources, raw, style, sizePx),
+                            user = info.user,
+                            isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0,
+                            profileSerial = serial
+                        )
+                    }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                emptyList()
+            }
+        }.sortedWith { a, b -> collator.compare(a.label, b.label) }
     }
 
     private fun publish() {
@@ -169,73 +180,92 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             if (installed.isNotEmpty()) prefs.pages = savedPages
         }
 
-        // Enforce one home copy per app. appKeys wins over enlarged, enlarged wins over folders.
+        // Enforce one home copy per app (first occurrence wins) and drop uninstalled/hidden apps.
         val claimed = mutableSetOf<String>()
         fun claim(key: String): Boolean =
             key.isNotEmpty() && key !in hidden && (installed.isEmpty() || key in byKey) && claimed.add(key)
 
         val sanitizedPages = savedPages.map { page ->
-            val pageItems = if (page.items.isNotEmpty()) {
-                page.items
-            } else {
-                WorkspacePage.buildItemsFromLegacy(
-                    prefs.gridColumns,
-                    page.elements,
-                    page.widgetIds,
-                    page.enlargedApps,
-                    page.folders,
-                    page.appKeys
-                )
-            }
-            val sanitizedItems = pageItems.mapNotNull { itm ->
+            val sanitizedItems = page.items.mapNotNull { itm ->
                 when (itm.type) {
-                    WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> {
-                        if (claim(itm.appKey)) itm else null
-                    }
+                    WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> if (claim(itm.appKey)) itm else null
                     WorkspaceItem.Type.FOLDER -> {
                         val f = itm.folder ?: return@mapNotNull null
                         val validApps = f.appKeys.filter { claim(it) }
                         if (validApps.isEmpty()) null else itm.copy(folder = f.copy(appKeys = validApps))
                     }
-                    else -> itm
+                    WorkspaceItem.Type.BESPOKE -> if (BespokeElement.fromId(itm.elementId) != null) itm else null
+                    WorkspaceItem.Type.WIDGET -> if (itm.widgetId >= 0) itm else null
                 }
             }
-            WorkspacePage(id = page.id, items = sanitizedItems)
+            normalizePage(WorkspacePage(page.id, sanitizedItems))
         }
+        // Display-only: the saved layout is not rewritten here, so an app that is briefly
+        // unavailable (update in progress, SD card, work profile paused) keeps its spot.
         _workspacePages.value = sanitizedPages
-
-        // All apps on the workspace, including enlarged apps and folder contents.
-        val allHomeKeys = sanitizedPages.flatMap { page ->
-            page.items.flatMap { itm ->
-                when (itm.type) {
-                    WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> listOf(itm.appKey)
-                    WorkspaceItem.Type.FOLDER -> itm.folder?.appKeys.orEmpty()
-                    else -> emptyList()
-                }
-            }
-        }.filter { it.isNotEmpty() }.distinct()
-        _homeApps.value = allHomeKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+        publishHomeApps(sanitizedPages)
         _recentApps.value = prefs.recents.mapNotNull { byKey[it] }.filter { it.key !in hidden }
     }
 
-    /** All app keys referenced by a page, regardless of how they are presented. */
-    private fun pageKeys(page: WorkspacePage): List<String> =
-        page.items.flatMap { itm ->
-            when (itm.type) {
-                WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> listOf(itm.appKey)
-                WorkspaceItem.Type.FOLDER -> itm.folder?.appKeys.orEmpty()
-                else -> emptyList()
-            }
-        }.filter { it.isNotEmpty() }
+    private fun publishHomeApps(pages: List<WorkspacePage>) {
+        val byKey = installed.associateBy { it.key }
+        val hidden = prefs.hiddenApps
+        val keys = pages.flatMap { it.allAppKeys }.distinct()
+        _homeApps.value = keys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+    }
 
-    /** Removes [key] from every presentation on a single page. */
+    // ---- Grid helpers -------------------------------------------------------------------
+
+    private val columns: Int get() = prefs.gridColumns.coerceAtLeast(1)
+
+    /**
+     * Makes a page valid for the current column count: spans are clamped, full-width elements
+     * stay full width, empty folders disappear, and any overlapping or out-of-bounds item is
+     * moved to the nearest free area.
+     */
+    private fun normalizePage(page: WorkspacePage): WorkspacePage {
+        val cols = columns
+        val placed = mutableListOf<WorkspaceItem>()
+        val ordered = page.items.distinctBy { it.id }.sortedWith(compareBy({ it.cellY }, { it.cellX }))
+        ordered.forEach { raw ->
+            var itm = raw
+            if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.appKeys.isNullOrEmpty()) return@forEach
+            itm = when (itm.type) {
+                WorkspaceItem.Type.BESPOKE -> itm.copy(cellX = 0, spanX = cols, spanY = itm.spanY.coerceAtLeast(1))
+                WorkspaceItem.Type.APP -> itm.copy(spanX = 1, spanY = 1)
+                WorkspaceItem.Type.MAX_APP -> {
+                    val span = if (cols >= 2) 2 else 1
+                    itm.copy(spanX = span, spanY = span)
+                }
+                WorkspaceItem.Type.FOLDER -> {
+                    val span = if (itm.folder?.isEnlarged == true && cols >= 2) 2 else 1
+                    itm.copy(spanX = span, spanY = span)
+                }
+                WorkspaceItem.Type.WIDGET -> itm.copy(
+                    spanX = itm.spanX.coerceIn(1, cols),
+                    spanY = itm.spanY.coerceIn(1, MAX_WIDGET_SPAN_Y)
+                )
+            }
+            val (c, r) = GridMath.nearestFree(placed, cols, itm.cellX, itm.cellY, itm.spanX, itm.spanY)
+            placed += itm.copy(cellX = c, cellY = r)
+        }
+        return WorkspacePage(page.id, placed)
+    }
+
+    private fun appItemId(key: String) = "app_$key"
+
+    fun findFreeCell(page: WorkspacePage, spanX: Int = 1, spanY: Int = 1): Pair<Int, Int> =
+        GridMath.firstFree(page.items, columns, spanX, spanY)
+
+    private fun pages(): MutableList<WorkspacePage> = _workspacePages.value.orEmpty().toMutableList()
+
+    /** Removes [key] from every presentation on a single page (icons, 2x2 tiles, folders). */
     private fun WorkspacePage.withoutApp(key: String): WorkspacePage {
         val updatedItems = items.mapNotNull { itm ->
             when {
                 (itm.type == WorkspaceItem.Type.APP || itm.type == WorkspaceItem.Type.MAX_APP) && itm.appKey == key -> null
-                itm.type == WorkspaceItem.Type.FOLDER && itm.folder != null -> {
-                    val remaining = itm.folder.appKeys.filterNot { it == key }
-                    if (remaining.isEmpty()) null else itm.copy(folder = itm.folder.copy(appKeys = remaining))
+                itm.type == WorkspaceItem.Type.FOLDER && itm.folder != null && key in itm.folder.appKeys -> {
+                    collapseFolderAfterRemoval(itm, itm.folder.appKeys.filterNot { it == key })
                 }
                 else -> itm
             }
@@ -243,437 +273,60 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         return WorkspacePage(id, updatedItems)
     }
 
-    private fun List<WorkspacePage>.withoutAppEverywhere(key: String): List<WorkspacePage> =
-        map { it.withoutApp(key) }
-
-    fun findFreeCell(page: WorkspacePage, spanX: Int = 1, spanY: Int = 1): Pair<Int, Int> {
-        val cols = prefs.gridColumns.coerceAtLeast(1)
-        val occupied = mutableSetOf<Pair<Int, Int>>()
-        page.items.forEach { itm ->
-            for (dx in 0 until itm.spanX) {
-                for (dy in 0 until itm.spanY) {
-                    occupied.add(Pair(itm.cellX + dx, itm.cellY + dy))
-                }
-            }
-        }
-        var r = 0
-        while (true) {
-            for (c in 0..cols - spanX) {
-                var free = true
-                for (dx in 0 until spanX) {
-                    for (dy in 0 until spanY) {
-                        if (Pair(c + dx, r + dy) in occupied) {
-                            free = false
-                            break
-                        }
-                    }
-                    if (!free) break
-                }
-                if (free) return Pair(c, r)
-            }
-            r++
+    /**
+     * Stock Android behaviour: when an app leaves a folder and only one app is left, the folder
+     * turns back into that app icon at the same spot; an emptied folder disappears.
+     */
+    private fun collapseFolderAfterRemoval(folderItem: WorkspaceItem, remaining: List<String>): WorkspaceItem? {
+        val folder = folderItem.folder ?: return null
+        return when (remaining.size) {
+            0 -> null
+            1 -> WorkspaceItem(
+                id = appItemId(remaining[0]),
+                type = WorkspaceItem.Type.APP,
+                cellX = folderItem.cellX,
+                cellY = folderItem.cellY,
+                appKey = remaining[0]
+            )
+            else -> folderItem.copy(folder = folder.copy(appKeys = remaining))
         }
     }
 
-    // ---- Workspace & Page Mutations ------------------------------------------------------
+    private fun List<WorkspacePage>.withoutAppEverywhere(key: String): MutableList<WorkspacePage> =
+        map { it.withoutApp(key) }.toMutableList()
 
-    fun getAppsForPage(page: WorkspacePage): List<AppInfo> {
-        val byKey = installed.associateBy { it.key }
-        val hidden = prefs.hiddenApps
-        return page.appKeys.filter { it.isNotEmpty() }.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+    private fun WorkspacePage.place(item: WorkspaceItem, col: Int, row: Int): WorkspacePage {
+        val others = items.filterNot { it.id == item.id }
+        val (c, r) = GridMath.nearestFree(others, columns, col, row, item.spanX.coerceIn(1, columns), item.spanY)
+        return WorkspacePage(id, others + item.copy(cellX = c, cellY = r, spanX = item.spanX.coerceIn(1, columns)))
     }
 
-    fun getSlotItemsForPage(page: WorkspacePage, columns: Int, minRows: Int = 4): List<AppInfo?> {
-        val byKey = installed.associateBy { it.key }
-        val hidden = prefs.hiddenApps
-        val validCols = columns.coerceAtLeast(1)
-        // Enlarged apps and folder contents are rendered by their own containers.
-        val gridKeys = page.appKeys.filterNot { it in page.enlargedApps }
-        val calculatedRows = ((gridKeys.size + validCols - 1) / validCols).coerceAtLeast(minRows)
-        val totalSlots = calculatedRows * validCols
-        val result = ArrayList<AppInfo?>(totalSlots)
-        for (i in 0 until totalSlots) {
-            val key = gridKeys.getOrNull(i)
-            if (!key.isNullOrEmpty() && key !in hidden) {
-                result.add(byKey[key])
-            } else {
-                result.add(null)
-            }
-        }
-        return result
+    private fun WorkspacePage.placeFirstFree(item: WorkspaceItem): WorkspacePage {
+        val others = items.filterNot { it.id == item.id }
+        val (c, r) = GridMath.firstFree(others, columns, item.spanX, item.spanY)
+        return WorkspacePage(id, others + item.copy(cellX = c, cellY = r, spanX = item.spanX.coerceIn(1, columns)))
     }
 
-    fun savePageSlots(pageIndex: Int, slots: List<AppInfo?>) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val lastIdx = slots.indexOfLast { it != null }
-        val keys = if (lastIdx == -1) {
-            emptyList()
-        } else {
-            slots.take(lastIdx + 1).map { it?.key ?: "" }
-        }
-        current[pageIndex] = current[pageIndex].copy(appKeys = keys)
-        savePages(current)
-    }
+    // ---- Queries --------------------------------------------------------------------------
 
     fun isOnHome(app: AppInfo): Boolean = pageIndexForApp(app) >= 0
 
     fun pageIndexForApp(app: AppInfo): Int =
-        _workspacePages.value.orEmpty().indexOfFirst { page -> app.key in pageKeys(page) }
+        _workspacePages.value.orEmpty().indexOfFirst { page -> app.key in page.allAppKeys }
 
     fun isInDock(app: AppInfo) = _dockApps.value.orEmpty().any { it.key == app.key }
     fun isDockFull() = _dockApps.value.orEmpty().size >= MAX_DOCK
 
-    fun addPage(): Int {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        val newIndex = current.size
-        val newPage = WorkspacePage(
-            id = "page_$newIndex",
-            appKeys = emptyList(),
-            elements = emptyList(),
-            widgetIds = emptyList()
-        )
-        current.add(newPage)
-        savePages(current)
-        return newIndex
-    }
+    fun itemById(pageIndex: Int, itemId: String): WorkspaceItem? =
+        _workspacePages.value?.getOrNull(pageIndex)?.items?.firstOrNull { it.id == itemId }
 
-    fun removePage(index: Int): Boolean {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (current.size <= 1 || index !in current.indices) return false
-        val removed = current.removeAt(index)
-        // Never lose user content: merge every item from the removed page into the first page.
-        val target = current[0]
-        val folderApps = removed.folders.flatMap { it.appKeys }.toSet()
-        val enlargedKeys = removed.enlargedApps.toSet()
-        val mergedApps = (target.appKeys + removed.appKeys).filter { it.isNotEmpty() }.distinct()
-            .filterNot { it in enlargedKeys || it in folderApps }
-        val mergedEnlarged = (target.enlargedApps + removed.enlargedApps).distinct()
-            .filterNot { it in mergedApps }
-        val mergedFolders = (target.folders + removed.folders).distinctBy { it.id }
-            .map { folder -> folder.copy(appKeys = folder.appKeys.filterNot { it in mergedApps || it in mergedEnlarged }) }
-            .filter { it.appKeys.isNotEmpty() }
-        current[0] = target.copy(
-            appKeys = mergedApps,
-            elements = (target.elements + removed.elements).distinct(),
-            widgetIds = (target.widgetIds + removed.widgetIds).distinct(),
-            enlargedApps = mergedEnlarged,
-            folders = mergedFolders
-        )
-        val updated = current.mapIndexed { idx, p -> p.copy(id = "page_$idx") }
-        savePages(updated)
-        return true
-    }
-
-    fun addElementToPage(pageIndex: Int, elementId: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        if (page.items.any { it.type == WorkspaceItem.Type.BESPOKE && it.elementId == elementId }) return
-        val cols = prefs.gridColumns.coerceAtLeast(1)
-        val spanY = if (elementId == BespokeElement.CLOCK.id || elementId == BespokeElement.BATTERY_CALENDAR.id) 2 else 1
-        val (c, r) = findFreeCell(page, cols, spanY)
-        val newItem = WorkspaceItem(
-            id = "bespoke_$elementId",
-            type = WorkspaceItem.Type.BESPOKE,
-            cellX = c,
-            cellY = r,
-            spanX = cols,
-            spanY = spanY,
-            elementId = elementId
-        )
-        current[pageIndex] = WorkspacePage(page.id, page.items + newItem)
-        savePages(current)
-    }
-
-    fun removeElementFromPage(pageIndex: Int, elementId: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val updated = page.items.filterNot { it.type == WorkspaceItem.Type.BESPOKE && it.elementId == elementId }
-        current[pageIndex] = WorkspacePage(page.id, updated)
-        savePages(current)
-    }
-
-    /** Moves an element up ([delta] = -1) or down ([delta] = 1) inside a page's element stack. */
-    fun moveElementOnPage(pageIndex: Int, elementId: String, delta: Int) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val idx = page.elements.indexOf(elementId)
-        if (idx == -1) return
-        val target = idx + delta
-        if (target !in page.elements.indices) return
-        val list = page.elements.toMutableList()
-        list.removeAt(idx)
-        list.add(target, elementId)
-        current[pageIndex] = page.copy(elements = list)
-        savePages(current)
-    }
-
-    /** Moves a widget up ([delta] = -1) or down ([delta] = 1) inside a page's widget stack. */
-    fun moveWidgetOnPage(pageIndex: Int, widgetId: Int, delta: Int) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val idx = page.widgetIds.indexOf(widgetId)
-        if (idx == -1) return
-        val target = idx + delta
-        if (target !in page.widgetIds.indices) return
-        val list = page.widgetIds.toMutableList()
-        list.removeAt(idx)
-        list.add(target, widgetId)
-        current[pageIndex] = page.copy(widgetIds = list)
-        savePages(current)
-    }
-
-    fun addWidgetToPage(pageIndex: Int, widgetId: Int) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val cols = prefs.gridColumns.coerceAtLeast(1)
-        val (c, r) = findFreeCell(page, cols, 2)
-        val newItem = WorkspaceItem(
-            id = "widget_$widgetId",
-            type = WorkspaceItem.Type.WIDGET,
-            cellX = c,
-            cellY = r,
-            spanX = cols,
-            spanY = 2,
-            widgetId = widgetId
-        )
-        current[pageIndex] = WorkspacePage(page.id, page.items + newItem)
-        savePages(current)
-    }
-
-    fun removeWidget(widgetId: Int) {
-        val current = _workspacePages.value.orEmpty().map { page ->
-            val updated = page.items.filterNot { it.type == WorkspaceItem.Type.WIDGET && it.widgetId == widgetId }
-            WorkspacePage(page.id, updated)
+    fun findAppItem(appKey: String): Pair<Int, WorkspaceItem>? {
+        _workspacePages.value.orEmpty().forEachIndexed { idx, page ->
+            page.items.firstOrNull {
+                (it.type == WorkspaceItem.Type.APP || it.type == WorkspaceItem.Type.MAX_APP) && it.appKey == appKey
+            }?.let { return idx to it }
         }
-        prefs.removeWidgetHeight(widgetId)
-        savePages(current)
-    }
-
-    fun pinToPage(pageIndex: Int, app: AppInfo) {
-        if (isOnHome(app)) return
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (current.isEmpty()) addPage()
-        val idx = pageIndex.coerceIn(0, current.size - 1)
-        val page = current[idx]
-        val (c, r) = findFreeCell(page, 1, 1)
-        val newItem = WorkspaceItem(
-            id = "app_${app.key}",
-            type = WorkspaceItem.Type.APP,
-            cellX = c,
-            cellY = r,
-            spanX = 1,
-            spanY = 1,
-            appKey = app.key
-        )
-        current[idx] = WorkspacePage(page.id, page.items + newItem)
-        savePages(current)
-    }
-
-    fun placeAppAtCell(pageIndex: Int, app: AppInfo, col: Int, row: Int) {
-        if (_workspacePages.value.orEmpty().isEmpty()) addPage()
-        val pages = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in pages.indices) return
-        val cleaned = pages.map { it.withoutApp(app.key) }.toMutableList()
-        val page = cleaned[pageIndex]
-        val updated = page.items.filterNot { it.cellX == col && it.cellY == row } + WorkspaceItem(
-            id = "app_${app.key}",
-            type = WorkspaceItem.Type.APP,
-            cellX = col,
-            cellY = row,
-            spanX = 1,
-            spanY = 1,
-            appKey = app.key
-        )
-        cleaned[pageIndex] = WorkspacePage(page.id, updated)
-        savePages(cleaned)
-    }
-
-    fun placeAppAtSlot(pageIndex: Int, app: AppInfo, targetSlot: Int) {
-        val cols = prefs.gridColumns.coerceAtLeast(1)
-        val col = targetSlot % cols
-        val row = targetSlot / cols
-        placeAppAtCell(pageIndex, app, col, row)
-    }
-
-    fun moveAppToPageSlot(app: AppInfo, fromIndex: Int, toIndex: Int, targetSlot: Int? = null) {
-        if (targetSlot != null) {
-            val cols = prefs.gridColumns.coerceAtLeast(1)
-            val col = targetSlot % cols
-            val row = targetSlot / cols
-            placeAppAtCell(toIndex, app, col, row)
-        } else {
-            val current = _workspacePages.value.orEmpty().toMutableList()
-            if (fromIndex !in current.indices || toIndex !in current.indices) return
-            val cleaned = current.map { it.withoutApp(app.key) }.toMutableList()
-            val targetPage = cleaned[toIndex]
-            val (c, r) = findFreeCell(targetPage, 1, 1)
-            val updated = targetPage.items + WorkspaceItem(
-                id = "app_${app.key}",
-                type = WorkspaceItem.Type.APP,
-                cellX = c,
-                cellY = r,
-                spanX = 1,
-                spanY = 1,
-                appKey = app.key
-            )
-            cleaned[toIndex] = WorkspacePage(targetPage.id, updated)
-            savePages(current)
-        }
-    }
-
-    fun moveAppBetweenPages(app: AppInfo, fromIndex: Int, toIndex: Int) {
-        moveAppToPageSlot(app, fromIndex, toIndex, null)
-    }
-
-    fun removeFromHome(app: AppInfo) {
-        savePages(_workspacePages.value.orEmpty().withoutAppEverywhere(app.key))
-    }
-
-    fun removeFromPage(pageIndex: Int, appKey: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        current[pageIndex] = current[pageIndex].withoutApp(appKey)
-        savePages(current)
-    }
-
-    fun savePageApps(pageIndex: Int, apps: List<AppInfo>) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val enlarged = page.enlargedApps - apps.map { it.key }.toSet()
-        val folders = page.folders.mapNotNull { folder ->
-            val remaining = folder.appKeys - apps.map { it.key }.toSet()
-            if (remaining.isEmpty()) null else folder.copy(appKeys = remaining)
-        }
-        current[pageIndex] = page.copy(appKeys = apps.map { it.key }, enlargedApps = enlarged, folders = folders)
-        savePages(current)
-    }
-
-    // ---- Max Icons (Enlarge 2x2) --------------------------------------------------------
-
-    fun toggleEnlargeApp(pageIndex: Int, appKey: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val updated = page.items.map { itm ->
-            if (itm.appKey == appKey) {
-                val willEnlarge = itm.type != WorkspaceItem.Type.MAX_APP
-                val newType = if (willEnlarge) WorkspaceItem.Type.MAX_APP else WorkspaceItem.Type.APP
-                val newSpan = if (willEnlarge) 2 else 1
-                itm.copy(type = newType, spanX = newSpan, spanY = newSpan)
-            } else itm
-        }
-        current[pageIndex] = WorkspacePage(page.id, updated)
-        savePages(current)
-    }
-
-    fun isAppEnlarged(pageIndex: Int, appKey: String): Boolean {
-        val page = _workspacePages.value?.getOrNull(pageIndex) ?: return false
-        return page.items.any { it.type == WorkspaceItem.Type.MAX_APP && it.appKey == appKey }
-    }
-
-    fun toggleEnlargeFolder(pageIndex: Int, folderId: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        val page = current[pageIndex]
-        val updated = page.items.map { itm ->
-            if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.id == folderId) {
-                val newEnlarged = !(itm.folder.isEnlarged)
-                val newSpan = if (newEnlarged) 2 else 1
-                itm.copy(folder = itm.folder.copy(isEnlarged = newEnlarged), spanX = newSpan, spanY = newSpan)
-            } else itm
-        }
-        current[pageIndex] = WorkspacePage(page.id, updated)
-        savePages(current)
-    }
-
-    fun isFolderEnlarged(pageIndex: Int, folderId: String): Boolean {
-        val page = _workspacePages.value?.getOrNull(pageIndex) ?: return false
-        val itm = page.items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId }
-        return itm?.folder?.isEnlarged == true
-    }
-
-    // ---- Workspace Folders -------------------------------------------------------------
-
-    fun createFolder(pageIndex: Int, name: String, initialAppKey: String): String? {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return null
-        val page = current[pageIndex].withoutApp(initialAppKey)
-        val (c, r) = findFreeCell(page, 1, 1)
-        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
-        val newFolder = WorkspaceFolder(id = folderId, name = name, appKeys = listOf(initialAppKey))
-        val folderItem = WorkspaceItem(
-            id = "folder_$folderId",
-            type = WorkspaceItem.Type.FOLDER,
-            cellX = c,
-            cellY = r,
-            spanX = 1,
-            spanY = 1,
-            folder = newFolder
-        )
-        current[pageIndex] = WorkspacePage(page.id, page.items + folderItem)
-        savePages(current)
-        return folderId
-    }
-
-    fun createFolderFromDrop(
-        pageIndex: Int,
-        targetAppKey: String,
-        droppedAppKey: String,
-        targetCol: Int? = null,
-        targetRow: Int? = null
-    ): String? {
-        if (pageIndex !in _workspacePages.value.orEmpty().indices) return null
-        val current = _workspacePages.value.orEmpty()
-            .map { it.withoutApp(droppedAppKey) }
-            .toMutableList()
-        val page = current[pageIndex]
-        val existingItem = page.items.firstOrNull { it.appKey == targetAppKey }
-        val c = targetCol ?: existingItem?.cellX ?: 0
-        val r = targetRow ?: existingItem?.cellY ?: 0
-        val cleanedPage = page.withoutApp(targetAppKey)
-        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
-        val newFolder = WorkspaceFolder(
-            id = folderId,
-            name = "FOLDER",
-            appKeys = listOf(targetAppKey, droppedAppKey).distinct()
-        )
-        val folderItem = WorkspaceItem(
-            id = "folder_$folderId",
-            type = WorkspaceItem.Type.FOLDER,
-            cellX = c,
-            cellY = r,
-            spanX = 1,
-            spanY = 1,
-            folder = newFolder
-        )
-        val updated = cleanedPage.items.filterNot { it.cellX == c && it.cellY == r } + folderItem
-        current[pageIndex] = WorkspacePage(cleanedPage.id, updated)
-        savePages(current)
-        return folderId
-    }
-
-    fun addAppToFolder(pageIndex: Int, folderId: String, appKey: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (pageIndex !in current.indices) return
-        current.forEachIndexed { i, p ->
-            current[i] = p.withoutApp(appKey)
-        }
-        val target = current[pageIndex]
-        val updated = target.items.map { itm ->
-            if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.id == folderId) {
-                val updatedFolder = itm.folder.copy(appKeys = (itm.folder.appKeys + appKey).distinct())
-                itm.copy(folder = updatedFolder)
-            } else itm
-        }
-        current[pageIndex] = WorkspacePage(target.id, updated)
-        savePages(current)
+        return null
     }
 
     /** Finds the folder that currently owns [appKey] on [pageIndex], if any. */
@@ -682,134 +335,395 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             ?.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && appKey in (it.folder?.appKeys.orEmpty()) }
             ?.folder?.id
 
-    fun removeAppFromFolder(pageIndex: Int, folderId: String, appKey: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
+    fun folderById(pageIndex: Int, folderId: String): WorkspaceFolder? =
+        _workspacePages.value?.getOrNull(pageIndex)?.folders?.firstOrNull { it.id == folderId }
+
+    // ---- Pages ------------------------------------------------------------------------------
+
+    fun addPage(): Int {
+        val current = pages()
+        val newIndex = current.size
+        val usedIds = current.map { it.id }.toSet()
+        var n = newIndex
+        while ("page_$n" in usedIds) n++
+        current.add(WorkspacePage(id = "page_$n"))
+        savePages(current)
+        return newIndex
+    }
+
+    /**
+     * Removes a page. Nothing the user placed is ever lost: its items are moved onto the
+     * neighbouring page (into free cells).
+     */
+    fun removePage(index: Int): Boolean {
+        val current = pages()
+        if (current.size <= 1 || index !in current.indices) return false
+        val removed = current.removeAt(index)
+        val targetIdx = (index - 1).coerceAtLeast(0)
+        var target = current[targetIdx]
+        removed.items.sortedWith(compareBy({ it.cellY }, { it.cellX })).forEach { itm ->
+            target = target.placeFirstFree(itm)
+        }
+        current[targetIdx] = target
+        savePages(current)
+        return true
+    }
+
+    /** Drops empty pages at or after [fromIndex] (pages created while dragging but not used). */
+    fun removeEmptyPagesFrom(fromIndex: Int) {
+        val current = pages()
+        var changed = false
+        for (i in current.indices.reversed()) {
+            if (i >= fromIndex && i > 0 && current.size > 1 && current[i].items.isEmpty()) {
+                current.removeAt(i)
+                changed = true
+            }
+        }
+        if (changed) savePages(current)
+    }
+
+    // ---- Elements & widgets -------------------------------------------------------------------
+
+    fun addElementToPage(pageIndex: Int, elementId: String) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        // One instance of each element on the whole home screen; adding it again moves it here.
+        if (current[pageIndex].items.any { it.type == WorkspaceItem.Type.BESPOKE && it.elementId == elementId }) return
+        for (i in current.indices) {
+            current[i] = WorkspacePage(current[i].id, current[i].items.filterNot {
+                it.type == WorkspaceItem.Type.BESPOKE && it.elementId == elementId
+            })
+        }
+        val spanY = defaultElementRows(elementId)
+        val newItem = WorkspaceItem(
+            id = "bespoke_$elementId",
+            type = WorkspaceItem.Type.BESPOKE,
+            cellX = 0,
+            cellY = 0,
+            spanX = columns,
+            spanY = spanY,
+            elementId = elementId
+        )
+        current[pageIndex] = current[pageIndex].placeFirstFree(newItem)
+        savePages(current)
+    }
+
+    fun removeElementFromPage(pageIndex: Int, elementId: String) {
+        val current = pages()
         if (pageIndex !in current.indices) return
         val page = current[pageIndex]
-        val updatedItems = page.items.mapNotNull { itm ->
-            if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.id == folderId) {
-                val rem = itm.folder.appKeys.filterNot { it == appKey }
-                if (rem.isEmpty()) null else itm.copy(folder = itm.folder.copy(appKeys = rem))
-            } else itm
-        }.toMutableList()
-        val (c, r) = findFreeCell(WorkspacePage(page.id, updatedItems), 1, 1)
-        updatedItems += WorkspaceItem(
-            id = "app_$appKey",
-            type = WorkspaceItem.Type.APP,
-            cellX = c,
-            cellY = r,
-            spanX = 1,
-            spanY = 1,
-            appKey = appKey
+        current[pageIndex] = WorkspacePage(page.id, page.items.filterNot {
+            it.type == WorkspaceItem.Type.BESPOKE && it.elementId == elementId
+        })
+        savePages(current)
+    }
+
+    fun addWidgetToPage(pageIndex: Int, widgetId: Int, spanX: Int = columns, spanY: Int = 2) {
+        val current = pages()
+        if (current.isEmpty()) return
+        val idx = pageIndex.coerceIn(0, current.size - 1)
+        val newItem = WorkspaceItem(
+            id = "widget_$widgetId",
+            type = WorkspaceItem.Type.WIDGET,
+            cellX = 0,
+            cellY = 0,
+            spanX = spanX.coerceIn(1, columns),
+            spanY = spanY.coerceIn(1, MAX_WIDGET_SPAN_Y),
+            widgetId = widgetId
         )
+        current[idx] = current[idx].placeFirstFree(newItem)
+        savePages(current)
+    }
+
+    fun removeWidget(widgetId: Int) {
+        val current = _workspacePages.value.orEmpty().map { page ->
+            WorkspacePage(page.id, page.items.filterNot { it.type == WorkspaceItem.Type.WIDGET && it.widgetId == widgetId })
+        }
+        prefs.removeWidgetHeight(widgetId)
+        savePages(current)
+    }
+
+    /**
+     * Resizes an item in place (widget resize, enlarge/shrink). Items that end up underneath
+     * the new area are pushed to the nearest free cells, like the stock resize frame does.
+     */
+    fun resizeItem(pageIndex: Int, itemId: String, spanX: Int, spanY: Int, transform: (WorkspaceItem) -> WorkspaceItem = { it }) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val item = page.items.firstOrNull { it.id == itemId } ?: return
+        val cols = columns
+        val sx = spanX.coerceIn(1, cols)
+        val sy = spanY.coerceAtLeast(1)
+        val x = item.cellX.coerceAtMost(cols - sx)
+        val resized = transform(item).copy(cellX = x, spanX = sx, spanY = sy)
+        val kept = mutableListOf(resized)
+        val displaced = mutableListOf<WorkspaceItem>()
+        page.items.filterNot { it.id == itemId }.forEach { other ->
+            if (other.overlaps(resized.cellX, resized.cellY, resized.spanX, resized.spanY)) displaced += other else kept += other
+        }
+        displaced.forEach { other ->
+            val (c, r) = GridMath.nearestFree(kept, cols, other.cellX, other.cellY, other.spanX, other.spanY)
+            kept += other.copy(cellX = c, cellY = r)
+        }
+        current[pageIndex] = WorkspacePage(page.id, kept)
+        savePages(current)
+    }
+
+    /** Grows an element that does not fit its rows (never shrinks a user choice). */
+    fun ensureMinRows(pageIndex: Int, itemId: String, rows: Int) {
+        val item = itemById(pageIndex, itemId) ?: return
+        if (rows <= item.spanY || rows > MAX_WIDGET_SPAN_Y) return
+        resizeItem(pageIndex, itemId, item.spanX, rows)
+    }
+
+    // ---- Apps on the workspace ------------------------------------------------------------------
+
+    fun pinToPage(pageIndex: Int, app: AppInfo) {
+        if (isOnHome(app)) return
+        val current = pages()
+        if (current.isEmpty()) {
+            addPage()
+            return pinToPage(0, app)
+        }
+        val idx = pageIndex.coerceIn(0, current.size - 1)
+        val item = WorkspaceItem(id = appItemId(app.key), type = WorkspaceItem.Type.APP, cellX = 0, cellY = 0, appKey = app.key)
+        current[idx] = current[idx].placeFirstFree(item)
+        savePages(current)
+    }
+
+    /**
+     * Places [app] at ([col], [row]) on [pageIndex] (or the nearest free cell), removing any
+     * other home copy first. Keeps a 2x2 app enlarged when it is just being moved.
+     */
+    fun placeApp(app: AppInfo, pageIndex: Int, col: Int, row: Int) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        val wasEnlarged = current.any { p -> p.items.any { it.type == WorkspaceItem.Type.MAX_APP && it.appKey == app.key } }
+        val cleaned = current.withoutAppEverywhere(app.key)
+        val span = if (wasEnlarged && columns >= 2) 2 else 1
+        val item = WorkspaceItem(
+            id = if (wasEnlarged) "max_${app.key}" else appItemId(app.key),
+            type = if (wasEnlarged) WorkspaceItem.Type.MAX_APP else WorkspaceItem.Type.APP,
+            cellX = col,
+            cellY = row,
+            spanX = span,
+            spanY = span,
+            appKey = app.key
+        )
+        cleaned[pageIndex] = cleaned[pageIndex].place(item, col, row)
+        savePages(cleaned)
+    }
+
+    /** Moves any workspace item (app, folder, 2x2 tile, element, widget) to a cell on any page. */
+    fun moveItem(fromPage: Int, itemId: String, toPage: Int, col: Int, row: Int): Boolean {
+        val current = pages()
+        if (fromPage !in current.indices || toPage !in current.indices) return false
+        val item = current[fromPage].items.firstOrNull { it.id == itemId } ?: return false
+        current[fromPage] = WorkspacePage(current[fromPage].id, current[fromPage].items.filterNot { it.id == itemId })
+        if (item.type == WorkspaceItem.Type.BESPOKE) {
+            // Elements are unique and full width.
+            current[toPage] = WorkspacePage(current[toPage].id, current[toPage].items.filterNot {
+                it.type == WorkspaceItem.Type.BESPOKE && it.elementId == item.elementId
+            })
+        }
+        current[toPage] = current[toPage].place(item, if (item.type == WorkspaceItem.Type.BESPOKE) 0 else col, row)
+        savePages(current)
+        return true
+    }
+
+    fun moveAppBetweenPages(app: AppInfo, fromIndex: Int, toIndex: Int) {
+        val current = pages()
+        if (toIndex !in current.indices) return
+        val owner = findAppItem(app.key)
+        if (owner != null) {
+            val (pageIdx, item) = owner
+            val target = current[toIndex].items.filterNot { it.id == item.id }
+            val (c, r) = GridMath.firstFree(target, columns, item.spanX, item.spanY)
+            moveItem(pageIdx, item.id, toIndex, c, r)
+        } else {
+            val (c, r) = GridMath.firstFree(current[toIndex].items, columns, 1, 1)
+            placeApp(app, toIndex, c, r)
+        }
+    }
+
+    fun removeFromHome(app: AppInfo) {
+        savePages(_workspacePages.value.orEmpty().withoutAppEverywhere(app.key))
+    }
+
+    fun removeFromPage(pageIndex: Int, appKey: String) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        current[pageIndex] = current[pageIndex].withoutApp(appKey)
+        savePages(current)
+    }
+
+    fun removeItem(pageIndex: Int, itemId: String) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        current[pageIndex] = WorkspacePage(current[pageIndex].id, current[pageIndex].items.filterNot { it.id == itemId })
+        savePages(current)
+    }
+
+    // ---- Max Icons (Enlarge 2x2) --------------------------------------------------------
+
+    fun toggleEnlargeApp(pageIndex: Int, appKey: String) {
+        val owner = findAppItem(appKey)
+        if (owner == null) {
+            // The app lives in a folder: pull it out as a 2x2 tile.
+            val current = pages()
+            if (pageIndex !in current.indices) return
+            val cleaned = current.withoutAppEverywhere(appKey)
+            val span = if (columns >= 2) 2 else 1
+            val item = WorkspaceItem(
+                id = "max_$appKey", type = WorkspaceItem.Type.MAX_APP,
+                cellX = 0, cellY = 0, spanX = span, spanY = span, appKey = appKey
+            )
+            cleaned[pageIndex] = cleaned[pageIndex].placeFirstFree(item)
+            savePages(cleaned)
+            return
+        }
+        val (idx, item) = owner
+        val willEnlarge = item.type != WorkspaceItem.Type.MAX_APP
+        val span = if (willEnlarge && columns >= 2) 2 else 1
+        // Swap the item for its other representation, then resize in place.
+        val current = pages()
+        val swapped = item.copy(
+            id = if (willEnlarge) "max_$appKey" else appItemId(appKey),
+            type = if (willEnlarge) WorkspaceItem.Type.MAX_APP else WorkspaceItem.Type.APP
+        )
+        current[idx] = WorkspacePage(current[idx].id, current[idx].items.map { if (it.id == item.id) swapped else it })
+        _workspacePages.value = current
+        resizeItem(idx, swapped.id, span, span)
+    }
+
+    fun isAppEnlarged(pageIndex: Int, appKey: String): Boolean =
+        _workspacePages.value.orEmpty().any { page ->
+            page.items.any { it.type == WorkspaceItem.Type.MAX_APP && it.appKey == appKey }
+        }
+
+    fun toggleEnlargeFolder(pageIndex: Int, folderId: String) {
+        val page = _workspacePages.value?.getOrNull(pageIndex) ?: return
+        val item = page.items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId } ?: return
+        val folder = item.folder ?: return
+        val enlarge = !folder.isEnlarged
+        val span = if (enlarge && columns >= 2) 2 else 1
+        resizeItem(pageIndex, item.id, span, span) { it.copy(folder = folder.copy(isEnlarged = enlarge)) }
+    }
+
+    fun isFolderEnlarged(pageIndex: Int, folderId: String): Boolean =
+        folderById(pageIndex, folderId)?.isEnlarged == true
+
+    // ---- Workspace Folders -------------------------------------------------------------
+
+    /** Turns an app into a new folder at the same position (stock "Add to new folder"). */
+    fun createFolder(pageIndex: Int, name: String, initialAppKey: String): String? {
+        val current = pages()
+        if (pageIndex !in current.indices) return null
+        val owner = findAppItem(initialAppKey)
+        val (col, row) = if (owner != null && owner.first == pageIndex) owner.second.cellX to owner.second.cellY
+        else GridMath.firstFree(current[pageIndex].items, columns, 1, 1)
+        val cleaned = current.withoutAppEverywhere(initialAppKey)
+        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
+        val folderItem = WorkspaceItem(
+            id = "folder_$folderId",
+            type = WorkspaceItem.Type.FOLDER,
+            cellX = col,
+            cellY = row,
+            folder = WorkspaceFolder(id = folderId, name = name, appKeys = listOf(initialAppKey))
+        )
+        cleaned[pageIndex] = cleaned[pageIndex].place(folderItem, col, row)
+        savePages(cleaned)
+        return folderId
+    }
+
+    /** Dropping an app onto another app creates a folder with both, where the target was. */
+    fun createFolderFromDrop(pageIndex: Int, targetAppKey: String, droppedAppKey: String): String? {
+        if (targetAppKey == droppedAppKey) return null
+        val current = pages()
+        if (pageIndex !in current.indices) return null
+        val target = current[pageIndex].items.firstOrNull {
+            (it.type == WorkspaceItem.Type.APP || it.type == WorkspaceItem.Type.MAX_APP) && it.appKey == targetAppKey
+        } ?: return null
+        val cleaned = current.withoutAppEverywhere(droppedAppKey).let { list ->
+            list.map { it.withoutApp(targetAppKey) }.toMutableList()
+        }
+        val folderId = "f_${UUID.randomUUID().toString().take(8)}"
+        val folderItem = WorkspaceItem(
+            id = "folder_$folderId",
+            type = WorkspaceItem.Type.FOLDER,
+            cellX = target.cellX,
+            cellY = target.cellY,
+            folder = WorkspaceFolder(id = folderId, name = "FOLDER", appKeys = listOf(targetAppKey, droppedAppKey))
+        )
+        cleaned[pageIndex] = cleaned[pageIndex].place(folderItem, target.cellX, target.cellY)
+        savePages(cleaned)
+        return folderId
+    }
+
+    fun addAppToFolder(pageIndex: Int, folderId: String, appKey: String) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        val folderItem = current[pageIndex].items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId } ?: return
+        if (appKey in folderItem.folder?.appKeys.orEmpty()) return
+        val cleaned = current.withoutAppEverywhere(appKey)
+        val page = cleaned[pageIndex]
+        cleaned[pageIndex] = WorkspacePage(page.id, page.items.map { itm ->
+            if (itm.id == folderItem.id && itm.folder != null) {
+                itm.copy(folder = itm.folder.copy(appKeys = itm.folder.appKeys + appKey))
+            } else itm
+        })
+        savePages(cleaned)
+    }
+
+    fun removeAppFromFolder(pageIndex: Int, folderId: String, appKey: String) {
+        val current = pages()
+        if (pageIndex !in current.indices) return
+        val page = current[pageIndex]
+        val folderItem = page.items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId } ?: return
+        val updatedItems = page.items.mapNotNull { itm ->
+            if (itm.id == folderItem.id) {
+                collapseFolderAfterRemoval(itm, itm.folder?.appKeys.orEmpty().filterNot { it == appKey })
+            } else itm
+        }
+        val appItem = WorkspaceItem(id = appItemId(appKey), type = WorkspaceItem.Type.APP, cellX = 0, cellY = 0, appKey = appKey)
         current[pageIndex] = WorkspacePage(page.id, updatedItems)
+            .place(appItem, folderItem.cellX + folderItem.spanX, folderItem.cellY)
         savePages(current)
     }
 
     fun dissolveFolder(pageIndex: Int, folderId: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
+        val current = pages()
         if (pageIndex !in current.indices) return
         val page = current[pageIndex]
         val fItem = page.items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId } ?: return
         val folder = fItem.folder ?: return
-        var baseItems = page.items.filterNot { it.id == fItem.id }
+        var result = WorkspacePage(page.id, page.items.filterNot { it.id == fItem.id })
         folder.appKeys.forEach { aKey ->
-            val (c, r) = findFreeCell(WorkspacePage(page.id, baseItems), 1, 1)
-            baseItems = baseItems + WorkspaceItem(
-                id = "app_$aKey",
-                type = WorkspaceItem.Type.APP,
-                cellX = c,
-                cellY = r,
-                spanX = 1,
-                spanY = 1,
-                appKey = aKey
-            )
+            val appItem = WorkspaceItem(id = appItemId(aKey), type = WorkspaceItem.Type.APP, cellX = 0, cellY = 0, appKey = aKey)
+            result = result.place(appItem, fItem.cellX, fItem.cellY)
         }
-        current[pageIndex] = WorkspacePage(page.id, baseItems)
+        current[pageIndex] = result
         savePages(current)
     }
 
     fun renameFolder(pageIndex: Int, folderId: String, newName: String) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
+        val current = pages()
         if (pageIndex !in current.indices) return
         val page = current[pageIndex]
-        val updated = page.items.map { itm ->
+        current[pageIndex] = WorkspacePage(page.id, page.items.map { itm ->
             if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.id == folderId) {
-                itm.copy(folder = itm.folder.copy(name = newName))
+                itm.copy(folder = itm.folder.copy(name = newName.take(MAX_FOLDER_NAME)))
             } else itm
-        }
-        current[pageIndex] = WorkspacePage(page.id, updated)
-        savePages(current)
-    }
-
-    fun moveFolderBetweenPages(folder: WorkspaceFolder, fromIndex: Int, toIndex: Int) {
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (fromIndex !in current.indices || toIndex !in current.indices || fromIndex == toIndex) return
-        val fromPage = current[fromIndex]
-        val toPage = current[toIndex]
-        val span = if (folder.isEnlarged) 2 else 1
-        val (c, r) = findFreeCell(toPage, span, span)
-        val folderItem = WorkspaceItem(
-            id = "folder_${folder.id}",
-            type = WorkspaceItem.Type.FOLDER,
-            cellX = c,
-            cellY = r,
-            spanX = span,
-            spanY = span,
-            folder = folder
-        )
-        current[fromIndex] = WorkspacePage(fromPage.id, fromPage.items.filterNot { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folder.id })
-        current[toIndex] = WorkspacePage(toPage.id, toPage.items + folderItem)
-        val folderKeys = folder.appKeys.toSet()
-        // Keep the one-copy-per-app invariant when the destination already owns an icon.
-        val target = toPage.copy(
-            appKeys = toPage.appKeys.filterNot { it in folderKeys },
-            enlargedApps = toPage.enlargedApps.filterNot { it in folderKeys },
-            folders = toPage.folders.map { f ->
-                f.copy(appKeys = f.appKeys.filterNot { it in folderKeys })
-            }.filter { it.appKeys.isNotEmpty() } + folder
-        )
-        current[fromIndex] = fromPage.copy(folders = fromPage.folders.filterNot { it.id == folder.id })
-        current[toIndex] = target
-        savePages(current)
-    }
-
-    fun moveEnlargedAppToPage(app: AppInfo, fromIndex: Int, toIndex: Int) {
-        if (fromIndex == toIndex) return
-        val current = _workspacePages.value.orEmpty().toMutableList()
-        if (fromIndex !in current.indices || toIndex !in current.indices) return
-        val fromPage = current[fromIndex].withoutApp(app.key)
-        val toPage = current[toIndex].withoutApp(app.key)
-        val (c, r) = findFreeCell(toPage, 2, 2)
-        val newItem = WorkspaceItem(
-            id = "max_${app.key}",
-            type = WorkspaceItem.Type.MAX_APP,
-            cellX = c,
-            cellY = r,
-            spanX = 2,
-            spanY = 2,
-            appKey = app.key
-        )
-        current[fromIndex] = fromPage
-        current[toIndex] = WorkspacePage(toPage.id, toPage.items + newItem)
+        })
         savePages(current)
     }
 
     private fun savePages(pages: List<WorkspacePage>) {
-        prefs.pages = pages
-        _workspacePages.value = pages
-        val byKey = installed.associateBy { it.key }
-        val hidden = prefs.hiddenApps
-        val homeKeys = pages.flatMap { page ->
-            page.items.flatMap { itm ->
-                when (itm.type) {
-                    WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> listOf(itm.appKey)
-                    WorkspaceItem.Type.FOLDER -> itm.folder?.appKeys.orEmpty()
-                    else -> emptyList()
-                }
-            }
-        }.filter { it.isNotEmpty() }.distinct()
-        _homeApps.value = homeKeys.mapNotNull { byKey[it] }.filter { it.key !in hidden }
+        val normalized = pages.map { normalizePage(it) }
+        prefs.pages = normalized
+        _workspacePages.value = normalized
+        publishHomeApps(normalized)
     }
 
     // ---- Dock mutations ------------------------------------------------------------------
@@ -935,8 +849,15 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         }
     }
 
+    private fun defaultElementRows(elementId: String): Int = when (elementId) {
+        BespokeElement.CLOCK.id, BespokeElement.BATTERY_CALENDAR.id -> 2
+        else -> 1
+    }
+
     companion object {
         const val MAX_DOCK = 5
+        const val MAX_WIDGET_SPAN_Y = 8
+        private const val MAX_FOLDER_NAME = 32
         private const val DEFAULT_HOME_COUNT = 8
     }
 }

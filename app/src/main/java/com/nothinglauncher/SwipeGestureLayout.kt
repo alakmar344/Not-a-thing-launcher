@@ -41,6 +41,23 @@ class SwipeGestureLayout @JvmOverloads constructor(
 
     val isDragging: Boolean get() = dragging
 
+    /** Sees every touch that reaches this layout (used for double-tap detection). */
+    var touchObserver: ((MotionEvent) -> Unit)? = null
+
+    private var disallowed = false
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        touchObserver?.invoke(ev)
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) disallowed = false
+        return super.dispatchTouchEvent(ev)
+    }
+
+    override fun requestDisallowInterceptTouchEvent(disallowIntercept: Boolean) {
+        // A child (e.g. a long-pressed icon about to be dragged) owns the gesture now.
+        disallowed = disallowIntercept
+        super.requestDisallowInterceptTouchEvent(disallowIntercept)
+    }
+
     override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
         when (ev.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
@@ -49,7 +66,7 @@ class SwipeGestureLayout @JvmOverloads constructor(
             }
             MotionEvent.ACTION_MOVE -> {
                 tracker?.addMovement(ev)
-                if (!dragging && maybeStartDrag(ev)) return true
+                if (!dragging && !disallowed && maybeStartDrag(ev)) return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                 if (!dragging) recycleTracker()

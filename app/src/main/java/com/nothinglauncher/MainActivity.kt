@@ -201,8 +201,15 @@ class MainActivity : AppCompatActivity() {
             e.printStackTrace()
         }
         if (!isChangingConfigurations) {
+            dragController.cancel()
             dismissPopup()
             if (drawerProgress > 0f) setDrawerProgressImmediately(0f)
+            // Android silences the microphone for background apps; finish the memo now so
+            // it is saved instead of recording silence.
+            if (::voiceRecorder.isInitialized && voiceRecorder.isRecording) {
+                try { voiceRecorder.stop() } catch (_: Exception) {}
+            }
+            stopMemoPlayback()
         }
     }
 
@@ -222,6 +229,7 @@ class MainActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         if (intent.action == Intent.ACTION_MAIN && intent.hasCategory(Intent.CATEGORY_HOME)) {
+            dragController.cancel()
             dismissPopup()
             openDialog?.dismiss()
             if (drawerProgress > 0f) closeDrawer() else homeFragment?.scrollToTop()
@@ -229,8 +237,16 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
-        if (dragController.isDragging && dragController.onTouchEvent(ev)) {
-            return true
+        if (dragController.isDragging) {
+            if (dragController.needsHierarchyCancel) {
+                // The drag owns the gesture now: let every view reset its pressed/long-press
+                // state exactly once, like Launcher3's DragLayer does.
+                dragController.needsHierarchyCancel = false
+                val cancel = MotionEvent.obtain(ev).apply { action = MotionEvent.ACTION_CANCEL }
+                super.dispatchTouchEvent(cancel)
+                cancel.recycle()
+            }
+            if (dragController.onTouchEvent(ev)) return true
         }
         return super.dispatchTouchEvent(ev)
     }
@@ -239,16 +255,20 @@ class MainActivity : AppCompatActivity() {
         dragController.startDrag(item, view, rawX, rawY)
     }
 
-    fun performPageFlip(direction: Int) {
+    /** Flips one page during a drag. Returns the index of a page created for it, or -1. */
+    fun performPageFlip(direction: Int): Int {
         val current = currentPageIndex
-        val total = viewModel.workspacePages.value?.size ?: 1
+        val pages = viewModel.workspacePages.value.orEmpty()
         val target = current + direction
-        if (target in 0 until total) {
+        if (target in pages.indices) {
             homeFragment?.scrollToPage(target)
-        } else if (direction > 0 && target == total) {
+        } else if (direction > 0 && target == pages.size && pages.lastOrNull()?.items?.isNotEmpty() == true) {
+            // Stock: dragging past the last non-empty page offers a fresh empty page.
             val newIdx = viewModel.addPage()
             homeFragment?.scrollToPage(newIdx)
+            return newIdx
         }
+        return -1
     }
 
     fun isPointOverDock(rawX: Float, rawY: Float): Boolean =
@@ -301,46 +321,16 @@ class MainActivity : AppCompatActivity() {
         stepPermissionLauncher.launch(Manifest.permission.ACTIVITY_RECOGNITION)
     }
 
-    fun handleWorkspaceAppDrop(
-        app: AppInfo,
-        fromSource: DragController.DragSource,
-        fromPage: Int,
-        targetPage: Int,
+    fun handleWorkspaceDrop(
+        item: DragController.DragItem,
+        centerX: Float,
+        centerY: Float,
         rawX: Float,
         rawY: Float
-    ) {
-        val handled = homeFragment?.handleAppDropOnPage(app, fromSource, fromPage, targetPage, rawX, rawY) ?: false
-        if (handled) return
-        when (fromSource) {
-            DragController.DragSource.DRAWER -> {
-                viewModel.pinToPage(targetPage, app)
-                performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                AppLauncher.toast(this, R.string.drag_app_pinned)
-            }
-            DragController.DragSource.DOCK -> {
-                viewModel.removeFromDock(app)
-                viewModel.pinToPage(targetPage, app)
-                performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                AppLauncher.toast(this, R.string.drag_app_pinned)
-            }
-            DragController.DragSource.FOLDER -> {
-                val folderId = viewModel.folderIdForApp(fromPage, app.key) ?: return
-                viewModel.removeAppFromFolder(fromPage, folderId, app.key)
-                if (fromPage != targetPage) viewModel.moveAppBetweenPages(app, fromPage, targetPage)
-                performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                AppLauncher.toast(this, R.string.folder_app_removed)
-            }
-            DragController.DragSource.HOME_PAGE -> {
-                if (fromPage != targetPage) {
-                    viewModel.moveAppBetweenPages(app, fromPage, targetPage)
-                    performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                }
-            }
-        }
-    }
+    ): Boolean = homeFragment?.handleWorkspaceDrop(item, centerX, centerY, rawX, rawY) ?: false
 
-    fun updateWorkspaceDropHover(rawX: Float, rawY: Float, isApp: Boolean) {
-        homeFragment?.updateDropHover(rawX, rawY, isApp)
+    fun updateWorkspaceDropHover(item: DragController.DragItem, centerX: Float, centerY: Float, rawX: Float, rawY: Float) {
+        homeFragment?.updateDropHover(item, centerX, centerY, rawX, rawY)
     }
 
     fun clearWorkspaceDropTarget() {
@@ -351,6 +341,7 @@ class MainActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 when {
+                    dragController.isDragging -> dragController.cancel()
                     popup.isShowing -> dismissPopup()
                     drawerProgress > 0f -> closeDrawer()
                     else -> homeFragment?.scrollToTop()
@@ -674,9 +665,9 @@ class MainActivity : AppCompatActivity() {
             AppLauncher.toast(this, R.string.recorder_no_recording)
             return
         }
+        stopMemoPlayback()
+        val player = MediaPlayer()
         try {
-            stopMemoPlayback()
-            val player = MediaPlayer()
             player.setDataSource(file.absolutePath)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 player.setAudioAttributes(
@@ -697,7 +688,7 @@ class MainActivity : AppCompatActivity() {
             player.start()
             memoPlayer = player
         } catch (_: Exception) {
-            memoPlayer?.release()
+            try { player.release() } catch (_: Exception) {}
             memoPlayer = null
             AppLauncher.toast(this, R.string.recorder_failed)
         }
@@ -769,11 +760,9 @@ class MainActivity : AppCompatActivity() {
         val folderAdapter = HomeIconAdapter(
             onAppClick = { app, v -> dialog.dismiss(); launchApp(app, v) },
             onAppLongClick = { app, v ->
-                val loc = IntArray(2)
-                v.getLocationOnScreen(loc)
-                val bounds = Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height)
-                dialog.dismiss()
-                showFolderAppPopup(pageIndex, folder, app, v, bounds)
+                // Shown on top of the folder while the finger is still down, so moving on
+                // drags the app out of the folder (stock behaviour).
+                showFolderAppPopup(pageIndex, folder, app, v, onBeforeAction = { dialog.dismiss() })
             },
             onAppDragStart = { app, v, rawX, rawY ->
                 // Keep the dialog window alive but out of the way: it owns the current
@@ -800,6 +789,7 @@ class MainActivity : AppCompatActivity() {
         folderRecycler.layoutManager = GridLayoutManager(this, columns)
         folderRecycler.adapter = folderAdapter
         folderAdapter.setItems(folder.appKeys.mapNotNull { allAppsMap[it] })
+        dialog.setOnDismissListener { if (openDialog === dialog) openDialog = null }
 
         folderAddApp.setOnClickListener {
             dialog.dismiss()
@@ -817,8 +807,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddAppToFolderPicker(pageIndex: Int, folder: WorkspaceFolder) {
-        val page = viewModel.workspacePages.value?.getOrNull(pageIndex) ?: return
-        val available = viewModel.getAppsForPage(page).filterNot { it.key in folder.appKeys }
+        val current = viewModel.folderById(pageIndex, folder.id) ?: folder
+        val available = viewModel.allApps.value.orEmpty().filterNot { it.key in current.appKeys }
         if (available.isEmpty()) {
             AppLauncher.toast(this, R.string.folder_no_apps)
             return
@@ -897,7 +887,8 @@ class MainActivity : AppCompatActivity() {
         folder: WorkspaceFolder,
         app: AppInfo,
         anchor: View,
-        anchorBounds: Rect? = null
+        anchorBounds: Rect? = null,
+        onBeforeAction: () -> Unit = {}
     ) {
         dismissPopup()
         val actions = mutableListOf(
@@ -935,8 +926,8 @@ class MainActivity : AppCompatActivity() {
             subtitle = app.packageName,
             icon = app.icon,
             shortcuts = AppLauncher.shortcuts(this, app),
-            actions = actions,
-            onShortcut = { s, v -> AppLauncher.startShortcut(this, s, v) },
+            actions = actions.map { a -> a.copy(onClick = { onBeforeAction(); a.onClick() }) },
+            onShortcut = { s, v -> onBeforeAction(); AppLauncher.startShortcut(this, s, v) },
             anchorBounds = anchorBounds
         )
     }
@@ -1166,8 +1157,44 @@ class MainActivity : AppCompatActivity() {
     private fun addWidget(id: Int) {
         pendingWidgetId = -1
         val currentPage = homeFragment?.currentPageIndex ?: 0
-        viewModel.addWidgetToPage(currentPage, id)
+        val info = try { appWidgetManager.getAppWidgetInfo(id) } catch (e: Exception) { null }
+        val (sx, sy) = widgetSpans(info)
+        viewModel.addWidgetToPage(currentPage, id, sx, sy)
         homeFragment?.renderWidgets()
+    }
+
+    /** Grid cell size in px for the current column count (matches CellLayout's maths). */
+    private fun cellSizePx(): Pair<Int, Int> {
+        val dm = resources.displayMetrics
+        val cols = prefs.gridColumns.coerceAtLeast(1)
+        val margin = resources.getDimensionPixelSize(R.dimen.page_margin)
+        val gap = (6 * dm.density).toInt()
+        val w = ((dm.widthPixels - 2 * margin - (cols - 1) * gap) / cols).coerceAtLeast(1)
+        val h = (w * 1.18f).toInt().coerceAtLeast((72 * dm.density).toInt())
+        return w to h
+    }
+
+    /** Launcher3-style span calculation from the provider's declared size. */
+    private fun widgetSpans(info: AppWidgetProviderInfo?): Pair<Int, Int> {
+        val cols = prefs.gridColumns.coerceAtLeast(1)
+        if (info == null) return cols to 2
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && info.targetCellWidth > 0 && info.targetCellHeight > 0) {
+            return info.targetCellWidth.coerceIn(1, cols) to info.targetCellHeight.coerceIn(1, LauncherViewModel.MAX_WIDGET_SPAN_Y)
+        }
+        val (cw, ch) = cellSizePx()
+        val gap = (6 * resources.displayMetrics.density).toInt()
+        val sx = ((info.minWidth + gap + cw - 1) / (cw + gap)).coerceIn(1, cols)
+        val sy = ((info.minHeight + gap + ch - 1) / (ch + gap)).coerceIn(1, LauncherViewModel.MAX_WIDGET_SPAN_Y)
+        return sx to sy
+    }
+
+    private fun minWidgetSpans(info: AppWidgetProviderInfo?): Pair<Int, Int> {
+        if (info == null) return 1 to 1
+        val (cw, ch) = cellSizePx()
+        val gap = (6 * resources.displayMetrics.density).toInt()
+        val mw = if (info.minResizeWidth > 0) info.minResizeWidth else info.minWidth
+        val mh = if (info.minResizeHeight > 0) info.minResizeHeight else info.minHeight
+        return ((mw + gap + cw - 1) / (cw + gap)).coerceAtLeast(1) to ((mh + gap + ch - 1) / (ch + gap)).coerceAtLeast(1)
     }
 
     private fun discardPendingWidget() {
@@ -1189,8 +1216,6 @@ class MainActivity : AppCompatActivity() {
     fun showWidgetPopup(id: Int, pageIndex: Int, anchor: View) {
         val info = try { appWidgetManager.getAppWidgetInfo(id) } catch (e: Exception) { null }
         val label = info?.let { try { it.loadLabel(packageManager) } catch (e: Exception) { null } } ?: getString(R.string.widgets)
-        val widgets = viewModel.workspacePages.value?.getOrNull(pageIndex)?.widgetIds.orEmpty()
-        val idx = widgets.indexOf(id)
         val actions = mutableListOf<AppPopup.Action>()
 
         if (info?.configure != null) {
@@ -1199,38 +1224,29 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        val defaultHeight = (info?.minHeight ?: DEFAULT_WIDGET_HEIGHT_DP)
-            .coerceIn(LauncherPrefs.MIN_WIDGET_HEIGHT_DP, LauncherPrefs.MAX_WIDGET_HEIGHT_DP)
-        val height = prefs.widgetHeight(id, defaultHeight)
-        if (height < LauncherPrefs.MAX_WIDGET_HEIGHT_DP) {
-            actions += AppPopup.Action(R.drawable.ic_add, getString(R.string.widget_taller)) {
-                prefs.setWidgetHeight(id, height + WIDGET_HEIGHT_STEP_DP)
-                homeFragment?.renderWidgets()
+        // Resize in grid cells, respecting the provider's resize mode and minimum size.
+        val item = viewModel.workspacePages.value?.getOrNull(pageIndex)?.items
+            ?.firstOrNull { it.type == WorkspaceItem.Type.WIDGET && it.widgetId == id }
+        if (item != null) {
+            val cols = prefs.gridColumns
+            val (minX, minY) = minWidgetSpans(info)
+            val mode = info?.resizeMode ?: (AppWidgetProviderInfo.RESIZE_BOTH)
+            val canV = (mode and AppWidgetProviderInfo.RESIZE_VERTICAL) != 0
+            val canH = (mode and AppWidgetProviderInfo.RESIZE_HORIZONTAL) != 0
+            fun resize(sx: Int, sy: Int) {
+                viewModel.resizeItem(pageIndex, item.id, sx, sy)
             }
-        }
-        if (height > LauncherPrefs.MIN_WIDGET_HEIGHT_DP) {
-            actions += AppPopup.Action(R.drawable.ic_minimize, getString(R.string.widget_shorter)) {
-                prefs.setWidgetHeight(id, height - WIDGET_HEIGHT_STEP_DP)
-                homeFragment?.renderWidgets()
+            if (canV && item.spanY < LauncherViewModel.MAX_WIDGET_SPAN_Y) {
+                actions += AppPopup.Action(R.drawable.ic_move_down, getString(R.string.widget_taller)) { resize(item.spanX, item.spanY + 1) }
             }
-        }
-        if (prefs.widgetHeights.containsKey(id)) {
-            actions += AppPopup.Action(R.drawable.ic_refresh, getString(R.string.widget_reset_size)) {
-                prefs.removeWidgetHeight(id)
-                homeFragment?.renderWidgets()
+            if (canV && item.spanY - 1 >= maxOf(1, minY)) {
+                actions += AppPopup.Action(R.drawable.ic_move_up, getString(R.string.widget_shorter)) { resize(item.spanX, item.spanY - 1) }
             }
-        }
-
-        if (idx > 0) {
-            actions += AppPopup.Action(R.drawable.ic_move_up, getString(R.string.move_up)) {
-                viewModel.moveWidgetOnPage(pageIndex, id, -1)
-                homeFragment?.renderWidgets()
+            if (canH && item.spanX < cols) {
+                actions += AppPopup.Action(R.drawable.ic_maximize, getString(R.string.widget_wider)) { resize(item.spanX + 1, item.spanY) }
             }
-        }
-        if (idx in 0 until widgets.size - 1) {
-            actions += AppPopup.Action(R.drawable.ic_move_down, getString(R.string.move_down)) {
-                viewModel.moveWidgetOnPage(pageIndex, id, +1)
-                homeFragment?.renderWidgets()
+            if (canH && item.spanX - 1 >= maxOf(1, minX)) {
+                actions += AppPopup.Action(R.drawable.ic_minimize, getString(R.string.widget_narrower)) { resize(item.spanX - 1, item.spanY) }
             }
         }
         actions += AppPopup.Action(R.drawable.ic_delete, getString(R.string.remove_widget), destructive = true) {
@@ -1268,8 +1284,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showElementPopup(pageIndex: Int, element: BespokeElement, anchor: View) {
-        val elements = viewModel.workspacePages.value?.getOrNull(pageIndex)?.elements.orEmpty()
-        val idx = elements.indexOf(element.id)
         val actions = mutableListOf<AppPopup.Action>()
 
         // Every element exposes the action that makes sense for its live source instead of
@@ -1421,18 +1435,6 @@ class MainActivity : AppCompatActivity() {
             BespokeElement.COMPASS, BespokeElement.STOPWATCH -> Unit
         }
 
-        if (idx > 0) {
-            actions += AppPopup.Action(R.drawable.ic_move_up, getString(R.string.move_up)) {
-                viewModel.moveElementOnPage(pageIndex, element.id, -1)
-                homeFragment?.renderWidgets()
-            }
-        }
-        if (idx in 0 until elements.size - 1) {
-            actions += AppPopup.Action(R.drawable.ic_move_down, getString(R.string.move_down)) {
-                viewModel.moveElementOnPage(pageIndex, element.id, +1)
-                homeFragment?.renderWidgets()
-            }
-        }
         actions += AppPopup.Action(R.drawable.ic_delete, getString(R.string.remove_element), destructive = true) {
             viewModel.removeElementFromPage(pageIndex, element.id)
             homeFragment?.renderWidgets()

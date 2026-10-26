@@ -47,30 +47,91 @@ data class WorkspaceItem(
     enum class Type {
         APP, FOLDER, MAX_APP, BESPOKE, WIDGET
     }
+
+    fun covers(col: Int, row: Int): Boolean =
+        col in cellX until cellX + spanX && row in cellY until cellY + spanY
+
+    fun overlaps(x: Int, y: Int, sx: Int, sy: Int): Boolean =
+        x < cellX + spanX && cellX < x + sx && y < cellY + spanY && cellY < y + sy
 }
 
+/** Occupancy maths for the workspace grid (fixed column count, rows grow downwards). */
+object GridMath {
+
+    fun isAreaFree(items: List<WorkspaceItem>, cols: Int, x: Int, y: Int, sx: Int, sy: Int, ignoreId: String? = null): Boolean {
+        if (x < 0 || y < 0 || x + sx > cols) return false
+        return items.none { it.id != ignoreId && it.overlaps(x, y, sx, sy) }
+    }
+
+    /** First free area scanning rows top-to-bottom, columns left-to-right. */
+    fun firstFree(items: List<WorkspaceItem>, cols: Int, sx: Int, sy: Int, ignoreId: String? = null): Pair<Int, Int> {
+        val spanX = sx.coerceIn(1, cols)
+        var r = 0
+        while (true) {
+            for (c in 0..cols - spanX) {
+                if (isAreaFree(items, cols, c, r, spanX, sy, ignoreId)) return c to r
+            }
+            r++
+        }
+    }
+
+    /**
+     * Free area closest to ([x], [y]) - the same "nearest vacant area" search Launcher3's
+     * CellLayout runs while an item hovers over an occupied cell.
+     */
+    fun nearestFree(items: List<WorkspaceItem>, cols: Int, x: Int, y: Int, sx: Int, sy: Int, ignoreId: String? = null): Pair<Int, Int> {
+        val spanX = sx.coerceIn(1, cols)
+        val tx = x.coerceIn(0, cols - spanX)
+        val ty = y.coerceAtLeast(0)
+        if (isAreaFree(items, cols, tx, ty, spanX, sy, ignoreId)) return tx to ty
+        val maxRow = (items.filter { it.id != ignoreId }.maxOfOrNull { it.cellY + it.spanY } ?: 0)
+            .coerceAtLeast(ty) + sy + 1
+        var best: Pair<Int, Int>? = null
+        var bestDist = Double.MAX_VALUE
+        for (r in 0..maxRow) {
+            for (c in 0..cols - spanX) {
+                if (!isAreaFree(items, cols, c, r, spanX, sy, ignoreId)) continue
+                val dx = (c - tx).toDouble()
+                val dy = (r - ty).toDouble()
+                // Slight vertical bias so items prefer to stay on the same row.
+                val d = dx * dx + dy * dy * 1.2
+                if (d < bestDist) {
+                    bestDist = d
+                    best = c to r
+                }
+            }
+        }
+        return best ?: firstFree(items, cols, spanX, sy, ignoreId)
+    }
+}
+
+/**
+ * One home-screen page. [items] (cell positions + spans) is the single source of truth; the
+ * legacy list views below are derived from it so older call sites and the v3 JSON schema keep
+ * working without ever drifting out of sync with the grid.
+ */
 data class WorkspacePage(
     val id: String,
-    val items: List<WorkspaceItem> = emptyList(),
-    val appKeys: List<String> = emptyList(),
-    val elements: List<String> = emptyList(),
-    val widgetIds: List<Int> = emptyList(),
-    val enlargedApps: List<String> = emptyList(),
-    val folders: List<WorkspaceFolder> = emptyList()
+    val items: List<WorkspaceItem> = emptyList()
 ) {
-    /**
-     * Secondary constructor that constructs a WorkspacePage from unified items,
-     * maintaining legacy list properties automatically.
-     */
-    constructor(id: String, items: List<WorkspaceItem>) : this(
-        id = id,
-        items = items,
-        appKeys = items.filter { it.type == WorkspaceItem.Type.APP }.map { it.appKey },
-        elements = items.filter { it.type == WorkspaceItem.Type.BESPOKE }.map { it.elementId },
-        widgetIds = items.filter { it.type == WorkspaceItem.Type.WIDGET }.map { it.widgetId },
-        enlargedApps = items.filter { it.type == WorkspaceItem.Type.MAX_APP }.map { it.appKey },
-        folders = items.filter { it.type == WorkspaceItem.Type.FOLDER }.mapNotNull { it.folder }
-    )
+    val appKeys: List<String> get() = items.filter { it.type == WorkspaceItem.Type.APP }.map { it.appKey }
+    val elements: List<String> get() = items.filter { it.type == WorkspaceItem.Type.BESPOKE }.map { it.elementId }
+    val widgetIds: List<Int> get() = items.filter { it.type == WorkspaceItem.Type.WIDGET }.map { it.widgetId }
+    val enlargedApps: List<String> get() = items.filter { it.type == WorkspaceItem.Type.MAX_APP }.map { it.appKey }
+    val folders: List<WorkspaceFolder> get() = items.filter { it.type == WorkspaceItem.Type.FOLDER }.mapNotNull { it.folder }
+
+    /** Every app key shown on this page, including folder contents. */
+    val allAppKeys: List<String>
+        get() = items.flatMap { itm ->
+            when (itm.type) {
+                WorkspaceItem.Type.APP, WorkspaceItem.Type.MAX_APP -> listOf(itm.appKey)
+                WorkspaceItem.Type.FOLDER -> itm.folder?.appKeys.orEmpty()
+                else -> emptyList()
+            }
+        }.filter { it.isNotEmpty() }
+
+    fun itemAt(col: Int, row: Int, ignoreId: String? = null): WorkspaceItem? =
+        items.firstOrNull { it.id != ignoreId && it.covers(col, row) }
 
     companion object {
         /**

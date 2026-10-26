@@ -340,6 +340,8 @@
     <string name="widget_taller">Make taller</string>
     <string name="widget_shorter">Make shorter</string>
     <string name="widget_reset_size">Reset size</string>
+    <string name="widget_wider">Make wider</string>
+    <string name="widget_narrower">Make narrower</string>
     <string name="widget_resized">Widget resized</string>
     <string name="widget_no_configure">Widget settings unavailable</string>
 

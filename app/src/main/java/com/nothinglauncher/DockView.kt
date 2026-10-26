@@ -4,16 +4,12 @@ import android.content.Context
 import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
-import android.view.HapticFeedbackConstants
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
-import kotlin.math.abs
 
 /** The dock: up to five icons spread evenly across the bottom of home, with optional labels. */
 class DockView @JvmOverloads constructor(
@@ -63,83 +59,25 @@ class DockView @JvmOverloads constructor(
         removeAllViews()
         dropTarget = null
         val d = resources.displayMetrics.density
-        val slop = ViewConfiguration.get(context).scaledTouchSlop
 
         apps.forEachIndexed { index, app ->
             val cell = LinearLayout(context).apply {
                 orientation = VERTICAL
                 gravity = Gravity.CENTER
             }
-            var downX = 0f
-            var downY = 0f
-            var downRawX = 0f
-            var downRawY = 0f
-            var longPressed = false
             val icon = ImageView(context).apply {
                 setImageDrawable(app.icon)
                 contentDescription = app.label
                 scaleType = ImageView.ScaleType.FIT_CENTER
                 setBackgroundResource(R.drawable.fg_ripple_oval)
                 isHapticFeedbackEnabled = true
-                setOnClickListener { onAppClick?.invoke(app, this) }
             }
-            val longPressRunnable = Runnable {
-                if (!icon.isAttachedToWindow) return@Runnable
-                longPressed = true
-                icon.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-            }
-
-            icon.setOnTouchListener { v, event ->
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        downX = event.x
-                        downY = event.y
-                        downRawX = event.rawX
-                        downRawY = event.rawY
-                        longPressed = false
-                        v.isPressed = true
-                        v.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (!longPressed) {
-                            if (abs(event.x - downX) > slop || abs(event.y - downY) > slop) {
-                                v.removeCallbacks(longPressRunnable)
-                            }
-                        } else {
-                            val dx = abs(event.rawX - downRawX)
-                            val dy = abs(event.rawY - downRawY)
-                            if (dx > slop * 1.5f || dy > slop * 1.5f) {
-                                v.removeCallbacks(longPressRunnable)
-                                longPressed = false
-                                v.isPressed = false
-                                onAppDragStart?.invoke(app, v, event.rawX, event.rawY, index)
-                            }
-                        }
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        v.removeCallbacks(longPressRunnable)
-                        v.isPressed = false
-                        if (longPressed) {
-                            longPressed = false
-                            onAppLongClick?.invoke(app, icon)
-                        } else {
-                            v.performClick()
-                        }
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        v.removeCallbacks(longPressRunnable)
-                        v.isPressed = false
-                        longPressed = false
-                    }
-                }
-                true
-            }
-
-            // Accessibility-only long-click; normal touches are consumed above.
-            icon.setOnLongClickListener {
-                onAppLongClick?.invoke(app, icon)
-                true
-            }
+            LongPressDragHelper.attach(
+                icon,
+                onClick = { onAppClick?.invoke(app, it) },
+                onLongPress = { onAppLongClick?.invoke(app, it) },
+                onDragStart = { v, rawX, rawY -> onAppDragStart?.invoke(app, v, rawX, rawY, index) }
+            )
             cell.addView(icon, LayoutParams(iconSize, iconSize))
 
             if (showLabels) {

@@ -1,17 +1,13 @@
 package com.nothinglauncher
 
 import android.annotation.SuppressLint
-import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.ItemAppBinding
-import kotlin.math.abs
 
 /**
  * Pinned apps on the home screen.
@@ -70,26 +66,10 @@ class HomeIconAdapter(
     override fun getItemCount(): Int = items.size
 
     inner class IconViewHolder(private val binding: ItemAppBinding) : RecyclerView.ViewHolder(binding.root) {
-        private var downX = 0f
-        private var downY = 0f
-        private var downRawX = 0f
-        private var downRawY = 0f
-        private var longPressed = false
-        private val slop = ViewConfiguration.get(binding.root.context).scaledTouchSlop
-        private val longPressRunnable = Runnable {
-            if (!binding.root.isAttachedToWindow) return@Runnable
-            longPressed = true
-            binding.root.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
-
         fun bind(app: AppInfo?) {
-            binding.root.removeCallbacks(longPressRunnable)
-            longPressed = false
-            binding.root.isPressed = false
             if (iconSizePx > 0) {
                 binding.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
             }
-
             if (app == null) {
                 binding.root.alpha = 0f
                 binding.root.isClickable = false
@@ -103,70 +83,19 @@ class HomeIconAdapter(
                 binding.appLabel.isVisible = false
                 return
             }
-
             binding.root.alpha = 1f
-            binding.root.isClickable = true
             binding.root.isFocusable = true
             binding.appIcon.setImageDrawable(app.icon)
             binding.appIcon.contentDescription = app.label
             binding.appLabel.text = app.label
             binding.appLabel.isVisible = showLabels
             applyLabelShadow(binding, labelShadow)
-
-            binding.root.setOnClickListener { onAppClick(app, binding.appIcon) }
-
-            binding.root.setOnTouchListener { view, event ->
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN -> {
-                        downX = event.x
-                        downY = event.y
-                        downRawX = event.rawX
-                        downRawY = event.rawY
-                        longPressed = false
-                        view.isPressed = true
-                        view.postDelayed(longPressRunnable, ViewConfiguration.getLongPressTimeout().toLong())
-                    }
-                    MotionEvent.ACTION_MOVE -> {
-                        if (!longPressed) {
-                            if (abs(event.x - downX) > slop || abs(event.y - downY) > slop) {
-                                view.removeCallbacks(longPressRunnable)
-                            }
-                        } else {
-                            val dx = abs(event.rawX - downRawX)
-                            val dy = abs(event.rawY - downRawY)
-                            if (dx > slop * 1.5f || dy > slop * 1.5f) {
-                                view.removeCallbacks(longPressRunnable)
-                                longPressed = false
-                                view.isPressed = false
-                                onAppDragStart?.invoke(app, binding.appIcon, event.rawX, event.rawY)
-                            }
-                        }
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        view.removeCallbacks(longPressRunnable)
-                        view.isPressed = false
-                        if (longPressed) {
-                            longPressed = false
-                            onAppLongClick(app, binding.appIcon)
-                        } else {
-                            view.performClick()
-                        }
-                    }
-                    MotionEvent.ACTION_CANCEL -> {
-                        view.removeCallbacks(longPressRunnable)
-                        view.isPressed = false
-                        longPressed = false
-                    }
-                }
-                true
-            }
-
-            // Kept for accessibility services (TalkBack long-click). The touch listener above
-            // consumes normal gestures, so this never fires twice during a real touch.
-            binding.root.setOnLongClickListener {
-                onAppLongClick(app, binding.appIcon)
-                true
-            }
+            LongPressDragHelper.attach(
+                binding.root,
+                onClick = { onAppClick(app, binding.appIcon) },
+                onLongPress = { onAppLongClick(app, binding.appIcon) },
+                onDragStart = { _, rawX, rawY -> onAppDragStart?.invoke(app, binding.root, rawX, rawY) }
+            )
         }
     }
 

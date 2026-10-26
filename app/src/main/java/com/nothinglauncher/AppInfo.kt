@@ -16,12 +16,16 @@ data class AppInfo(
     val activityName: String,
     val icon: Drawable,
     val user: UserHandle? = null,
-    val isSystemApp: Boolean = false
+    val isSystemApp: Boolean = false,
+    /** Serial of the owning profile; 0 for the main user. Work-profile apps get a suffixed key. */
+    val profileSerial: Long = 0L
 ) {
     val componentName: ComponentName get() = ComponentName(packageName, activityName)
 
     /** Stable identifier used for persistence ("package/activity"). */
-    val key: String get() = "$packageName/$activityName"
+    val key: String get() = if (profileSerial == 0L) "$packageName/$activityName" else "$packageName/$activityName#$profileSerial"
+
+    val isWorkProfile: Boolean get() = profileSerial != 0L
 
     /** First letter used by the drawer's A–Z scroller ('#' for anything non-alphabetic). */
     val sectionLetter: Char
