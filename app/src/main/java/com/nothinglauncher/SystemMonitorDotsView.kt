@@ -31,7 +31,7 @@ class SystemMonitorDotsView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = 10f * density * resources.configuration.fontScale
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
