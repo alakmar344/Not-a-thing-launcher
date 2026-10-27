@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.Manifest
 import android.app.Dialog

@@ -53,7 +53,7 @@ class MediaDotsView @JvmOverloads constructor(
 
     /** Only animate while playing and actually on screen (it used to spin at 7 Hz forever). */
     private fun updateRunning() {
-        val shouldRun = isPlaying && isAttachedToWindow && windowVisibility == VISIBLE
+        val shouldRun = isPlaying && isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
         if (shouldRun == running) return
         running = shouldRun
         removeCallbacks(animator)
@@ -73,6 +73,16 @@ class MediaDotsView @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
         updateRunning()
     }
 

@@ -1,27 +1,27 @@
-# Not-a-Thing Launcher: Visual Showcase & Screenshots
+# Not-a-Thing Launcher: Visual Showcase & Screenshots (Version 10.0 GA)
 
-All screenshots below are generated deterministically using **Cash App Paparazzi** (`app.cash.paparazzi`) and Android Layoutlib directly from the launcher's layout definitions and custom views.
+All screenshots below are generated deterministically using **Cash App Paparazzi** (`app.cash.paparazzi`) and Android Layoutlib directly from the launcher's layout definitions, custom views, and sample data.
 
 ---
 
 ## 1. Workspace & Home Screens
 
 ### 1.1 Default Home Workspace
-The signature Nothing OS home screen: monochrome palette, dot-matrix LED clock with accent colon, compact 40-dot battery circle, calendar tile, pinned apps, dot page indicator, and dock.
+The signature Nothing OS home screen: monochrome palette, dot-matrix LED clock with accent colon, compact 40-dot battery circle, calendar tile, pinned apps, dot page indicator, and persistent dock.
 
 ![Default Home Screen](./com.nothinglauncher_ScreensTest_home.png)
 
 ---
 
 ### 1.2 Five Columns & Color Icons (Minimalist Mode)
-Home screen configured for maximum density (5 columns), app labels hidden, and original color icon badges.
+Home screen configured for maximum density (5 columns), app labels hidden, and original color icon badges with the pure OLED black `#000000` background.
 
 ![Five Columns & Color Icons](./com.nothinglauncher_ScreensTest_homeFiveColumnsNoLabelsColor.png)
 
 ---
 
 ### 1.3 Clean Empty Home State
-Minimalist zen view when no apps are pinned ("Your space, nothing else") with LED clock panel.
+Minimalist zen view when no apps are pinned ("Your space, nothing else") with the LED clock panel and subtle DotGrid background.
 
 ![Empty Home State](./com.nothinglauncher_ScreensTest_homeEmpty.png)
 
@@ -44,7 +44,7 @@ Third workspace page hosting the Screen Time / Digital Wellbeing tile, Internal 
 ## 2. App Drawer & Search
 
 ### 2.1 Full App Drawer & A–Z Dot Scroller
-Fluid app drawer with Recent Apps shelf, categorized app grid, and right-hand A–Z alphabet scrubber.
+Fluid app drawer with Recent Apps shelf, categorized app grid, and right-hand A–Z alphabet scrubber. Backed by the in-memory LRU icon cache for instantaneous frame rendering.
 
 ![App Drawer](./com.nothinglauncher_ScreensTest_drawer.png)
 
@@ -87,7 +87,9 @@ Dedicated modal sheet for switching background styles (Nothing Dot Matrix, Solid
 
 ---
 
-## 4. Bespoke Nothing Elements (v8.0)
+## 4. Bespoke Nothing Elements (v10.0 GA)
+
+All bespoke dot-matrix views incorporate `onVisibilityAggregated(isVisible)` lifecycle overrides, completely freezing ticking runnables and animators when offscreen.
 
 ### 4.1 Battery Gauge Hero Tile
 Full-width hero tile displaying DotFont battery percentage, charging state, and 28-dot circular capacity meter with charging bolt.
@@ -112,8 +114,8 @@ Settings screen displaying grid column picker (4 or 5), app label toggles, secon
 
 ---
 
-### 5.2 Settings: Drawer, System & About v8.0
-Settings screen displaying Drawer recents, hidden apps manager, default home app status, reset layout, and Version 8.0 About info.
+### 5.2 Settings: Drawer, System & About v10.0
+Settings screen displaying Drawer recents, hidden apps manager, default home app status, reset layout, and Version 10.0 About info.
 
 ![Settings Lower](./com.nothinglauncher_ScreensTest_settingsLower.png)
 

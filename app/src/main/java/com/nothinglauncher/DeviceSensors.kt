@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.content.Context
 import android.hardware.Sensor
@@ -32,6 +32,7 @@ object StepRepository {
     private var sensorManager: SensorManager? = null
     private var stepSensor: Sensor? = null
     private var registered = false
+    private var paused = false
     private var latestTotal = -1
     private var state = State()
 
@@ -58,6 +59,23 @@ object StepRepository {
     fun removeListener(callback: (State) -> Unit) {
         listeners -= callback
         if (listeners.isEmpty()) unregister()
+    }
+
+    fun pause() {
+        if (!paused) {
+            paused = true
+            unregister()
+        }
+    }
+
+    fun resume() {
+        if (paused) {
+            paused = false
+            if (listeners.isNotEmpty()) {
+                ensureSensor()
+                refresh()
+            }
+        }
     }
 
     fun refresh() {
@@ -100,9 +118,8 @@ object StepRepository {
             update(State(sensorAvailable = false, permissionGranted = LauncherSystem.hasActivityRecognition(ctx)))
             return
         }
-        // Only hold the sensor while something on screen is listening (refresh() is also
-        // called from onResume with no pedometer element present).
-        if (!registered && listeners.isNotEmpty() && LauncherSystem.hasActivityRecognition(ctx)) {
+        // Only hold the sensor while something on screen is listening and not paused
+        if (!registered && !paused && listeners.isNotEmpty() && LauncherSystem.hasActivityRecognition(ctx)) {
             registered = try {
                 sm?.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL, 200_000) == true
             } catch (e: Exception) {
@@ -170,6 +187,7 @@ object CompassRepository {
     private var accelerometer: Sensor? = null
     private var magnetometer: Sensor? = null
     private var registered = false
+    private var paused = false
     private var state = State()
 
     private val rotationMatrix = FloatArray(9)
@@ -265,6 +283,28 @@ object CompassRepository {
     fun removeListener(callback: (State) -> Unit) {
         listeners -= callback
         if (listeners.isEmpty()) {
+            unregisterSensors()
+        }
+    }
+
+    fun pause() {
+        if (!paused) {
+            paused = true
+            unregisterSensors()
+        }
+    }
+
+    fun resume() {
+        if (paused) {
+            paused = false
+            if (listeners.isNotEmpty()) {
+                ensureSensors()
+            }
+        }
+    }
+
+    private fun unregisterSensors() {
+        if (registered) {
             try {
                 sensorManager?.unregisterListener(listener)
             } catch (_: Exception) {
@@ -298,8 +338,8 @@ object CompassRepository {
             update(State(sensorAvailable = false, calibrating = false))
             return
         }
-        // Rotation vector / magnetometer are power hungry: never register without a listener.
-        if (!registered && listeners.isNotEmpty()) {
+        // Rotation vector / magnetometer are power hungry: never register without a listener or when paused.
+        if (!registered && !paused && listeners.isNotEmpty()) {
             registered = try {
                 if (hasRotation) {
                     sm.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)

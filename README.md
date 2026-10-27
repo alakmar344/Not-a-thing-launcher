@@ -5,7 +5,7 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
-**Version 9.0** is a full-functionality pass: every claim below is backed by native Android APIs — real drag-and-drop across pages, dock and drop-zone targets, real widget hosting through `AppWidgetHost`, live media-session playback controls, a first-run onboarding flow that offers the system HOME-role handoff, and versioned layout persistence that upgrades installs **without losing user data, settings, or layouts**.
+**Version 10.0** is the official General Availability (GA) public release — transitioning from beta to a fully optimized, daily-driver-ready launcher. The mandate for v10.0: *we are not adding, we are making it better*. It brings zero-idle battery consumption via lifecycle-gated hardware sensors and view tickers, instantaneous cold-start via in-memory icon bitmap caching, true OLED dark mode and bone-white contrast consistency, and non-destructive schema migrations (`SCHEMA_VERSION = 3`).
 
 ![Home, drawer, long-press menu and customize sheet](docs/showcase_1.png)
 
@@ -19,6 +19,7 @@ A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — w
 
 Comprehensive documentation has been prepared across dedicated architecture, feature, and visual guides:
 
+- **[Release v10.0 Notes](docs/RELEASE_V10.md)** — General Availability changelog, zero battery architecture, icon caching, and surface polish.
 - **[Release v9.0 Notes](docs/RELEASE_V9.md)** — Native rebuild changelog, permissions, upgrade and signing details.
 - **[Release v8.0 Notes](docs/RELEASE_V8.md)** — Detailed overview of Release v8, bug fixes, changelog, and APK binaries.
 - **[Feature Catalog](docs/FEATURES.md)** — Deep-dive into multi-page workspaces, bespoke Nothing elements, Max Icons (2×2), dynamic folders, gesture navigation, and theming.
@@ -27,9 +28,9 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 
 ---
 
-## ⬇️ Download Latest APK (Build v9)
+## ⬇️ Download Latest APK (Build v10.0 GA)
 
-- **[Download Latest APK (Release v9)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
+- **[Download Latest APK (Release v10.0 GA)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
@@ -43,7 +44,7 @@ Install it like any APK. On first launch the **onboarding tour** explains the co
 The repository build produces a production-signed APK at:
 
 ```text
-dist/Not-a-Thing-Launcher-9.0-release.apk
+dist/Not-a-Thing-Launcher-10.0-release.apk
 ```
 
 `dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
@@ -72,6 +73,19 @@ The release build enables R8 shrinking. Verify the signer before distributing:
 & "$env:ANDROID_HOME\build-tools\34.0.0\apksigner.bat" verify --print-certs `
   app\build\outputs\apk\release\app-release.apk
 ```
+
+---
+
+## 🆕 What v10.0 GA Fixed & Added
+
+| Area | Change |
+|---|---|
+| **Zero Idle Battery Consumption** | Hardware sensors (`CompassRepository`, `StepRepository`) now completely unregister listeners when the app is paused (`onStop`), the screen turns off, or another app enters the foreground. |
+| **Drawer & Page Throttling** | The compass hardware bus is suspended in real-time when dragging down the app drawer (`drawerProgress > 0.05f`) or navigating to workspace pages without a compass element. |
+| **Deep View Visibility Overrides** | All animated dot views (`SecondsTickerView`, `DotMatrixClockView`, `BatteryDotsView`, `MediaDotsView`, `StopwatchDotsView`, `VoiceRecorderDotsView`, `SystemMonitorDotsView`, `AnalogClockDotsView`, `WorldClockDotsView`) gate their loops behind `onVisibilityAggregated(isVisible)` and `isShown`, stopping all background handlers and value animators. |
+| **Instant Cold-Start & Icon Cache** | In-memory `LruCache<String, Bitmap>(300)` caches monochrome and styled bitmaps across the entire session, eliminating synchronous canvas passes and main-thread stalls during app launches and scrolling. |
+| **Surface Contrast & Dark Mode Borders** | Added missing `border_subtle` (`#232327`) and `surface_dark` (`#0C0C0E`) theme tokens in `res/values-night/colors.xml`, ensuring seamless drop zone bars and dialog dividers. |
+| **Safe Schema v3 Migration** | `SCHEMA_VERSION = 3` upgrades without losing any layouts, folders, widgets, or preferences. |
 
 ---
 

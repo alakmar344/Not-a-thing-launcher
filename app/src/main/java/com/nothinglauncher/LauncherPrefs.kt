@@ -437,7 +437,7 @@ class LauncherPrefs(context: Context) {
         const val PREFS_NAME = "launcher_prefs"
         const val MAX_RECENTS = 10
         const val HABIT_TOTAL = 8
-        const val SCHEMA_VERSION = 2
+        const val SCHEMA_VERSION = 3
         const val MIN_WIDGET_HEIGHT_DP = 80
         const val MAX_WIDGET_HEIGHT_DP = 720
 

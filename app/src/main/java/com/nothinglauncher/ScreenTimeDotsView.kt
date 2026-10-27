@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager

@@ -45,6 +45,9 @@ class HomeFragment : Fragment() {
         currentPageIndex = idx
         viewModel.prefs.activePageIndex = idx
         if (_binding != null) binding.pageIndicator.currentPage = idx
+        val page = viewModel.workspacePages.value?.getOrNull(idx)
+        val hasCompass = page?.elements?.contains(BespokeElement.COMPASS.id) == true
+        if (hasCompass) CompassRepository.resume() else CompassRepository.pause()
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
