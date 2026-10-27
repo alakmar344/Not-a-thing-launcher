@@ -1,12 +1,12 @@
-# Not-a-Thing Launcher Architecture & Internals
+# Not-a-Thing Launcher Architecture & Internals (Version 10.0 GA)
 
-Comprehensive technical documentation of the **Not-a-Thing Launcher** (v8.0) architecture, visual pipeline, multi-page workspace, and custom element engine.
+Comprehensive technical documentation of the **Not-a-Thing Launcher** (v10.0 General Availability) architecture, zero-idle battery subsystem, in-memory icon caching engine, unified 2D grid workspace, and bespoke dot-matrix procedural graphics pipeline.
 
 ---
 
 ## 1. High-Level Architecture Overview
 
-Not-a-Thing Launcher is built on modern Android native architecture (Kotlin, Jetpack ViewModels, ViewBinding, ViewPager2/RecyclerView) designed specifically for maximum fluidity, minimal power consumption, and the stark Nothing OS design language (monochrome, dot-matrix LED displays, typography-first layouts, and focused red accents).
+Not-a-Thing Launcher is built on modern Android native architecture (Kotlin, Jetpack ViewModels, ViewBinding, ViewPager2/RecyclerView, custom ViewGroup `CellLayout`) designed specifically for maximum fluidity, zero idle power consumption, and the stark Nothing OS design language (pure AMOLED black `#000000`, bone-white `#F6F6F4`, dot-matrix LED displays, typography-first layouts, and focused red accents `#D71921`).
 
 ```mermaid
 graph TD
@@ -16,23 +16,31 @@ graph TD
         ADF[AppDrawerFragment]
         SA[SettingsActivity]
         WPA[WorkspacePageAdapter]
+        CL[CellLayout 2D Grid]
         SGL[SwipeGestureLayout]
+        DC[DragController]
     end
 
     subgraph State ["State & ViewModel Layer"]
         VM[LauncherViewModel]
-        LP[LauncherPrefs]
+        LP[LauncherPrefs - Schema v3]
     end
 
-    subgraph Hardware ["Services & System Interfaces"]
-        WHM[WidgetHostManager]
+    subgraph Performance ["Caching & Optimization Engine"]
+        IF[IconFactory LruCache 300]
+        LCC[Lifecycle & Visibility Gatekeeper]
+    end
+
+    subgraph Hardware ["Hardware, Sensors & System Interfaces"]
+        WHM[WidgetHostManager & AppWidgetHost]
         AWM[AppWidgetManager]
-        LApps[LauncherApps]
-        BM[BatteryManager]
-        Sensors[SensorManager & Stats]
+        LApps[LauncherApps & PackageCallback]
+        Sensors[SensorManager - Compass & Steps]
+        MS[MediaSessionRepository]
+        VR[VoiceRecorder]
     end
 
-    subgraph CustomViews ["Procedural Dot Matrix Views"]
+    subgraph CustomViews ["Procedural Dot Matrix Views - Visibility Gated"]
         DF[DotFont Engine]
         DGD[DotGridDrawable]
         DMV[DotMatrixClockView]
@@ -45,65 +53,84 @@ graph TD
         CPV[CompassDotsView]
         STD[ScreenTimeDotsView]
         STR[StorageDotsView]
+        SWD[StopwatchDotsView]
+        VRD[VoiceRecorderDotsView]
+        ACD[AnalogClockDotsView]
+        WCD[WorldClockDotsView]
     end
 
     MA --> HF
     MA --> ADF
     MA --> SGL
+    MA --> LCC
+    LCC --> Sensors
     HF --> WPA
-    WPA --> CustomViews
-    WPA --> WHM
+    WPA --> CL
+    CL --> CustomViews
+    CL --> WHM
     WHM --> AWM
     HF --> VM
     ADF --> VM
     VM --> LP
     VM --> LApps
+    VM --> IF
     CustomViews --> DF
     CustomViews --> DGD
+    DC --> CL
+    DC --> MA
 ```
 
 ---
 
-## 2. Core Components
+## 2. Core Subsystems & Components
 
-### 2.1 `MainActivity.kt`
-- **Root Container**: Hosts the layered `homeContainer` and `drawerContainer` FrameLayouts.
-- **Gesture Tracker**: Intercepts vertical drag touches (`SwipeGestureLayout`), driving the app drawer elevation with fluid physics and real-time backdrop blur on supported Android 12+ devices (`RenderEffect.createBlurEffect`).
-- **Dialog & Sheet Orchestrator**: Displays the long-press Home Customisation sheet, Wallpaper & Style sheet, Note editor, and AppWidget configuration flows.
-- **System Callbacks**: Handles navigation bar/status bar contrast (`WindowCompat`), home button intents (`ACTION_MAIN`), and the Android back gesture callback (`OnBackPressedCallback`).
+### 2.1 `MainActivity.kt` & System Lifecycle Orchestration
+- **Root Container & View Layering**: Hosts `homeContainer`, `drawerContainer`, drag layers, and drop zone bars.
+- **Lifecycle Sensor Management**:
+  - `onStart()` invokes `CompassRepository.resume()` and `StepRepository.resume()`.
+  - `onStop()` invokes `CompassRepository.pause()` and `StepRepository.pause()`. When the device screen locks or another foreground activity takes focus, all underlying sensor hardware bus polling is completely disconnected.
+- **Dynamic Drawer Scrubbing Throttling**:
+  - `applyDrawerProgress(progress)` monitors drawer pull offset. If `drawerProgress > 0.05f`, compass hardware event delivery is halted in real-time to save CPU cycles and power during app search.
+- **System Theme & Window Insets**:
+  - Implements full edge-to-edge system insets via `WindowCompat.setDecorFitsSystemWindows(window, false)`.
+  - Drop zone headers and navigation padding dynamically adapt to display cutouts, camera punch-holes, and gesture bars.
+  - Automatically clears `IconFactory` cache when night mode or icon style changes.
 
 ### 2.2 `HomeFragment.kt`, `WorkspacePageAdapter.kt` & `CellLayout.kt`
 - **Multi-Page Horizontal Workspace**: Implements a horizontal `RecyclerView` locked to page bounds with Android's `PagerSnapHelper`.
-- **Dynamic Paging**: Users can swipe horizontally across unlimited home workspace pages. The minimalist dot indicator (`PageIndicatorView`) animates dot width and position synchronously with scroll offsets.
+- **Page-Aware Sensor Throttling**:
+  - `setCurrentPage(index)` inspects whether the target page hosts a compass element (`BespokeElement.COMPASS.id`). If the user navigates away to a page without a compass, the compass hardware listener is paused immediately.
 - **Unified Native 2D Grid (`CellLayout`)**:
   - Custom Android `ViewGroup` arranging items on a discrete `(cellX, cellY, spanX, spanY)` 2D coordinate matrix.
-  - Sits directly inside `NestedScrollView` to combine fixed-grid layout with smooth scrolling when extensive widgets are placed.
-  - Replaced legacy segregated vertical LinearLayouts with a unified item hierarchy (`WorkspaceItem.Type`: `APP`, `FOLDER`, `MAX_APP`, `BESPOKE`, `WIDGET`).
-- **Nothing OS Item Presentations**:
-  - **Standard 1×1 App Icons**: Themed monochrome icons rendered via `IconFactory` with NDot typography labels.
-  - **1×1 Circular Folders**: Circular dark translucent disc with 2×2 mini-icons preview.
-  - **2×2 Enlarged Folders**: Interactive 4-app tiles with direct launch slots, count badges, and signature red dot.
-  - **2×2 Max Icons**: True square tiles with 60dp monochrome icons, uppercase label, and corner red dot.
-  - **Bespoke Nothing Elements**: Real-time dot-matrix displays (Clock, Battery/Calendar, Weather, Quick Toggles, Pedometer, Compass, Screen Time, Storage, Media Player, etc.).
-  - **Third-Party AppWidgets**: Native Android widgets hosted via `AppWidgetHost` inside customizable card containers.
-- **Native Drag & Drop Engine**:
-  - Real-time `CellLayout` coordinate resolution (`pointToCell`).
-  - Pulsing folder-merge accent outline when hovering over app icons.
-  - Slot targeting and top-screen drop action zones (Remove, Uninstall, App Info).
+  - Sits inside a `NestedScrollView` combining fixed grid alignment with smooth vertical scrolling when widgets expand page bounds.
+  - Handles item types: standard 1×1 app icons, 1×1 circular folder discs, 2×2 enlarged interactive folder tiles, 2×2 Max Icons, bespoke Nothing dot elements, and hosted third-party AppWidgets.
+- **Fluid Drag-and-Drop Controller (`DragController.kt`)**:
+  - Spring-loaded page navigation while dragging items near page edges.
+  - Dynamic folder merge ring when dragging an app icon over another.
+  - Coordinate resolution via `pointToCell` with real-time drop outline drawing.
+  - Top action zones for *Remove from Home*, *Uninstall*, and *App Info*.
 
-### 2.3 `AppDrawerFragment.kt`
-- **Alphabetical Indexing & Fast Scroller**: Custom `AlphabetScrollerView` allows instantaneous scrubbing across alphabet sections with haptic tick feedback.
-- **Intelligent Ranked Search**:
-  - Direct Prefix Matches (highest priority).
-  - Word Start Matches (e.g. "note" matches "Keep Notes").
-  - Substring Matches.
-  - Initials Acronyms (e.g. "gm" matches "Google Maps", "ps" matches "Play Store").
-- **Recent Apps**: Dynamically prioritizes the top 4 most recently launched packages.
-- **Hidden Apps**: Packages can be hidden from drawer and restored through Settings.
+### 2.3 `IconFactory.kt` & In-Memory LRU Caching
+- **The Problem**: In stock Launcher architectures, synchronous bitmap decoding, adaptive icon layer compounding, and monochrome matrix filtering stall the main thread during cold start and rapid drawer scrubbing.
+- **The v10.0 Solution**:
+  - In-memory `LruCache<String, Bitmap>(300)` holding up to 300 pre-rendered bitmaps.
+  - Deterministic composite key: `ComponentName#UserSerial#IconStyle#ThemeMode`.
+  - First render creates the styled bitmap; subsequent requests resolve in $O(1)$ memory lookup without touching the canvas or allocating memory.
+  - Automated invalidation: Cleared on package install/uninstall/update via `LauncherApps.Callback`, icon style setting changes, and dark/light theme transitions.
 
-### 2.4 `LauncherViewModel.kt` & `LauncherPrefs.kt`
-- **Clean Persistence**: SharedPreferences-backed configuration with typed accessors. Changes increment `settingsVersion` to broadcast updates across views without unnecessary layout churn.
-- **Workspace Layout JSON**: Multi-page layouts (page count, element positions, widget IDs, folder contents, and icon placements) are serialized deterministically in JSON.
+### 2.4 Zero-Idle Battery Architecture (`DeviceSensors.kt` & Visibility Gating)
+- **Sensor Bus Disconnection**:
+  - `StepRepository` and `CompassRepository` implement explicit `pause()` and `resume()`.
+  - When paused, sensor listeners (`TYPE_ROTATION_VECTOR`, `TYPE_ACCELEROMETER`, `TYPE_MAGNETIC_FIELD`, `TYPE_STEP_COUNTER`) unregister from Android's `SensorManager`, stopping kernel hardware interrupts.
+- **View-Level Visibility Aggregation**:
+  - All 9 animated custom dot views (`SecondsTickerView`, `DotMatrixClockView`, `BatteryDotsView`, `MediaDotsView`, `StopwatchDotsView`, `VoiceRecorderDotsView`, `SystemMonitorDotsView`, `AnalogClockDotsView`, `WorldClockDotsView`) implement `onVisibilityAggregated(isVisible)` and `isShown` guards.
+  - When off-screen, minimized, or obscured, view ticker runnables and `ValueAnimator` pulse loops are cancelled immediately.
+
+### 2.5 Data Persistence & Safe Upgrade Schema (`LauncherPrefs.kt`)
+- **Schema Version 3**:
+  - Upgraded schema to `SCHEMA_VERSION = 3`.
+  - Non-destructive migration validates existing JSON payloads and user preferences.
+  - Preserves 100% of user layouts, custom pages, dock configurations, folders, and preferences without data wipes or resets.
 
 ---
 
@@ -115,41 +142,32 @@ Procedural 5×7 dot-matrix rasterizer for alphanumeric characters, numerals, pun
 - Renders custom text strings into precise 2D dot arrays with controllable dot pitch, dot radius, and spacing.
 
 ### 3.2 `DotGridDrawable.kt`
-High-performance procedural background drawable rendering the signature Nothing OS dot grid pattern across AMOLED black or minimalist white canvases.
+High-performance procedural background drawable rendering the signature Nothing OS dot grid pattern across AMOLED black (`#000000`) or minimalist bone-white (`#F6F6F4`) canvases.
 
-### 3.3 Bespoke Element Views
-Every bespoke element extends Android's `View` and uses hardware-accelerated 2D canvas drawing:
-- **`BatteryGaugeDotsView`**: Live battery gauge with circular dot meter (28-dot arc), live charging status, and DotFont percentage.
-- **`BatteryDotsView`**: Compact 40-dot ring with breathing dot animation during active charging and automatic sticky battery intent polling.
-- **`QuoteDotsView`**: Home screen daily quote/scratchpad rendered in dot-matrix font with single-tap quick note modal editing.
-- **`DotMatrixClockView`**: Full grid LED clock panel with pulsating colon and seconds ticker.
-- **`WeatherDotsView`**: Procedural dot-matrix sun/cloud/rain icons, live temperature, and conditions.
-- **`StorageDotsView`**: Dynamic storage block calculation using `StatFs` to render free/total disk usage and circular capacity meter.
+### 3.3 Surface Contrast Architecture
+- Pure AMOLED Black: `#000000` deep black canvas for zero-power pixel emission on OLED displays.
+- Minimalist Bone-White: `#F6F6F4` clean light mode surface with deep ink text.
+- Dark Mode Tokens (`res/values-night/colors.xml`): Added `border_subtle` (`#232327`) and `surface_dark` (`#0C0C0E`), preventing glaring white separator lines on dark drop zone bars and dialogs.
 
 ---
 
-## 4. Screenshot Testing Suite (Paparazzi)
-
-Not-a-Thing Launcher uses **Cash App Paparazzi** for pixel-perfect screenshot verification without requiring an Android emulator or physical device.
+## 4. Verification & Build Pipeline
 
 ```mermaid
 sequenceDiagram
-    participant CI as GitHub Actions Runner
-    participant Gradle as ./gradlew recordPaparazziDebug
-    participant Layoutlib as Android Layoutlib (JVM)
-    participant Snapshots as app/src/test/snapshots/images/
-    participant Artifacts as GitHub Release v8
+    participant Dev as Local Workspace / CI
+    participant Gradle as ./gradlew
+    participant Tests as Robolectric & Unit Tests
+    participant R8 as R8 Optimizer / ProGuard
+    participant APK as dist/Not-a-Thing-Launcher-10.0-release.apk
 
-    CI->>Gradle: Run recordPaparazziDebug
-    Gradle->>Layoutlib: Inflate layouts with Theme.NothingLauncher
-    Layoutlib->>Snapshots: Render PNG captures of all surfaces
-    Gradle->>CI: Upload snapshots artifact
-    CI->>Artifacts: Bundle PNGs into Release v8
+    Dev->>Gradle: ./gradlew compileDebugKotlin
+    Gradle-->>Dev: Bytecode compiled cleanly
+    Dev->>Gradle: ./gradlew testDebugUnitTest
+    Gradle->>Tests: Run GridMathTest, AppDragTest, DragDropTest
+    Tests-->>Gradle: 100% tests passed
+    Dev->>Gradle: ./gradlew assembleRelease
+    Gradle->>R8: Code shrinking, obfuscation, resource shrinking
+    Gradle->>APK: Output signed 5.05 MB production APK
+    APK-->>Dev: Verified ready for distribution
 ```
-
-- Tests in `ScreensTest.kt` exercise:
-  - Home workspace (1-page, multi-page, empty state, 4-column, 5-column, color icons).
-  - Drawer (normal view, search query, empty search with web search fallback).
-  - Long-press sheets (Home customisation sheet, wallpaper & style dialog, app popup).
-  - Settings screens (top section, bottom section with About info).
-  - Bespoke widgets (Battery gauge, Quick note, Weather, Screen time, Storage, World clock).
