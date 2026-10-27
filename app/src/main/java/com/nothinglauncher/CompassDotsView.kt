@@ -28,7 +28,7 @@ class CompassDotsView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.nothing_red) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 9.5f * resources.displayMetrics.scaledDensity
+        textSize = 9.5f * density * resources.configuration.fontScale
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.12f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }

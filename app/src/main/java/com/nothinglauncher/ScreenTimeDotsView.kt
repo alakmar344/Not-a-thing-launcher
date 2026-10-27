@@ -34,13 +34,13 @@ class ScreenTimeDotsView @JvmOverloads constructor(
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = 10f * density * resources.configuration.fontScale
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_primary)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = 11f * density * resources.configuration.fontScale
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_bold) } catch (e: Exception) { null }
     }
