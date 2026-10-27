@@ -81,7 +81,7 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         // Keep the timer moving after a detach/re-attach while a recording is active.
-        if (isRecording) {
+        if (isRecording && windowVisibility == VISIBLE && isShown) {
             removeCallbacks(ticker)
             post(ticker)
         }
@@ -90,6 +90,36 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         removeCallbacks(ticker)
         super.onDetachedFromWindow()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != VISIBLE) {
+            removeCallbacks(ticker)
+        } else if (isRecording && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (visibility != VISIBLE) {
+            removeCallbacks(ticker)
+        } else if (isRecording && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (!isVisible) {
+            removeCallbacks(ticker)
+        } else if (isRecording && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
     }
 
     override fun onDraw(canvas: Canvas) {

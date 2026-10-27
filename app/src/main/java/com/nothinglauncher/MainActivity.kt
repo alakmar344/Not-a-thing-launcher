@@ -183,6 +183,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        CompassRepository.resume()
+        StepRepository.resume()
         try {
             widgetHost.startListening()
         } catch (e: Exception) {
@@ -206,6 +208,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        CompassRepository.pause()
+        StepRepository.pause()
         try {
             widgetHost.stopListening()
         } catch (e: Exception) {
@@ -375,6 +379,7 @@ class MainActivity : AppCompatActivity() {
             LauncherPrefs.ThemeMode.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
         }
         if (AppCompatDelegate.getDefaultNightMode() != target) {
+            IconFactory.clearCache()
             AppCompatDelegate.setDefaultNightMode(target)
         }
     }
@@ -511,6 +516,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun applyDrawerProgress(p: Float) {
         drawerProgress = p.coerceIn(0f, 1f)
+        if (drawerProgress > 0.05f) {
+            CompassRepository.pause()
+        } else {
+            CompassRepository.resume()
+        }
         val h = binding.root.height.toFloat().takeIf { it > 0f } ?: resources.displayMetrics.heightPixels.toFloat()
         val drawer = binding.drawerContainer
         val home = binding.homeContainer

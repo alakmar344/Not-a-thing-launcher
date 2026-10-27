@@ -47,7 +47,7 @@ class AnalogClockDotsView @JvmOverloads constructor(
     }
 
     private fun updateRunning() {
-        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
         if (shouldRun == running) return
         running = shouldRun
         removeCallbacks(ticker)
@@ -67,6 +67,16 @@ class AnalogClockDotsView @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
         updateRunning()
     }
 

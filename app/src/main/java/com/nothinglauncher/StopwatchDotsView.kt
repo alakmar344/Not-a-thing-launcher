@@ -78,6 +78,36 @@ class StopwatchDotsView @JvmOverloads constructor(
         invalidate()
     }
 
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility != VISIBLE) {
+            removeCallbacks(ticker)
+        } else if (isRunning && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (visibility != VISIBLE) {
+            removeCallbacks(ticker)
+        } else if (isRunning && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        if (!isVisible) {
+            removeCallbacks(ticker)
+        } else if (isRunning && isShown) {
+            removeCallbacks(ticker)
+            post(ticker)
+        }
+    }
+
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
         // Resume ticking after a detach/re-attach (page rebinds, drag & drop) while running.

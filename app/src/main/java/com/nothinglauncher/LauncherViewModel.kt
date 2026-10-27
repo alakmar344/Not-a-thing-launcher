@@ -59,12 +59,27 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val packageCallback = object : LauncherApps.Callback() {
-        override fun onPackageRemoved(packageName: String, user: UserHandle) = loadApps()
-        override fun onPackageAdded(packageName: String, user: UserHandle) = loadApps()
-        override fun onPackageChanged(packageName: String, user: UserHandle) = loadApps()
-        override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) = loadApps()
+        override fun onPackageRemoved(packageName: String, user: UserHandle) {
+            IconFactory.clearCache()
+            loadApps()
+        }
+        override fun onPackageAdded(packageName: String, user: UserHandle) {
+            IconFactory.clearCache()
+            loadApps()
+        }
+        override fun onPackageChanged(packageName: String, user: UserHandle) {
+            IconFactory.clearCache()
+            loadApps()
+        }
+        override fun onPackagesAvailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
+            IconFactory.clearCache()
+            loadApps()
+        }
         override fun onPackagesUnavailable(packageNames: Array<out String>, user: UserHandle, replacing: Boolean) {
-            if (!replacing) loadApps()
+            if (!replacing) {
+                IconFactory.clearCache()
+                loadApps()
+            }
         }
     }
 
@@ -92,7 +107,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     /** Re-applies settings that affect the data (icon style, hidden apps). */
     fun onSettingsChanged() {
         val rendered = renderedIconStyle ?: return
-        if (prefs.iconStyle != rendered) loadApps() else publish()
+        if (prefs.iconStyle != rendered) {
+            IconFactory.clearCache()
+            loadApps()
+        } else {
+            publish()
+        }
     }
 
     private fun queryApps(style: LauncherPrefs.IconStyle): List<AppInfo> {
@@ -117,11 +137,12 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
                             if (isMain) info.getIcon(density) else info.getBadgedIcon(density)
                         } catch (e: Exception) { null } ?: app.packageManager.defaultActivityIcon
                         val flags = info.applicationInfo.flags
+                        val key = "${info.componentName.flattenToShortString()}#$serial"
                         AppInfo(
                             label = info.label?.toString()?.trim().orEmpty().ifEmpty { info.componentName.packageName },
                             packageName = info.componentName.packageName,
                             activityName = info.componentName.className,
-                            icon = IconFactory.render(app.resources, raw, style, sizePx),
+                            icon = IconFactory.render(app.resources, raw, style, sizePx, key),
                             user = info.user,
                             isSystemApp = (flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
                                 (flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0,

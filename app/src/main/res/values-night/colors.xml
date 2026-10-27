@@ -40,4 +40,6 @@
     <color name="ripple_light">#1FFFFFFF</color>
     <color name="ripple_dark">#14000000</color>
     <color name="text_highlight">#55D71921</color>
+    <color name="border_subtle">#232327</color>
+    <color name="surface_dark">#0C0C0E</color>
 </resources>

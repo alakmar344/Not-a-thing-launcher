@@ -152,7 +152,7 @@ class BatteryDotsView @JvmOverloads constructor(
     }
 
     private fun updatePulse() {
-        val shouldPulse = charging && isAttachedToWindow
+        val shouldPulse = charging && isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
         if (shouldPulse && pulseAnimator == null) {
             pulseAnimator = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
                 duration = 1600
@@ -178,6 +178,7 @@ class BatteryDotsView @JvmOverloads constructor(
             } catch (_: Throwable) {}
         }
     }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         pulseAnimator?.cancel()
@@ -188,5 +189,20 @@ class BatteryDotsView @JvmOverloads constructor(
                 receiverRegistered = false
             } catch (_: Throwable) {}
         }
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        updatePulse()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        updatePulse()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        updatePulse()
     }
 }

@@ -35,10 +35,30 @@ object IconFactory {
     private const val GLYPH_COLOR_LIGHT = 0xFF0E0E10.toInt()
     private const val RIM_COLOR_LIGHT = 0xFFD8D8D4.toInt()
 
+    private val iconCache = androidx.collection.LruCache<String, Bitmap>(300)
+
+    fun clearCache() {
+        iconCache.evictAll()
+    }
+
     /** The three layers of an adaptive icon (monochrome only exists on Android 13+). */
     class Layers(val background: Drawable?, val foreground: Drawable?, val monochrome: Drawable?)
 
-    fun render(resources: Resources, source: Drawable, style: LauncherPrefs.IconStyle, sizePx: Int): Drawable {
+    fun render(
+        resources: Resources,
+        source: Drawable,
+        style: LauncherPrefs.IconStyle,
+        sizePx: Int,
+        cacheKey: String? = null
+    ): Drawable {
+        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
+        val fullKey = if (cacheKey != null) "${cacheKey}_${style.name}_${sizePx}_$isLight" else null
+        if (fullKey != null) {
+            val cached = iconCache.get(fullKey)
+            if (cached != null && !cached.isRecycled) {
+                return BitmapDrawable(resources, cached)
+            }
+        }
         val layers = if (source is AdaptiveIconDrawable) {
             Layers(
                 source.background,
@@ -46,8 +66,11 @@ object IconFactory {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) source.monochrome else null
             )
         } else null
-        val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
-        return renderInternal(resources, source, layers, style, sizePx, isLight)
+        val drawable = renderInternal(resources, source, layers, style, sizePx, isLight)
+        if (fullKey != null && drawable is BitmapDrawable && drawable.bitmap != null) {
+            iconCache.put(fullKey, drawable.bitmap)
+        }
+        return drawable
     }
 
     /** Renders from explicit adaptive layers (used directly by previews/tests). */

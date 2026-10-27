@@ -1,4 +1,4 @@
-package com.nothinglauncher
+﻿package com.nothinglauncher
 
 import android.annotation.SuppressLint
 import android.view.LayoutInflater
