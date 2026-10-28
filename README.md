@@ -35,9 +35,10 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
 - `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
+- `app-release.aab` (Android App Bundle for Google Play / bundletool; not directly installable)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
-Install it like any APK. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
+Install it like any APK. **To update, just install the new APK over the old one — no uninstall needed.** Every build is signed with the same key and gets a higher `versionCode`. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
 
 ### Local signed artifact
 
@@ -53,12 +54,17 @@ dist/Not-a-Thing-Launcher-10.0-release.apk
 
 ## 🔐 Release signing & update compatibility
 
-Release builds read signing material from two **ignored** files:
+Android only installs an update if it is signed with the **same key** as the installed app. Every old GitHub release (v2 → v10.0) was signed with a different throwaway key that GitHub Actions generated and then discarded. That is why updates failed.
 
-- `keystore/release.jks` — the RSA key pair.
-- `keystore.properties` — store/key passwords and the `nothinglauncher` alias.
+**Fixed:** all builds are now signed with one permanent key, `keystore/stable-signing.p12`, and every build gets a higher `versionCode` (`2000 + GitHub run number`). Nothing needs configuring. From the next release on, just install the new APK over the old one.
 
-Keep both files for every future release of `com.nothinglauncher`. Losing them means Android will reject updates signed with a different key. The build fails rather than silently falling back to the debug key when the release signing configuration is missing.
+**One last uninstall is unavoidable** for people who already have an old version. Moving an installed app to a new key ([APK Signature Scheme v3 key rotation](https://source.android.com/docs/security/features/apksigning/v3)) needs the *old* private key, and those keys no longer exist.
+
+Optional: your own key can be supplied as the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`. Add them now or never, because changing keys later forces another uninstall.
+
+### Optional: `.aab` files and re-signed old releases
+
+The automation that pushes this repo is not allowed to edit `.github/workflows/`. If you want the `.aab` (Android App Bundle) attached to releases, and a one-click button that re-signs all old releases (v2 → v9.0) with the same key, paste the contents of `ci/workflows/build.yml` over `.github/workflows/build.yml` in the GitHub web editor. To re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
 
 Build locally (Windows):
 

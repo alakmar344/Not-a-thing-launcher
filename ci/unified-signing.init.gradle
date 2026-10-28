@@ -1,0 +1,43 @@
+// Gradle init script used to rebuild OLD tagged releases with the same signing key as current
+// builds, so every published version can be installed over / updated by every newer one.
+//
+//   ./gradlew --init-script ci/unified-signing.init.gradle assembleRelease
+//
+// Environment:
+//   RELEASE_KEYSTORE_FILE, RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS, RELEASE_KEY_PASSWORD
+//       optional – your own key (same secrets as the main build). If absent, the stable key is used.
+//   STABLE_KEYSTORE_FILE   path to keystore/stable-signing.p12 (fallback key)
+//   FORCE_VERSION_CODE     optional – overrides defaultConfig.versionCode
+
+def releaseKs = System.getenv('RELEASE_KEYSTORE_FILE')
+def useReleaseKey = releaseKs != null && !releaseKs.trim().isEmpty() && new File(releaseKs).exists()
+def stableKs = System.getenv('STABLE_KEYSTORE_FILE')
+def forcedVersionCode = System.getenv('FORCE_VERSION_CODE')
+
+allprojects {
+    plugins.withId('com.android.application') {
+        project.extensions.getByName('androidComponents').finalizeDsl { android ->
+            def cfg = android.signingConfigs.findByName('ciUnified') ?: android.signingConfigs.create('ciUnified')
+            if (useReleaseKey) {
+                cfg.storeFile = new File(releaseKs)
+                cfg.storePassword = System.getenv('RELEASE_KEYSTORE_PASSWORD')
+                cfg.keyAlias = System.getenv('RELEASE_KEY_ALIAS')
+                cfg.keyPassword = System.getenv('RELEASE_KEY_PASSWORD') ?: System.getenv('RELEASE_KEYSTORE_PASSWORD')
+            } else {
+                if (stableKs == null || !new File(stableKs).exists()) {
+                    throw new GradleException("STABLE_KEYSTORE_FILE not set or missing: ${stableKs}")
+                }
+                cfg.storeFile = new File(stableKs)
+                cfg.storePassword = 'nothinglauncher'
+                cfg.keyAlias = 'nothinglauncher'
+                cfg.keyPassword = 'nothinglauncher'
+                cfg.storeType = 'pkcs12'
+            }
+            android.buildTypes.each { it.signingConfig = cfg }
+            if (forcedVersionCode != null && forcedVersionCode.trim().isInteger()) {
+                android.defaultConfig.versionCode = forcedVersionCode.trim().toInteger()
+            }
+            println "[unified-signing] key=${useReleaseKey ? 'release secret' : 'stable'} versionCode=${android.defaultConfig.versionCode}"
+        }
+    }
+}
