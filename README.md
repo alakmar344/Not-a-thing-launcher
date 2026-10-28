@@ -19,6 +19,7 @@ A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — w
 
 Comprehensive documentation has been prepared across dedicated architecture, feature, and visual guides:
 
+- **[Release v10.1 Notes](docs/RELEASE_V10_1.md)** — App icon in your app list, one-tap "set as home", in-place updates.
 - **[Release v10.0 Notes](docs/RELEASE_V10.md)** — General Availability changelog, zero battery architecture, icon caching, and surface polish.
 - **[Release v9.0 Notes](docs/RELEASE_V9.md)** — Native rebuild changelog, permissions, upgrade and signing details.
 - **[Release v8.0 Notes](docs/RELEASE_V8.md)** — Detailed overview of Release v8, bug fixes, changelog, and APK binaries.
@@ -28,9 +29,9 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 
 ---
 
-## ⬇️ Download Latest APK (Build v10.0 GA)
+## ⬇️ Download Latest APK (v10.1)
 
-- **[Download Latest APK (Release v10.0 GA)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
+- **[Download Latest APK (v10.1)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
@@ -38,14 +39,14 @@ Each release contains:
 - `app-release.aab` (Android App Bundle for Google Play / bundletool; not directly installable)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
-Install it like any APK. **To update, just install the new APK over the old one — no uninstall needed.** Every build is signed with the same key and gets a higher `versionCode`. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
+Install it like any APK, then tap **Open** (or the new **Not a Thing Launcher** icon in your app list). It walks you through making it your home app, with no trip to Settings needed. **To update, just install the new APK over the old one — no uninstall needed.** Every build is signed with the same key and gets a higher `versionCode`. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
 
 ### Local signed artifact
 
 The repository build produces a production-signed APK at:
 
 ```text
-dist/Not-a-Thing-Launcher-10.0-release.apk
+dist/Not-a-Thing-Launcher-10.1-release.apk
 ```
 
 `dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
