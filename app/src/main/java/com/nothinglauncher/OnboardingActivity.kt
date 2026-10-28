@@ -145,9 +145,9 @@ class OnboardingActivity : AppCompatActivity() {
             if (isDefault) R.string.onboarding_open_home else R.string.onboarding_set_default
         )
         binding.onboardingStatusDot.alpha = if (isDefault) 1f else 0.45f
-        if (isDefault) {
-            binding.onboardingContinue.setText(R.string.onboarding_continue)
-        }
+        // Once we are the home app the primary button already says "Open home screen";
+        // "Continue without changing home" would be redundant and confusing.
+        binding.onboardingContinue.visibility = if (isDefault) View.GONE else View.VISIBLE
     }
 
     private fun finishToHome() {

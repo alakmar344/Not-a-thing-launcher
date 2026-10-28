@@ -420,4 +420,10 @@
     <string name="action_stop_recording">Stop recording</string>
     <string name="recorder_stop_playback">Stop playback</string>
     <string name="action_open_folder">Open folder</string>
+
+    <!-- v10.1 App icon entry & shortcuts -->
+    <string name="shortcut_settings_long">Launcher settings</string>
+    <string name="shortcut_set_default">Set as home</string>
+    <string name="shortcut_set_default_long">Set as default home app</string>
+    <string name="entry_not_default">Not a Thing is not your home app yet. Pick it under Default home app.</string>
 </resources>

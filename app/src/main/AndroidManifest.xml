@@ -85,6 +85,32 @@
             </intent-filter>
         </activity>
 
+        <!-- App-list icon. MainActivity is HOME-only, so without this entry the launcher had no
+             icon after install, the installer's "Open" button was disabled and users had to dig
+             through Settings > Default apps. This invisible trampoline opens home if we already
+             are the default, otherwise the welcome tour / the system "choose home app" prompt. -->
+        <activity
+            android:name=".LauncherEntryActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:taskAffinity="com.nothinglauncher.entry"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.nothinglauncher.action.SET_DEFAULT_HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+        </activity>
+
         <activity
             android:name=".OnboardingActivity"
             android:configChanges="keyboard|keyboardHidden|orientation|screenLayout|screenSize|smallestScreenSize"
