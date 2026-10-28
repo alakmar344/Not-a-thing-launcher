@@ -54,28 +54,17 @@ dist/Not-a-Thing-Launcher-10.0-release.apk
 
 ## 🔐 Release signing & update compatibility
 
-Android only installs an update when it is signed with the **same key** as the installed app and has an equal or higher `versionCode`. Earlier GitHub releases were signed with the CI runner's throwaway debug key (a new one every run), so updates failed and users had to uninstall first. That is fixed:
+Android only installs an update if it is signed with the **same key** as the installed app. Every old GitHub release (v2 → v10.0) was signed with a different throwaway key that GitHub Actions generated and then discarded. That is why updates failed.
 
-Release signing key, in priority order:
+**Fixed:** all builds are now signed with one permanent key, `keystore/stable-signing.p12`, and every build gets a higher `versionCode` (`2000 + GitHub run number`). Nothing needs configuring. From the next release on, just install the new APK over the old one.
 
-1. **GitHub secrets** (recommended) — `RELEASE_KEYSTORE_BASE64` (output of `base64 -w0 keystore/release.jks`), `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
-2. **Local files** — `keystore.properties` + `keystore/release.jks` (both git-ignored).
-3. **Fallback** — the committed `keystore/stable-signing.p12`. It is public, but stable, so updates always install cleanly.
+**One last uninstall is unavoidable** for people who already have an old version. Moving an installed app to a new key ([APK Signature Scheme v3 key rotation](https://source.android.com/docs/security/features/apksigning/v3)) needs the *old* private key, and those keys no longer exist.
 
-Debug builds are always signed with `keystore/stable-signing.p12`. On GitHub Actions `versionCode = 2000 + run number`, so every build is newer than the last.
+Optional: your own key can be supplied as the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`. Add them now or never, because changing keys later forces another uninstall.
 
-### One-time CI setup (workflow files)
+### Optional: `.aab` files and re-signed old releases
 
-The automation that pushes this branch cannot edit `.github/workflows/` (no `workflow` scope), so the updated workflows live in `ci/workflows/`. Copy them in once via the GitHub web UI (**Add file → Create new file**) or a local git push:
-
-| Copy from | To | What it does |
-|---|---|---|
-| `ci/workflows/build.yml` | `.github/workflows/build.yml` | Adds the `.aab` (Android App Bundle) to every release, optional secret-based signing |
-| `ci/workflows/rebuild-old-releases.yml` | `.github/workflows/rebuild-old-releases.yml` | Manual job that rebuilds **all old releases** (v2 → v9.0) with the same key and increasing versionCodes (1001–1011), replacing their APK/AAB assets |
-
-Then open **Actions → Rebuild old releases with unified signing → Run workflow** once. Afterwards a new user can install any version and update to any newer one in place. (Even before copying, the existing workflow already produces stable-signed, update-friendly APKs thanks to `app/build.gradle`.)
-
-> ⚠️ Once a key is chosen, keep it forever. Switching keys (e.g. adding the secrets later) means users must uninstall one final time. Devices with an APK from an older CI build also need one last uninstall, after which all future updates install in place.
+The automation that pushes this repo is not allowed to edit `.github/workflows/`. If you want the `.aab` (Android App Bundle) attached to releases, and a one-click button that re-signs all old releases (v2 → v9.0) with the same key, paste the contents of `ci/workflows/build.yml` over `.github/workflows/build.yml` in the GitHub web editor. To re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
 
 Build locally (Windows):
 
