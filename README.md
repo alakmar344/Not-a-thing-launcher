@@ -35,9 +35,10 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 Each release contains:
 - `NothingLauncher-release.apk` (ProGuard-optimized production build)
 - `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
+- `app-release.aab` (Android App Bundle for Google Play / bundletool; not directly installable)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
-Install it like any APK. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
+Install it like any APK. **To update, just install the new APK over the old one — no uninstall needed.** Every build is signed with the same key and gets a higher `versionCode`. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
 
 ### Local signed artifact
 
@@ -53,12 +54,28 @@ dist/Not-a-Thing-Launcher-10.0-release.apk
 
 ## 🔐 Release signing & update compatibility
 
-Release builds read signing material from two **ignored** files:
+Android only installs an update when it is signed with the **same key** as the installed app and has an equal or higher `versionCode`. Earlier GitHub releases were signed with the CI runner's throwaway debug key (a new one every run), so updates failed and users had to uninstall first. That is fixed:
 
-- `keystore/release.jks` — the RSA key pair.
-- `keystore.properties` — store/key passwords and the `nothinglauncher` alias.
+Release signing key, in priority order:
 
-Keep both files for every future release of `com.nothinglauncher`. Losing them means Android will reject updates signed with a different key. The build fails rather than silently falling back to the debug key when the release signing configuration is missing.
+1. **GitHub secrets** (recommended) — `RELEASE_KEYSTORE_BASE64` (output of `base64 -w0 keystore/release.jks`), `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`.
+2. **Local files** — `keystore.properties` + `keystore/release.jks` (both git-ignored).
+3. **Fallback** — the committed `keystore/stable-signing.p12`. It is public, but stable, so updates always install cleanly.
+
+Debug builds are always signed with `keystore/stable-signing.p12`. On GitHub Actions `versionCode = 2000 + run number`, so every build is newer than the last.
+
+### One-time CI setup (workflow files)
+
+The automation that pushes this branch cannot edit `.github/workflows/` (no `workflow` scope), so the updated workflows live in `ci/workflows/`. Copy them in once via the GitHub web UI (**Add file → Create new file**) or a local git push:
+
+| Copy from | To | What it does |
+|---|---|---|
+| `ci/workflows/build.yml` | `.github/workflows/build.yml` | Adds the `.aab` (Android App Bundle) to every release, optional secret-based signing |
+| `ci/workflows/rebuild-old-releases.yml` | `.github/workflows/rebuild-old-releases.yml` | Manual job that rebuilds **all old releases** (v2 → v9.0) with the same key and increasing versionCodes (1001–1011), replacing their APK/AAB assets |
+
+Then open **Actions → Rebuild old releases with unified signing → Run workflow** once. Afterwards a new user can install any version and update to any newer one in place. (Even before copying, the existing workflow already produces stable-signed, update-friendly APKs thanks to `app/build.gradle`.)
+
+> ⚠️ Once a key is chosen, keep it forever. Switching keys (e.g. adding the secrets later) means users must uninstall one final time. Devices with an APK from an older CI build also need one last uninstall, after which all future updates install in place.
 
 Build locally (Windows):
 

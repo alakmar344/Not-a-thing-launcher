@@ -16,3 +16,6 @@ keystore/password.txt
 build_*.log
 dist/
 
+
+# Stable signing key used so every build can update the previous one
+!keystore/stable-signing.p12
