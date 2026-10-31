@@ -8,12 +8,9 @@ import android.os.Bundle
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
-import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
@@ -44,7 +41,6 @@ import com.nothinglauncher.databinding.WidgetWeatherBinding
 import com.nothinglauncher.databinding.WidgetWorldClockBinding
 import java.time.LocalDate
 import java.util.Calendar
-import kotlin.math.abs
 
 /**
  * Unified Workspace Page Adapter.
@@ -142,6 +138,15 @@ class WorkspacePageAdapter(
                 (child.tag as? String)?.let { id -> viewModel.ensureMinRows(pageIndex, id, rows) }
             }
 
+            /**
+             * Adds an item view to the grid. A rebind while that item is being dragged (page added
+             * by an edge flip, widget refresh...) must keep the original hidden in place.
+             */
+            fun addItemView(view: View, lp: CellLayout.LayoutParams, itemId: String) {
+                b.cellLayout.addView(view, lp)
+                host.dragController.adoptHiddenSource(pageIndex, itemId, view)
+            }
+
             page.items.forEach { item ->
                 when (item.type) {
                     WorkspaceItem.Type.APP -> {
@@ -160,7 +165,7 @@ class WorkspacePageAdapter(
                             { DragController.DragItem.App(app, DragController.DragSource.HOME_PAGE, pageIndex, item.id) }
                         ) { host.showAppPopup(app, appB.root, MainActivity.PopupOrigin.HOME) }
                         appB.root.setOnClickListener { host.launchApp(app, it) }
-                        b.cellLayout.addView(appB.root, lp)
+                        addItemView(appB.root, lp, item.id)
                     }
 
                     WorkspaceItem.Type.FOLDER -> {
@@ -171,7 +176,8 @@ class WorkspacePageAdapter(
                             // 2x2 Enlarged Folder
                             val f2B = ItemWorkspaceFolder2x2Binding.inflate(inflater, b.cellLayout, false)
                             f2B.folder2x2Name.text = folder.name
-                            f2B.folder2x2Count.text = "${folder.appKeys.size} APPS"
+                            f2B.folder2x2Count.text = ctx.resources.getQuantityString(R.plurals.folder_app_count, folderApps.size, folderApps.size)
+                            f2B.root.contentDescription = folder.name
                             f2B.folder2x2Dot.background.mutate().setTint(accent)
 
                             val slots = listOf(f2B.fSlot1, f2B.fSlot2, f2B.fSlot3, f2B.fSlot4)
@@ -182,6 +188,7 @@ class WorkspacePageAdapter(
                                 if (fApp != null) {
                                     icons[idx].setImageDrawable(fApp.icon)
                                     icons[idx].isVisible = true
+                                    slot.contentDescription = fApp.label
                                     LongPressDragHelper.attach(
                                         slot,
                                         onClick = { host.launchApp(fApp, it) },
@@ -213,12 +220,13 @@ class WorkspacePageAdapter(
                             f2B.root.setOnClickListener { host.showFolderSheet(pageIndex, folder) }
 
                             val lp = CellLayout.LayoutParams(item.cellX, item.cellY, item.spanX, item.spanY)
-                            b.cellLayout.addView(f2B.root, lp)
+                            addItemView(f2B.root, lp, item.id)
                         } else {
                             // 1x1 Folder Icon
                             val f1B = ItemWorkspaceFolder1x1Binding.inflate(inflater, b.cellLayout, false)
                             f1B.folderLabel.text = folder.name
                             f1B.folderLabel.isVisible = prefs.showHomeLabels
+                            f1B.root.contentDescription = folder.name
 
                             val miniIcons = listOf(f1B.miniIcon1, f1B.miniIcon2, f1B.miniIcon3, f1B.miniIcon4)
                             miniIcons.forEachIndexed { idx, iv ->
@@ -239,7 +247,7 @@ class WorkspacePageAdapter(
                             f1B.root.setOnClickListener { host.showFolderSheet(pageIndex, folder) }
 
                             val lp = CellLayout.LayoutParams(item.cellX, item.cellY, item.spanX, item.spanY)
-                            b.cellLayout.addView(f1B.root, lp)
+                            addItemView(f1B.root, lp, item.id)
                         }
                     }
 
@@ -248,6 +256,7 @@ class WorkspacePageAdapter(
                         val maxB = ItemMaxAppBinding.inflate(inflater, b.cellLayout, false)
                         maxB.maxAppIcon.setImageDrawable(app.icon)
                         maxB.maxAppLabel.text = app.label
+                        maxB.root.contentDescription = app.label
                         maxB.maxAppDot.background.mutate().setTint(accent)
                         maxB.root.setOnClickListener { host.launchApp(app, it) }
                         attachTileGestures(
@@ -255,7 +264,7 @@ class WorkspacePageAdapter(
                             { DragController.DragItem.MaxApp(app, pageIndex, item.id) }
                         ) { host.showAppPopup(app, maxB.root, MainActivity.PopupOrigin.HOME) }
                         val lp = CellLayout.LayoutParams(item.cellX, item.cellY, item.spanX, item.spanY)
-                        b.cellLayout.addView(maxB.root, lp)
+                        addItemView(maxB.root, lp, item.id)
                     }
 
                     WorkspaceItem.Type.BESPOKE -> {
@@ -265,7 +274,7 @@ class WorkspacePageAdapter(
                             view.tag = item.id
                             val lp = CellLayout.LayoutParams(item.cellX, item.cellY, item.spanX, item.spanY)
                             lp.fitContent = true
-                            b.cellLayout.addView(view, lp)
+                            addItemView(view, lp, item.id)
                         }
                     }
 
@@ -289,15 +298,22 @@ class WorkspacePageAdapter(
                             hostView.onDragStart = { _, rawX, rawY ->
                                 host.startDrag(DragController.DragItem.Widget(wId, pageIndex, item.id), card, rawX, rawY)
                             }
+                            cleanups += {
+                                hostView.onLongPress = null
+                                hostView.onDragStart = null
+                            }
                         }
                         // Tell the provider the real size it is drawn at (dp), like the stock host.
-                        hostView.addOnLayoutChangeListener { v, l, t, r, btm, ol, ot, or, ob ->
+                        // Host views are cached across binds, so the listener must be removed again.
+                        val sizeListener = View.OnLayoutChangeListener { v, l, t, r, btm, ol, ot, or, ob ->
                             if (r - l != or - ol || btm - t != ob - ot) {
                                 updateWidgetSize(v, ((r - l) / density).toInt(), ((btm - t) / density).toInt())
                             }
                         }
+                        hostView.addOnLayoutChangeListener(sizeListener)
+                        cleanups += { hostView.removeOnLayoutChangeListener(sizeListener) }
                         val lp = CellLayout.LayoutParams(item.cellX, item.cellY, item.spanX, item.spanY)
-                        b.cellLayout.addView(card, lp)
+                        addItemView(card, lp, item.id)
                     }
                 }
             }
@@ -415,12 +431,8 @@ class WorkspacePageAdapter(
                     }
                     togB.toggleSound.setOnClickListener { cycleSoundMode(ctx, togB) }
                     val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
-                    togB.soundLabel.text = when (audioManager?.ringerMode) {
-                        AudioManager.RINGER_MODE_VIBRATE -> ctx.getString(R.string.sound_vibrate)
-                        AudioManager.RINGER_MODE_SILENT -> ctx.getString(R.string.sound_silent)
-                        else -> ctx.getString(R.string.sound_normal)
-                    }
-                    togB.torchLabel.text = if (torchEnabled) "ON" else ctx.getString(R.string.toggle_torch).uppercase()
+                    togB.soundLabel.text = soundLabel(ctx, audioManager?.ringerMode)
+                    applyTorchState(ctx, togB)
                     attachTileGestures(
                         togB.root,
                         { DragController.DragItem.Bespoke(BespokeElement.QUICK_TOGGLES, pageIndex, itemId) }
@@ -753,51 +765,62 @@ class WorkspacePageAdapter(
             }
         }
 
+        private fun applyTorchState(context: Context, binding: WidgetQuickTogglesBinding) {
+            binding.torchLabel.text = if (torchEnabled) {
+                context.getString(R.string.torch_on)
+            } else {
+                context.getString(R.string.toggle_torch).uppercase()
+            }
+            binding.torchDisc.background.mutate().setTint(
+                if (torchEnabled) {
+                    viewModel.prefs.accentColor()
+                } else {
+                    ContextCompat.getColor(context, R.color.surface_raised)
+                }
+            )
+        }
+
         private fun toggleTorch(context: Context, binding: WidgetQuickTogglesBinding) {
             val cm = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
-            val id = cm.cameraIdList.firstOrNull() ?: return
-            torchEnabled = !torchEnabled
             try {
-                cm.setTorchMode(id, torchEnabled)
-                binding.torchLabel.text = if (torchEnabled) "ON" else context.getString(R.string.toggle_torch).uppercase()
-                binding.torchDisc.background.mutate().setTint(
-                    if (torchEnabled) {
-                        viewModel.prefs.accentColor()
-                    } else {
-                        ContextCompat.getColor(context, R.color.surface_raised)
-                    }
-                )
-            } catch (e: Exception) {
+                // Use a camera that actually has a flash unit (the first id may not).
+                val id = cm.cameraIdList.firstOrNull { camId ->
+                    cm.getCameraCharacteristics(camId)
+                        .get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+                } ?: run {
+                    AppLauncher.toast(context, R.string.cannot_open)
+                    return
+                }
+                cm.setTorchMode(id, !torchEnabled)
                 torchEnabled = !torchEnabled
+                applyTorchState(context, binding)
+            } catch (e: Exception) {
                 AppLauncher.toast(context, R.string.cannot_open)
             }
         }
 
+        private fun soundLabel(context: Context, ringerMode: Int?): String = when (ringerMode) {
+            AudioManager.RINGER_MODE_VIBRATE -> context.getString(R.string.sound_vibrate)
+            AudioManager.RINGER_MODE_SILENT -> context.getString(R.string.sound_silent)
+            else -> context.getString(R.string.sound_normal)
+        }
+
         private fun cycleSoundMode(context: Context, binding: WidgetQuickTogglesBinding) {
             val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
-            when (am.ringerMode) {
-                AudioManager.RINGER_MODE_NORMAL -> {
-                    try {
-                        am.ringerMode = AudioManager.RINGER_MODE_VIBRATE
-                    } catch (_: Exception) {
-                    }
-                    binding.soundLabel.text = context.getString(R.string.sound_vibrate)
-                }
-                AudioManager.RINGER_MODE_VIBRATE -> {
-                    try {
-                        am.ringerMode = AudioManager.RINGER_MODE_SILENT
-                    } catch (_: Exception) {
-                    }
-                    binding.soundLabel.text = context.getString(R.string.sound_silent)
-                }
-                else -> {
-                    try {
-                        am.ringerMode = AudioManager.RINGER_MODE_NORMAL
-                    } catch (_: Exception) {
-                    }
-                    binding.soundLabel.text = context.getString(R.string.sound_normal)
-                }
+            val next = when (am.ringerMode) {
+                AudioManager.RINGER_MODE_NORMAL -> AudioManager.RINGER_MODE_VIBRATE
+                AudioManager.RINGER_MODE_VIBRATE -> AudioManager.RINGER_MODE_SILENT
+                else -> AudioManager.RINGER_MODE_NORMAL
             }
+            try {
+                am.ringerMode = next
+            } catch (_: SecurityException) {
+                // Switching into/out of silent needs Do Not Disturb access on Android 7+.
+                AppLauncher.start(context, Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS), showError = false)
+            } catch (_: Exception) {
+            }
+            // Show the mode the system actually applied, not the one we asked for.
+            binding.soundLabel.text = soundLabel(context, am.ringerMode)
         }
 
         private fun updateWidgetSize(view: View, widthDp: Int, heightDp: Int) {

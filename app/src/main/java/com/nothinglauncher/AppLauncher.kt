@@ -48,7 +48,13 @@ object AppLauncher {
                 return true
             }
         } catch (e: Exception) {
-            // fall through to the package manager route
+            // Work-profile apps can't be started through a plain intent (it would open the
+            // personal copy, or nothing); a paused profile also lands here.
+            if (app.isWorkProfile) {
+                toast(context, R.string.cannot_open)
+                return false
+            }
+            // otherwise fall through to the package manager route
         }
         return try {
             val intent = Intent(Intent.ACTION_MAIN).apply {
@@ -78,7 +84,10 @@ object AppLauncher {
 
     fun uninstall(context: Context, app: AppInfo) {
         @Suppress("DEPRECATION")
-        start(context, Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.fromParts("package", app.packageName, null)))
+        val intent = Intent(Intent.ACTION_UNINSTALL_PACKAGE, Uri.fromParts("package", app.packageName, null))
+        // Without the user the installer would uninstall the personal copy of a work app.
+        app.user?.let { intent.putExtra(Intent.EXTRA_USER, it) }
+        start(context, intent)
     }
 
     // ---- App shortcuts (only available while we are the default home app) --------------
@@ -111,7 +120,8 @@ object AppLauncher {
 
     fun startShortcut(context: Context, shortcut: ShortcutInfo, source: View?) {
         try {
-            launcherApps(context)?.startShortcut(shortcut, boundsOf(source), revealOptions(source))
+            val la = launcherApps(context) ?: throw IllegalStateException("LauncherApps unavailable")
+            la.startShortcut(shortcut, boundsOf(source), revealOptions(source))
         } catch (e: Exception) {
             toast(context, R.string.cannot_open)
         }
@@ -138,7 +148,8 @@ object AppLauncher {
             .appendPath(System.currentTimeMillis().toString())
             .build()
         if (!start(context, Intent(Intent.ACTION_VIEW, uri), showError = false)) {
-            start(context, Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_CALENDAR))
+            // CATEGORY_APP_* categories only resolve through a selector intent.
+            start(context, Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR))
         }
     }
 

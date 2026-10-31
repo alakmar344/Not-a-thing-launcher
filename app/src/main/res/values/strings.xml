@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Not a Thing Launcher</string>
+    <string name="app_name" translatable="false">Not a Thing Launcher</string>
 
     <!-- Home -->
     <string name="local_time">Local time</string>
-    <string name="format_24h">24H</string>
+    <string name="format_24h" translatable="false">24H</string>
     <string name="battery">Battery</string>
     <string name="charging">Charging</string>
     <string name="battery_low">Low</string>
@@ -45,7 +45,7 @@
 
     <!-- Widgets -->
     <string name="no_widgets">No widgets available</string>
-    <string name="widget_size">%1$d × %2$d</string>
+    <string name="widget_size" translatable="false">%1$d × %2$d</string>
     <string name="widget_failed">That widget couldn’t be added</string>
 
     <!-- Settings -->
@@ -111,7 +111,7 @@
     <string name="move_to_prev_page">Move to previous page</string>
     <string name="page_indicator">Page %1$d of %2$d</string>
     <string name="bespoke_elements">Nothing Elements</string>
-    <string name="system_widgets">System Widgets</string>
+    <string name="system_widgets">System widgets</string>
     <string name="remove_element">Remove element</string>
     <string name="element_clock">LED Clock</string>
     <string name="element_clock_sub">Dot-matrix panel with seconds ticker</string>
@@ -125,10 +125,6 @@
     <string name="element_pedometer_sub">Daily activity dot ring</string>
     <string name="element_compass">Compass</string>
     <string name="element_compass_sub">Dot heading &amp; cardinal direction</string>
-    <string name="weather_city_default">LONDON</string>
-    <string name="weather_temp_default">21°</string>
-    <string name="weather_condition_default">PARTLY CLOUDY</string>
-    <string name="weather_details">%1$s · %2$s</string>
     <string name="toggle_wifi">Wi-Fi</string>
     <string name="toggle_bt">Bluetooth</string>
     <string name="toggle_torch">Torch</string>
@@ -137,9 +133,6 @@
     <string name="sound_vibrate">VIBE</string>
     <string name="sound_silent">MUTE</string>
     <string name="pedometer_label">DAILY STEPS</string>
-    <string name="pedometer_steps_default">7,420</string>
-    <string name="pedometer_goal">GOAL 10,000 · 74%</string>
-    <string name="compass_heading_default">042° NE</string>
     <string name="compass_label">HEADING</string>
 
     <!-- v7.5 Complete Launcher features -->
@@ -151,51 +144,42 @@
     <string name="element_world_clock_sub">Dual time-zone dot matrix</string>
 
     <string name="screen_time_label">SCREEN TIME</string>
-    <string name="screen_time_default">3h 42m</string>
-    <string name="screen_time_sub">TODAY · 18 UNLOCKS</string>
     <string name="storage_label">INTERNAL STORAGE</string>
-    <string name="storage_default">128 GB</string>
-    <string name="storage_sub">FREE OF 256 GB · 50%</string>
     <string name="world_clock_label">WORLD TIME</string>
     <string name="world_clock_city1">LOCAL</string>
-    <string name="world_clock_city2">UTC</string>
+    <string name="world_clock_city2" translatable="false">UTC</string>
 
-    <string name="setting_theme">Theme Mode</string>
+    <string name="setting_theme">Theme mode</string>
     <string name="setting_theme_sub">OLED dark, clean light, or follow system</string>
-    <string name="theme_system">SYSTEM</string>
-    <string name="theme_dark">DARK</string>
-    <string name="theme_light">LIGHT</string>
+    <string name="theme_system">System</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_light">Light</string>
 
-    <string name="setting_icon_size">Icon Size</string>
+    <string name="setting_icon_size">Icon size</string>
     <string name="setting_icon_size_sub">Small, standard or enlarged</string>
-    <string name="icon_size_small">SMALL</string>
-    <string name="icon_size_med">NORMAL</string>
-    <string name="icon_size_large">LARGE</string>
+    <string name="icon_size_small">Small</string>
+    <string name="icon_size_med">Normal</string>
+    <string name="icon_size_large">Large</string>
 
-    <string name="setting_dock_labels">Dock Labels</string>
-    <string name="setting_dock_labels_sub">Show text labels in persistent dock</string>
-    <string name="setting_double_tap">Double-Tap to Sleep</string>
-    <string name="setting_double_tap_sub">Double tap empty space to lock screen</string>
+    <string name="setting_dock_labels">Dock labels</string>
+    <string name="setting_dock_labels_sub">Show names under dock icons</string>
+    <string name="setting_double_tap">Double-tap to sleep</string>
+    <string name="setting_double_tap_sub">Double-tap empty space to lock the screen</string>
 
     <string name="action_enlarge">Enlarge (2x2)</string>
     <string name="action_shrink">Shrink (1x1)</string>
-    <string name="action_add_to_folder">Add to Folder</string>
-    <string name="action_new_folder">New Folder</string>
+    <string name="action_add_to_folder">Add to folder</string>
+    <string name="action_new_folder">New folder</string>
     <string name="folder_name_default">FOLDER</string>
-    <string name="folder_rename">Rename Folder</string>
-    <string name="folder_ungroup">Dissolve Folder</string>
-    <string name="folder_add_apps">Add Apps</string>
-    <string name="action_remove_folder_app">Remove from Folder</string>
+    <string name="folder_rename">Rename folder</string>
+    <string name="folder_ungroup">Dissolve folder</string>
+    <string name="folder_add_apps">Add apps</string>
+    <string name="action_remove_folder_app">Remove from folder</string>
 
     <!-- v7.6 Macro and Micro features -->
-    <string name="wallpaper_style">Wallpaper &amp; Style</string>
-    <string name="choose_wallpaper">Choose Wallpaper</string>
+    <string name="wallpaper_style">Wallpaper &amp; style</string>
+    <string name="choose_wallpaper">Choose wallpaper</string>
     <string name="wallpaper_sys_desc">Select from photos or live wallpapers</string>
-    <string name="bg_style_dots">Nothing Dot Matrix</string>
-    <string name="bg_style_solid">Solid Minimalist</string>
-    <string name="bg_style_wallpaper">System Wallpaper</string>
-    <string name="dot_grid_overlay">Dot Matrix Grid</string>
-    <string name="dot_grid_overlay_sub">Signature Nothing dot pattern</string>
     <string name="element_battery_dots">Battery Gauge</string>
     <string name="element_battery_dots_sub">Live battery % &amp; dot ring meter</string>
     <string name="element_quick_note">Quick Note</string>
@@ -205,8 +189,6 @@
     <string name="quick_note_save">Save</string>
     <string name="battery_dots_label">BATTERY GAUGE</string>
     <string name="battery_charging_label">CHARGING</string>
-    <string name="action_quick_settings">Home Settings</string>
-    <string name="action_manage_pages">Manage Pages</string>
     <!-- v8.5 Modern Drag & Drop and Bespoke Widgets Suite -->
     <string name="drag_target_remove">REMOVE</string>
     <string name="drag_target_uninstall">UNINSTALL</string>
@@ -234,21 +216,16 @@
     <string name="element_system_monitor">RAM &amp; CPU Monitor</string>
     <string name="element_system_monitor_sub">Real-time memory usage &amp; processor stats</string>
     <string name="system_monitor_label">SYSTEM MONITOR</string>
-    <string name="system_monitor_ram_free">RAM FREE</string>
-    <string name="system_monitor_cpu_active">CPU ACTIVE</string>
 
     <string name="element_habit_tracker">Habit / Water</string>
     <string name="element_habit_tracker_sub">Daily hydration &amp; 8-dot goal tracker</string>
     <string name="habit_label">HYDRATION TRACKER</string>
-    <string name="habit_sub">8 GLASSES DAILY GOAL</string>
 
     <string name="element_countdown">Event Countdown</string>
     <string name="element_countdown_sub">Days remaining countdown to target event</string>
     <string name="countdown_label">COUNTDOWN</string>
+    <string name="edit_countdown_title">Edit countdown</string>
     <string name="countdown_default_title">NEXT MILESTONE</string>
-    <string name="countdown_days_suffix">DAYS REMAINING</string>
-    <string name="edit_countdown_title">Edit Countdown</string>
-    <string name="countdown_hint">Event title…</string>
 
     <string name="element_sound_recorder">Voice Memo</string>
     <string name="element_sound_recorder_sub">One-tap audio memo recorder</string>
@@ -316,10 +293,8 @@
 
     <string name="habit_reset">Reset today’s progress</string>
     <string name="habit_progress">%1$d OF %2$d COMPLETED · %3$d%%</string>
-    <string name="habit_goal">8 GLASSES DAILY GOAL</string>
 
     <string name="countdown_set_date">Set target date</string>
-    <string name="countdown_edit_title">Event title</string>
     <string name="countdown_title_hint">Event title…</string>
     <string name="countdown_clear">Clear countdown</string>
     <string name="countdown_no_target">NO TARGET SET</string>
@@ -329,7 +304,7 @@
     <string name="countdown_days">%1$d DAYS LEFT</string>
 
     <string name="recorder_saved">Memo saved</string>
-    <string name="recorder_failed">Could not start recording</string>
+    <string name="recorder_failed">Couldn’t start recording</string>
     <string name="recorder_permission">Microphone access is needed to record</string>
     <string name="recorder_play_last">Play last memo</string>
     <string name="recorder_no_recording">No saved memo yet</string>
@@ -346,15 +321,15 @@
     <string name="widget_no_configure">Widget settings unavailable</string>
 
     <!-- v9.0 Editable workspace, real media controls & capability rows -->
-    <string name="move_up">Move Up</string>
-    <string name="move_down">Move Down</string>
+    <string name="move_up">Move up</string>
+    <string name="move_down">Move down</string>
     <string name="double_tap_needs_accessibility">Enable accessibility gestures (Settings → Gestures) to lock the screen</string>
 
     <string name="folder_open">Open folder</string>
     <string name="folder_manage">Manage folder</string>
     <string name="folder_rename_hint">Folder name…</string>
     <string name="folder_renamed">Folder renamed</string>
-    <string name="folder_empty_hint">Long-press an app and choose “Add to Folder”.</string>
+    <string name="folder_empty_hint">Long-press an app and choose “Add to folder”.</string>
     <string name="folder_no_apps">No more apps available to add</string>
     <string name="folder_app_removed">App moved out of the folder</string>
 
@@ -385,7 +360,7 @@
     <string name="accessibility_service_description">Optional gestures for Not a Thing: double-tap the home screen to sleep the display, or pull down to open notifications. The service does not read screen content or collect data.</string>
 
     <!-- v9.0 Launcher actions -->
-    <string name="gesture_needs_accessibility">Enable Accessibility gestures in Settings to use this</string>
+    <string name="gesture_needs_accessibility">Enable accessibility gestures in Settings to use this</string>
     <string name="grant_usage_access">Allow usage access</string>
     <string name="grant_motion_access">Allow motion access</string>
     <string name="grant_microphone">Allow microphone access</string>
@@ -400,11 +375,11 @@
     <string name="widget_move_page">Move to page</string>
     <string name="page_move_to">Move to page %1$d</string>
     <string name="dock_reordered">Dock updated</string>
-    <string name="home_gesture_hint">Long-press empty space to customise</string>
+    <string name="home_gesture_hint">Long-press empty space to customize</string>
 
     <!-- v9.0 Element actions, capability feedback and validation -->
     <string name="open">Open</string>
-    <string name="swipe_needs_accessibility">Enable Accessibility gestures in Settings to pull down the shade</string>
+    <string name="swipe_needs_accessibility">Enable accessibility gestures in Settings to pull down the shade</string>
     <string name="step_goal_invalid">Enter a daily goal between 1,000 and 100,000 steps</string>
     <string name="weather_updated">Weather updated</string>
     <string name="media_refreshed">Media session refreshed</string>
@@ -426,4 +401,23 @@
     <string name="shortcut_set_default">Set as home</string>
     <string name="shortcut_set_default_long">Set as default home app</string>
     <string name="entry_not_default">Not a Thing is not your home app yet. Pick it under Default home app.</string>
+
+    <!-- Element labels and states -->
+    <string name="torch_on">ON</string>
+    <string name="sheet_title_rename">Rename</string>
+    <string name="sheet_title_hidden">Hidden</string>
+    <string name="widget_picker_title">Elements</string>
+    <string name="battery_status_normal">STATUS · NORMAL</string>
+    <string name="countdown_days_unit">DAYS</string>
+    <string name="quote_default">NOTHING BUT TIME</string>
+    <string name="quote_tap_to_edit">TAP TO EDIT NOTE</string>
+    <string name="recorder_ready">READY</string>
+    <string name="storage_free_of">FREE OF %1$d GB · %2$d%% USED</string>
+    <string name="system_monitor_sub">FREE OF %1$.0f GB · %2$d%% USED</string>
+    <string name="recorder_playback_failed">Couldn’t play the memo</string>
+    <string name="folder_dissolved">Folder dissolved</string>
+    <plurals name="folder_app_count">
+        <item quantity="one">%d APP</item>
+        <item quantity="other">%d APPS</item>
+    </plurals>
 </resources>

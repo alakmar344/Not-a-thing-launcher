@@ -164,7 +164,7 @@ class CellLayout @JvmOverloads constructor(
         val stepX = (cellWidth + cellGapX).coerceAtLeast(1).toFloat()
         val stepY = (cellHeight + cellGapY).coerceAtLeast(1).toFloat()
         val sx = spanX.coerceIn(1, countX)
-        val localX = rawCenterX - loc[0] - paddingStart - (sx * cellWidth + (sx - 1) * cellGapX) / 2f
+        val localX = rawCenterX - loc[0] - paddingLeft - (sx * cellWidth + (sx - 1) * cellGapX) / 2f
         val localY = rawCenterY - loc[1] - paddingTop - (spanY * cellHeight + (spanY - 1) * cellGapY) / 2f
         val col = Math.round(localX / stepX).coerceIn(0, countX - sx)
         val row = Math.round(localY / stepY).coerceAtLeast(0)
@@ -182,7 +182,7 @@ class CellLayout @JvmOverloads constructor(
     fun pointToCell(rawX: Float, rawY: Float): Pair<Int, Int>? {
         val loc = IntArray(2)
         getLocationOnScreen(loc)
-        val localX = rawX - loc[0] - paddingStart
+        val localX = rawX - loc[0] - paddingLeft
         val localY = rawY - loc[1] - paddingTop
 
         if (localX < 0 || localY < 0) return null
@@ -210,7 +210,7 @@ class CellLayout @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val width = MeasureSpec.getSize(widthMeasureSpec)
-        val availWidth = (width - paddingStart - paddingEnd).coerceAtLeast(0)
+        val availWidth = (width - paddingLeft - paddingRight).coerceAtLeast(0)
         cellWidth = ((availWidth - (countX - 1) * cellGapX) / countX).coerceAtLeast(0)
 
         // Native proportion: height is 1.18x width to comfortably fit icon and caption.
@@ -267,7 +267,10 @@ class CellLayout @JvmOverloads constructor(
             val child = getChildAt(i)
             if (child.visibility == GONE) continue
             val lp = child.layoutParams as? LayoutParams ?: continue
-            val childLeft = paddingStart + lp.cellX * (cellWidth + cellGapX)
+            // Keep items on screen if the column count shrank under them (e.g. 5 -> 4 columns).
+            val spanX = lp.spanX.coerceIn(1, countX)
+            val cellX = lp.cellX.coerceIn(0, countX - spanX)
+            val childLeft = paddingLeft + cellX * (cellWidth + cellGapX)
             val childTop = paddingTop + lp.cellY * (cellHeight + cellGapY)
             child.layout(childLeft, childTop, childLeft + child.measuredWidth, childTop + child.measuredHeight)
         }
@@ -277,7 +280,7 @@ class CellLayout @JvmOverloads constructor(
         super.dispatchDraw(canvas)
 
         if (dropTargetCellX >= 0 && dropTargetCellY >= 0) {
-            val left = paddingStart + dropTargetCellX * (cellWidth + cellGapX).toFloat()
+            val left = paddingLeft + dropTargetCellX * (cellWidth + cellGapX).toFloat()
             val top = paddingTop + dropTargetCellY * (cellHeight + cellGapY).toFloat()
             val right = left + dropTargetSpanX * cellWidth + (dropTargetSpanX - 1) * cellGapX
             val bottom = top + dropTargetSpanY * cellHeight + (dropTargetSpanY - 1) * cellGapY

@@ -16,7 +16,6 @@ class VoiceRecorder(private val context: Context) {
 
     private var recorder: MediaRecorder? = null
     private var currentFile: File? = null
-    private var startedAt = 0L
     private var startedAtElapsed = 0L
 
     val isRecording: Boolean get() = recorder != null
@@ -35,11 +34,15 @@ class VoiceRecorder(private val context: Context) {
         if (!LauncherSystem.hasRecordAudio(context)) return false
         val stamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
         val file = File(recordingsDir(), "memo_$stamp.m4a")
-        val rec = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(context)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
+        val rec = try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                MediaRecorder(context)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaRecorder()
+            }
+        } catch (e: Exception) {
+            return false
         }
         return try {
             rec.setAudioSource(MediaRecorder.AudioSource.MIC)
@@ -52,7 +55,6 @@ class VoiceRecorder(private val context: Context) {
             rec.start()
             recorder = rec
             currentFile = file
-            startedAt = System.currentTimeMillis()
             startedAtElapsed = android.os.SystemClock.elapsedRealtime()
             true
         } catch (e: Exception) {
@@ -71,15 +73,24 @@ class VoiceRecorder(private val context: Context) {
         val file = currentFile
         recorder = null
         currentFile = null
-        val tooShort = System.currentTimeMillis() - startedAt < 600
+        // Monotonic clock: a wall-clock change mid-recording must not misjudge the length.
+        val tooShort = android.os.SystemClock.elapsedRealtime() - startedAtElapsed < 600
+        startedAtElapsed = 0L
         return try {
+            // stop() throws a RuntimeException when no valid audio was captured yet.
             rec.stop()
             rec.release()
             if (tooShort || file == null || !file.exists() || file.length() < 512L) {
                 file?.delete()
                 null
             } else {
-                LauncherPrefs(context).lastRecordingPath = file.absolutePath
+                val prefs = LauncherPrefs(context)
+                // Single slot: the previous memo is replaced, so do not leave it behind.
+                prefs.lastRecordingPath?.let { old ->
+                    val previous = File(old)
+                    if (previous != file && previous.parentFile == file.parentFile) previous.delete()
+                }
+                prefs.lastRecordingPath = file.absolutePath
                 file
             }
         } catch (e: Exception) {
@@ -105,5 +116,6 @@ class VoiceRecorder(private val context: Context) {
         }
         currentFile?.delete()
         currentFile = null
+        startedAtElapsed = 0L
     }
 }

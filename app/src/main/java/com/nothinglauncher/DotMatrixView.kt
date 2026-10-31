@@ -115,12 +115,15 @@ open class DotMatrixView @JvmOverloads constructor(
         val defaultPitch = 6f * density
         val hMode = MeasureSpec.getMode(heightMeasureSpec)
         val hSize = MeasureSpec.getSize(heightMeasureSpec)
+        // The measured height includes padding; an EXACTLY/AT_MOST spec must never be exceeded.
+        val padV = paddingTop + paddingBottom
+        val desiredHeight = (rows * defaultPitch).toInt() + padV
         val height = when (hMode) {
             MeasureSpec.EXACTLY -> hSize
-            MeasureSpec.AT_MOST -> min(hSize, (rows * defaultPitch).toInt())
-            else -> (rows * defaultPitch).toInt()
+            MeasureSpec.AT_MOST -> min(hSize, desiredHeight)
+            else -> desiredHeight
         }
-        val pitch = height / rows.toFloat()
+        val pitch = max(0, height - padV) / rows.toFloat()
         val extraCols = if (panel) 2 else 0
         val desiredWidth = ((raster.columns + extraCols) * pitch).toInt() + paddingLeft + paddingRight
         val wMode = MeasureSpec.getMode(widthMeasureSpec)
@@ -130,7 +133,7 @@ open class DotMatrixView @JvmOverloads constructor(
             MeasureSpec.AT_MOST -> min(wSize, desiredWidth)
             else -> desiredWidth
         }
-        setMeasuredDimension(width, height + paddingTop + paddingBottom)
+        setMeasuredDimension(width, height)
     }
 
     override fun onDraw(canvas: Canvas) {

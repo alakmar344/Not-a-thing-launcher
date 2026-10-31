@@ -4,7 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.view.View
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
@@ -24,12 +24,6 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var binding: ActivityOnboardingBinding
     private lateinit var prefs: LauncherPrefs
     private var fromSettings = false
-
-    private val homeRole = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        refreshHomeState()
-        // Some OEMs update the role asynchronously; check once more on the next frame.
-        binding.root.postDelayed({ refreshHomeState() }, 450)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         prefs = LauncherPrefs(this)
@@ -83,6 +77,11 @@ class OnboardingActivity : AppCompatActivity() {
         binding.onboardingThemeDark.setOnClickListener { setThemeMode(LauncherPrefs.ThemeMode.DARK) }
         binding.onboardingThemeLight.setOnClickListener { setThemeMode(LauncherPrefs.ThemeMode.LIGHT) }
 
+        // Back behaves like "Skip": the tour is optional and must never trap the user.
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() = finishToHome()
+        })
+
         paintThemePills()
         refreshHomeState()
     }
@@ -95,7 +94,11 @@ class OnboardingActivity : AppCompatActivity() {
     @Deprecated("Handled through the Activity Result API; kept for role fallbacks on old OEMs.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == LauncherSystem.REQUEST_HOME_ROLE) refreshHomeState()
+        if (requestCode == LauncherSystem.REQUEST_HOME_ROLE) {
+            refreshHomeState()
+            // Some OEMs update the role asynchronously; check once more shortly after.
+            if (::binding.isInitialized) binding.root.postDelayed({ if (!isDestroyed) refreshHomeState() }, 450)
+        }
     }
 
     private fun applyStoredTheme() {
@@ -163,10 +166,6 @@ class OnboardingActivity : AppCompatActivity() {
         startActivity(intent)
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
         finish()
-    }
-
-    override fun onBackPressed() {
-        finishToHome()
     }
 
     companion object {

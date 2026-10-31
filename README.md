@@ -5,7 +5,7 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
-**Version 10.0** is the official General Availability (GA) public release — transitioning from beta to a fully optimized, daily-driver-ready launcher. The mandate for v10.0: *we are not adding, we are making it better*. It brings zero-idle battery consumption via lifecycle-gated hardware sensors and view tickers, instantaneous cold-start via in-memory icon bitmap caching, true OLED dark mode and bone-white contrast consistency, and non-destructive schema migrations (`SCHEMA_VERSION = 3`).
+**Version 10.1** is the current release: it adds a real app-list icon with one-tap *set as home*, app-icon shortcuts and painless in-place updates on top of **v10.0**, the General Availability (GA) release that took the launcher from beta to a fully optimized daily driver. The mandate for v10.0: *we are not adding, we are making it better*. It brings zero-idle battery consumption via lifecycle-gated hardware sensors and view tickers, instantaneous cold-start via in-memory icon bitmap caching, true OLED dark mode and bone-white contrast consistency, and non-destructive schema migrations (`SCHEMA_VERSION = 3`).
 
 ![Home, drawer, long-press menu and customize sheet](docs/showcase_1.png)
 
@@ -34,8 +34,8 @@ Comprehensive documentation has been prepared across dedicated architecture, fea
 - **[Download Latest APK (v10.1)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
 
 Each release contains:
-- `NothingLauncher-release.apk` (ProGuard-optimized production build)
-- `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
+- `NothingLauncher-release.apk` (R8-optimized production build)
+- `NothingLauncher-debug.apk` (debuggable, unminified build)
 - `app-release.aab` (Android App Bundle for Google Play / bundletool; not directly installable)
 - `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
 
@@ -49,7 +49,7 @@ The repository build produces a production-signed APK at:
 dist/Not-a-Thing-Launcher-10.1-release.apk
 ```
 
-`dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
+`dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it installs over any earlier build signed with the same stable key (see below).
 
 ---
 
@@ -138,7 +138,7 @@ The release build enables R8 shrinking. Verify the signer before distributing:
 - **Heading Compass** — Procedural dot-matrix compass rose with accent North indicator and degrees heading.
 - **Screen Time & Wellbeing** — Daily active time in dot-matrix typography with a 7-segment dot usage bar.
 - **Storage & RAM Meter** — Device capacity meter with DotFont free GB readout and circular dot fullness ring.
-- **World Clock Tile** — Dual time-zone dot clock showing local and UTC/London times.
+- **World Clock Tile** — Dual time-zone dot clock showing local and UTC times.
 - **Third-Party AppWidgets** — Host any standard Android widget on any workspace page.
 
 ### Theming, Icons & Gestures

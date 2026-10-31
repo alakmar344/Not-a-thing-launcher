@@ -23,9 +23,10 @@ class DotMatrixClockView @JvmOverloads constructor(
 
     /** Freezes the clock at a given time (previews / screenshot tests). */
     var previewTime: Pair<Int, Int>? = null
-        set(value) { field = value; tick() }
+        set(value) { field = value; tick(); updateRunning() }
 
     private var lastMinuteStamp = -1L
+    private var lastColonIndex = -2
     private var running = false
 
     private val ticker = object : Runnable {
@@ -57,7 +58,11 @@ class DotMatrixClockView @JvmOverloads constructor(
             String.format(java.util.Locale.US, "%d:%02d", h12, minute)
         }
         text = newText
-        accentIndices = setOf(newText.indexOf(':'))
+        val colon = newText.indexOf(':')
+        if (colon != lastColonIndex) {
+            lastColonIndex = colon
+            accentIndices = setOf(colon)
+        }
         accentVisible = !blinkColon || preview != null || cal.get(Calendar.SECOND) % 2 == 0
 
         val stamp = cal.timeInMillis / 60_000L

@@ -82,14 +82,16 @@ class AnalogClockDotsView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val w = width.toFloat()
-        val h = height.toFloat()
+        // Honour the layout padding (the tile's label sits in the bottom padding).
+        val w = (width - paddingLeft - paddingRight).toFloat()
+        val h = (height - paddingTop - paddingBottom).toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val cx = w / 2f
-        val cy = h / 2f
-        val radius = min(cx, cy) - 12f * density
+        val cx = paddingLeft + w / 2f
+        val cy = paddingTop + h / 2f
         val dotRadius = 3.5f * density
+        val radius = min(w, h) / 2f - dotRadius * 1.25f
+        if (radius <= 0f) return
 
         // 1. Draw 12 dial dots
         for (i in 0 until 12) {

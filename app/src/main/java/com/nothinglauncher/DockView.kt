@@ -111,11 +111,13 @@ class DockView @JvmOverloads constructor(
     fun dropIndexAt(rawX: Float): Int {
         if (childCount == 0) return 0
         val loc = IntArray(2)
+        // Children are laid out right-to-left in RTL, so "before" a slot means right of its centre.
+        val rtl = layoutDirection == LAYOUT_DIRECTION_RTL
         for (i in 0 until childCount) {
             val child = getChildAt(i)
             child.getLocationOnScreen(loc)
             val center = loc[0] + child.width / 2f
-            if (rawX < center) return i
+            if (if (rtl) rawX > center else rawX < center) return i
         }
         return childCount
     }
@@ -141,6 +143,13 @@ class DockView @JvmOverloads constructor(
 
     override fun onDetachedFromWindow() {
         clearDropTarget()
+        for (i in 0 until childCount) {
+            val child = getChildAt(i)
+            child.animate().cancel()
+            child.translationY = 0f
+            child.scaleX = 1f
+            child.scaleY = 1f
+        }
         super.onDetachedFromWindow()
     }
 }

@@ -84,15 +84,8 @@ object MediaSessionRepository {
     fun stop() {
         val ctx = appContext
         started = false
-        try {
-            if (ctx != null && managerListenerRegistered) {
-                manager?.removeOnActiveSessionsChangedListener(sessionsChanged)
-            }
-        } catch (_: Exception) {
-        }
-        managerListenerRegistered = false
-        controller?.unregisterCallback(sessionCallback)
-        controller = null
+        unregisterManagerListener()
+        detachController()
         update(State(permissionGranted = ctx != null && LauncherSystem.hasNotificationAccess(ctx)))
     }
 
@@ -100,8 +93,10 @@ object MediaSessionRepository {
         val ctx = appContext ?: return
         registerManagerListener(ctx)
         if (!LauncherSystem.hasNotificationAccess(ctx)) {
-            controller?.unregisterCallback(sessionCallback)
-            controller = null
+            // Access was revoked: drop the stale controller and the (now dead) session
+            // listener so it is registered again once access is granted back.
+            detachController()
+            unregisterManagerListener()
             update(State(permissionGranted = false))
             return
         }
@@ -109,9 +104,12 @@ object MediaSessionRepository {
         val sessions = try {
             m.getActiveSessions(listenerComponent(ctx))
         } catch (e: Exception) {
+            // SecurityException when access is revoked between the check and the call.
             null
         }
         if (sessions == null) {
+            detachController()
+            unregisterManagerListener()
             update(State(permissionGranted = false))
         } else {
             attachBestController(sessions)
@@ -127,10 +125,32 @@ object MediaSessionRepository {
             publish()
             return
         }
-        previous?.unregisterCallback(sessionCallback)
+        detachController()
         controller = best
-        best?.registerCallback(sessionCallback, main)
+        try {
+            best?.registerCallback(sessionCallback, main)
+        } catch (_: Exception) {
+            controller = null
+        }
         publish()
+    }
+
+    private fun detachController() {
+        val c = controller ?: return
+        controller = null
+        try {
+            c.unregisterCallback(sessionCallback)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun unregisterManagerListener() {
+        if (!managerListenerRegistered) return
+        managerListenerRegistered = false
+        try {
+            manager?.removeOnActiveSessionsChangedListener(sessionsChanged)
+        } catch (_: Exception) {
+        }
     }
 
     /** Registers the session-change listener whenever notification access is available. */
@@ -152,7 +172,11 @@ object MediaSessionRepository {
             update(State(permissionGranted = LauncherSystem.hasNotificationAccess(appContext ?: return)))
             return
         }
-        val metadata = c.metadata
+        val metadata = try {
+            c.metadata
+        } catch (_: Exception) {
+            null
+        }
         val title = metadata?.getString(MediaMetadata.METADATA_KEY_TITLE)
             ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
             ?: ""
@@ -160,9 +184,7 @@ object MediaSessionRepository {
             ?: metadata?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
             ?: metadata?.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
             ?: ""
-        val state = c.playbackState?.state
-        val playing = state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_BUFFERING ||
-            state == PlaybackState.STATE_CONNECTING
+        val playing = isActivelyPlaying(c)
         update(
             State(
                 permissionGranted = true,
@@ -180,15 +202,42 @@ object MediaSessionRepository {
         main.post { listeners.forEach { it(state) } }
     }
 
-    fun playPause() {
-        val c = controller ?: return
-        val playing = c.playbackState?.state == PlaybackState.STATE_PLAYING
-        if (playing) c.transportControls.pause() else c.transportControls.play()
+    private fun isActivelyPlaying(c: MediaController): Boolean {
+        val state = try {
+            c.playbackState?.state
+        } catch (_: Exception) {
+            null
+        }
+        return state == PlaybackState.STATE_PLAYING || state == PlaybackState.STATE_BUFFERING ||
+            state == PlaybackState.STATE_CONNECTING
     }
 
-    fun next() = controller?.transportControls?.skipToNext()
+    fun playPause() {
+        val c = controller ?: return
+        // Same notion of "playing" as the UI, so a buffering track shows PAUSE and pauses.
+        try {
+            if (isActivelyPlaying(c)) c.transportControls.pause() else c.transportControls.play()
+        } catch (_: Exception) {
+            // The session died or access was revoked mid-call.
+            refresh()
+        }
+    }
 
-    fun previous() = controller?.transportControls?.skipToPrevious()
+    fun next() {
+        try {
+            controller?.transportControls?.skipToNext()
+        } catch (_: Exception) {
+            refresh()
+        }
+    }
+
+    fun previous() {
+        try {
+            controller?.transportControls?.skipToPrevious()
+        } catch (_: Exception) {
+            refresh()
+        }
+    }
 }
 
 /** Registered in the manifest so this package can host the notification listener role. */

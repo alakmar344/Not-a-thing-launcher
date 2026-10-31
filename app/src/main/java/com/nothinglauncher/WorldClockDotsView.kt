@@ -34,13 +34,13 @@ class WorldClockDotsView @JvmOverloads constructor(
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 9.5f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 9.5f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_primary)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 11f, resources.displayMetrics)
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_bold) } catch (e: Exception) { null }
     }
@@ -51,6 +51,10 @@ class WorldClockDotsView @JvmOverloads constructor(
 
     private var localTime: String = "12:00"
     private var utcTime: String = "07:00"
+
+    private val titleText = context.getString(R.string.world_clock_label)
+    private val city1 = context.getString(R.string.world_clock_city1)
+    private val city2 = context.getString(R.string.world_clock_city2)
 
     private var running = false
 
@@ -69,12 +73,15 @@ class WorldClockDotsView @JvmOverloads constructor(
 
     fun updateTimes() {
         val is24 = try { DateFormat.is24HourFormat(context) } catch (_: Exception) { true }
-        val pattern = if (is24) "HH:mm" else "hh:mm"
-        // Locale.US keeps ASCII digits, the only ones DotFont can draw.
-        val local = SimpleDateFormat(pattern, Locale.US)
-        localTime = local.format(Date())
+        // "h:mm" (no leading zero) matches the main dot clock's 12-hour style.
+        val pattern = if (is24) "HH:mm" else "h:mm"
+        // Locale.US keeps ASCII digits, the only ones DotFont can draw. A new formatter picks
+        // up the current default time zone, so zone changes apply on the next tick.
+        val now = Date()
+        localTime = SimpleDateFormat(pattern, Locale.US).format(now)
         val utc = SimpleDateFormat(pattern, Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }
-        utcTime = utc.format(Date())
+        utcTime = utc.format(now)
+        contentDescription = "$city1 $localTime, $city2 $utcTime"
         invalidate()
     }
 
@@ -115,16 +122,15 @@ class WorldClockDotsView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val w = width.toFloat()
+        if (w <= 0f || height <= 0) return
 
         // 1. Draw Title
-        val title = context.getString(R.string.world_clock_label)
-        canvas.drawText(title, 0f, 12f * density, titlePaint)
+        canvas.drawText(titleText, 0f, 12f * density, titlePaint)
 
         // 2. Left: Local Clock
-        val city1 = context.getString(R.string.world_clock_city1)
         canvas.drawText(city1, 0f, 28f * density, textPaint)
 
-        val raster1 = DotFont.rasterize(localTime, 1)
+        val raster1 = DotFont.rasterizeCached(localTime, 1)
         val dotPitch = 2.4f * density
         val dotRadius = dotPitch * 0.38f
         val startY = 34f * density
@@ -141,10 +147,9 @@ class WorldClockDotsView @JvmOverloads constructor(
 
         // 3. Right: UTC / London Clock
         val rightX = w / 2f + 8f * density
-        val city2 = context.getString(R.string.world_clock_city2)
         canvas.drawText(city2, rightX, 28f * density, textPaint)
 
-        val raster2 = DotFont.rasterize(utcTime, 1)
+        val raster2 = DotFont.rasterizeCached(utcTime, 1)
         for (r in 0 until DotFont.ROWS) {
             for (c in 0 until raster2.columns) {
                 if (raster2.lit[r][c]) {

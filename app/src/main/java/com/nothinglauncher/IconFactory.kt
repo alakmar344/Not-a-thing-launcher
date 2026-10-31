@@ -35,7 +35,12 @@ object IconFactory {
     private const val GLYPH_COLOR_LIGHT = 0xFF0E0E10.toInt()
     private const val RIM_COLOR_LIGHT = 0xFFD8D8D4.toInt()
 
-    private val iconCache = androidx.collection.LruCache<String, Bitmap>(300)
+    // Bounded by memory rather than entry count: 300 large icons could exceed 40 MB.
+    private val iconCache = object : androidx.collection.LruCache<String, Bitmap>(
+        (Runtime.getRuntime().maxMemory() / 16).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
+    ) {
+        override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
+    }
 
     fun clearCache() {
         iconCache.evictAll()

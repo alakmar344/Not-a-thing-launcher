@@ -1,5 +1,7 @@
 ﻿package com.nothinglauncher
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
@@ -7,6 +9,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.view.animation.DecelerateInterpolator
 import android.widget.Switch
@@ -61,11 +64,16 @@ class NothingSwitch @JvmOverloads constructor(
         isChecked = checked
         animator?.cancel()
         val target = if (checked) 1f else 0f
-        if (animate) {
+        if (animate && isAttachedToWindow) {
             animator = ValueAnimator.ofFloat(progress, target).apply {
                 duration = 180
                 interpolator = DecelerateInterpolator()
                 addUpdateListener { progress = it.animatedValue as Float; invalidate() }
+                addListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        if (animator === animation) animator = null
+                    }
+                })
                 start()
             }
         } else {
@@ -74,6 +82,14 @@ class NothingSwitch @JvmOverloads constructor(
             invalidate()
         }
         if (notify) onCheckedChange?.invoke(checked)
+    }
+
+    override fun onDetachedFromWindow() {
+        // Finish instead of leaking a running animator that references this view.
+        animator?.cancel()
+        animator = null
+        progress = if (isChecked) 1f else 0f
+        super.onDetachedFromWindow()
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
@@ -106,5 +122,11 @@ class NothingSwitch @JvmOverloads constructor(
         info.className = Switch::class.java.name
         info.isCheckable = true
         info.isChecked = isChecked
+    }
+
+    override fun onInitializeAccessibilityEvent(event: AccessibilityEvent) {
+        super.onInitializeAccessibilityEvent(event)
+        event.className = Switch::class.java.name
+        event.isChecked = isChecked
     }
 }

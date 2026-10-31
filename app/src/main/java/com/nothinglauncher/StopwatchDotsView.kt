@@ -52,6 +52,8 @@ class StopwatchDotsView @JvmOverloads constructor(
         if (!isRunning) {
             baseTime = SystemClock.elapsedRealtime() - elapsedWhenPaused
             isRunning = true
+            contentDescription = context.getString(R.string.stopwatch_label)
+            removeCallbacks(ticker)
             post(ticker)
         }
     }
@@ -61,6 +63,7 @@ class StopwatchDotsView @JvmOverloads constructor(
             elapsedWhenPaused = SystemClock.elapsedRealtime() - baseTime
             isRunning = false
             removeCallbacks(ticker)
+            updateDescription()
             invalidate()
         }
     }
@@ -75,6 +78,7 @@ class StopwatchDotsView @JvmOverloads constructor(
         removeCallbacks(ticker)
         baseTime = 0L
         elapsedWhenPaused = 0L
+        updateDescription()
         invalidate()
     }
 
@@ -122,19 +126,50 @@ class StopwatchDotsView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
+    private fun currentElapsed(): Long =
+        (if (isRunning) SystemClock.elapsedRealtime() - baseTime else elapsedWhenPaused).coerceAtLeast(0L)
+
+    private var cachedTenths = -1L
+    private var cachedText = ""
+
+    /**
+     * MM:SS.d, or H:MM:SS once past an hour (minutes used to wrap back to 00 silently).
+     * Re-formatted only when the shown value changes, not on every frame.
+     */
+    private fun formatElapsed(totalMs: Long): String {
+        val tenthsTotal = totalMs / 100
+        if (tenthsTotal == cachedTenths) return cachedText
+        cachedTenths = tenthsTotal
+        val hours = totalMs / 3_600_000
+        val minutes = (totalMs / 60_000) % 60
+        val seconds = (totalMs / 1000) % 60
+        val tenths = tenthsTotal % 10
+        // Locale.US: DotFont only has ASCII digits (Arabic/Persian locales would render blanks).
+        cachedText = if (hours > 0) {
+            String.format(java.util.Locale.US, "%d:%02d:%02d", hours, minutes, seconds)
+        } else {
+            String.format(java.util.Locale.US, "%02d:%02d.%d", minutes, seconds, tenths)
+        }
+        return cachedText
+    }
+
+    private fun updateDescription() {
+        contentDescription = "${context.getString(R.string.stopwatch_label)} ${formatElapsed(currentElapsed())}"
+    }
+
+    init {
+        // Must run after cachedTenths/cachedText above are initialised.
+        updateDescription()
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val totalMs = if (isRunning) SystemClock.elapsedRealtime() - baseTime else elapsedWhenPaused
-        val minutes = (totalMs / 60000) % 60
-        val seconds = (totalMs / 1000) % 60
-        val tenths = (totalMs / 100) % 10
-
-        // Locale.US: DotFont only has ASCII digits (Arabic/Persian locales would render blanks).
-        val timeStr = String.format(java.util.Locale.US, "%02d:%02d.%d", minutes, seconds, tenths)
+        val totalMs = currentElapsed()
+        val timeStr = formatElapsed(totalMs)
 
         val dotPitch = 4.2f * density
         val dotRadius = 1.6f * density
@@ -147,8 +182,10 @@ class StopwatchDotsView @JvmOverloads constructor(
             totalDotsWidth += (cols * dotPitch) + (if (i < timeStr.length - 1) dotPitch * 0.8f else 0f)
         }
 
-        var startX = (w - totalDotsWidth) / 2f
-        val startY = (h - (DotFont.ROWS * dotPitch)) / 2f
+        // Dots are centred on c * pitch, so the last column ends one pitch short of
+        // totalDotsWidth: shift by half a pitch to centre the visible digits.
+        var startX = (w - totalDotsWidth + dotPitch) / 2f
+        val startY = (h - ((DotFont.ROWS - 1) * dotPitch)) / 2f
 
         for (ch in timeStr) {
             val glyph = DotFont.glyphFor(ch)

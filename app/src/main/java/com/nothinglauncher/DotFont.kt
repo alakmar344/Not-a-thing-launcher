@@ -57,11 +57,65 @@ object DotFont {
         '!' to arrayOf("#", "#", "#", "#", "#", ".", "#"),
         '?' to arrayOf(".###.", "#...#", "....#", "...#.", "..#..", ".....", "..#.."),
         '#' to arrayOf(".#.#.", ".#.#.", "#####", ".#.#.", "#####", ".#.#.", ".#.#."),
+        '&' to arrayOf(".##..", "#..#.", "#.#..", ".#...", "#.#.#", "#..#.", ".##.#"),
+        ',' to arrayOf("..", "..", "..", "..", "..", ".#", "#."),
+        ';' to arrayOf("..", "..", ".#", "..", "..", ".#", "#."),
+        '\'' to arrayOf("#", "#", ".", ".", ".", ".", "."),
+        '"' to arrayOf("#.#", "#.#", "...", "...", "...", "...", "..."),
+        '(' to arrayOf("..#", ".#.", "#..", "#..", "#..", ".#.", "..#"),
+        ')' to arrayOf("#..", ".#.", "..#", "..#", "..#", ".#.", "#.."),
+        '=' to arrayOf("...", "...", "###", "...", "###", "...", "..."),
+        '*' to arrayOf(".....", "..#..", "#.#.#", ".###.", "#.#.#", "..#..", "....."),
+        '_' to arrayOf("....", "....", "....", "....", "....", "....", "####"),
+        '<' to arrayOf("...#", "..#.", ".#..", "#...", ".#..", "..#.", "...#"),
+        '>' to arrayOf("#...", ".#..", "..#.", "...#", "..#.", ".#..", "#..."),
+        '\u00B7' to arrayOf(".", ".", ".", "#", ".", ".", "."),
+        '\u2026' to arrayOf(".....", ".....", ".....", ".....", ".....", ".....", "#.#.#"),
+        '@' to arrayOf(".###.", "#...#", "#.###", "#.#.#", "#.###", "#....", ".####"),
         ' ' to arrayOf("..", "..", "..", "..", "..", "..", "..")
     )
 
-    fun glyph(c: Char): Array<String> = glyphs[c.uppercaseChar()] ?: glyphs.getValue(' ')
+    private val blank: Array<String> = glyphs.getValue(' ')
+
+    /** Lazily filled map for characters outside the base set (accents, non-ASCII digits…). */
+    private val fallback = java.util.concurrent.ConcurrentHashMap<Char, Array<String>>()
+
+    fun glyph(c: Char): Array<String> {
+        glyphs[c]?.let { return it }
+        glyphs[c.uppercaseChar()]?.let { return it }
+        return fallback.getOrPut(c) { resolveFallback(c) }
+    }
+
     fun glyphFor(c: Char): Array<String> = glyph(c)
+
+    /**
+     * Maps characters the font has no glyph for onto ones it does: locale digits ('٣' → '3'),
+     * accented letters ('É' → 'E', 'ß' → 'S'), typographic punctuation and other dashes/spaces.
+     * Anything else renders as a blank cell rather than garbage.
+     */
+    private fun resolveFallback(c: Char): Array<String> {
+        val digit = Character.digit(c, 10)
+        if (digit in 0..9) return glyphs.getValue('0' + digit)
+        when (c) {
+            '\u2018', '\u2019', '\u201A', '`', '\u00B4' -> return glyphs.getValue('\'')
+            '\u201C', '\u201D', '\u201E' -> return glyphs.getValue('"')
+            '\u2010', '\u2011', '\u2012', '\u2013', '\u2014', '\u2212' -> return glyphs.getValue('-')
+            '\u2022', '\u2219' -> return glyphs.getValue('\u00B7')
+            '\u00D7' -> return glyphs.getValue('X')
+            '\u00DF' -> return glyphs.getValue('S')
+            '\u00C6', '\u00E6' -> return glyphs.getValue('E')
+            '\u00D8', '\u00F8' -> return glyphs.getValue('O')
+            '\u0141', '\u0142' -> return glyphs.getValue('L')
+            '\u00BA', '\u02DA' -> return glyphs.getValue('\u00B0')
+        }
+        val base = java.text.Normalizer.normalize(c.toString(), java.text.Normalizer.Form.NFD)
+            .firstOrNull() ?: return blank
+        if (base != c) {
+            glyphs[base]?.let { return it }
+            glyphs[base.uppercaseChar()]?.let { return it }
+        }
+        return blank
+    }
 
     /**
      * A rasterised line of text.
@@ -69,6 +123,18 @@ object DotFont {
      * source character (or -1 for inter-letter spacing).
      */
     class Raster(val columns: Int, val lit: Array<BooleanArray>, val charIndexAtColumn: IntArray)
+
+    private val rasterCache = android.util.LruCache<String, Raster>(96)
+
+    /**
+     * Same as [rasterize] but memoised, so views can call it from onDraw without allocating
+     * a new raster every frame. The returned raster is shared: treat it as read-only.
+     */
+    fun rasterizeCached(text: String, spacing: Int = 1): Raster {
+        val key = if (spacing == 1) text else "$spacing\u0000$text"
+        rasterCache.get(key)?.let { return it }
+        return rasterize(text, spacing).also { rasterCache.put(key, it) }
+    }
 
     fun rasterize(text: String, spacing: Int = 1): Raster {
         if (text.isEmpty()) return Raster(0, Array(ROWS) { BooleanArray(0) }, IntArray(0))

@@ -36,6 +36,11 @@ class MediaDotsView @JvmOverloads constructor(
     var isPlaying: Boolean = true
         set(value) { field = value; updateRunning(); invalidate() }
 
+    init {
+        // Decorative visualiser; the media tile's title/artist views carry the information.
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+
     private val barCounts = IntArray(16) { Random.nextInt(1, 6) }
     private var running = false
 

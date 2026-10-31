@@ -31,7 +31,7 @@ class SystemMonitorDotsView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
@@ -43,6 +43,10 @@ class SystemMonitorDotsView @JvmOverloads constructor(
     private var availRamGb: Float = 3.8f
     private var totalRamGb: Float = 8.0f
     private var usedPercent: Int = 52
+
+    /** Formatted in [updateStats] (every 5 s) instead of on every draw. */
+    private var ramText = ""
+    private var subText = ""
 
     private var running = false
 
@@ -109,6 +113,10 @@ class SystemMonitorDotsView @JvmOverloads constructor(
             totalRamGb = 8.0f
             usedPercent = 52
         }
+        // Locale.US: a "3,8" decimal comma or non-ASCII digits have no DotFont glyph.
+        ramText = String.format(java.util.Locale.US, "%.1f GB", availRamGb)
+        subText = context.getString(R.string.system_monitor_sub, totalRamGb, usedPercent)
+        contentDescription = "$ramText, $subText"
         invalidate()
     }
 
@@ -119,12 +127,11 @@ class SystemMonitorDotsView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
 
         // 1. Draw "X.X GB" in DotFont
-        // Locale.US: a "3,8" decimal comma or non-ASCII digits have no DotFont glyph.
-        val ramText = String.format(java.util.Locale.US, "%.1f GB", availRamGb)
         val dotPitch = 3.8f * density
         val dotRadius = 1.5f * density
 
-        var startX = 0f
+        // Dots are centred on their grid point: inset by one radius so column 0 isn't clipped.
+        var startX = dotRadius
         val startY = 4f * density
 
         for (ch in ramText) {
@@ -165,7 +172,6 @@ class SystemMonitorDotsView @JvmOverloads constructor(
         }
 
         // 3. Subtitle text
-        val subText = String.format("FREE OF %.0f GB · %d%% USED", totalRamGb, usedPercent)
         canvas.drawText(subText, 0f, h - 2f * density, labelPaint)
     }
 }

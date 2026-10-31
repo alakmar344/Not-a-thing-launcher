@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.NothingLauncher" parent="Theme.MaterialComponents.NoActionBar">
-        <item name="colorPrimary">@color/nothing_white</item>
+    <!-- Light parents in the default configuration so framework defaults (date picker,
+         hint and error colors, popup menus) match the light palette; values-night uses dark ones. -->
+    <style name="Theme.NothingLauncher" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/pill_active_bg</item>
         <item name="colorPrimaryVariant">@color/text_secondary</item>
-        <item name="colorOnPrimary">@color/nothing_black</item>
+        <item name="colorOnPrimary">@color/pill_active_text</item>
         <item name="colorSecondary">@color/nothing_red</item>
         <item name="colorSecondaryVariant">@color/nothing_red</item>
         <item name="colorOnSecondary">@color/nothing_white</item>
@@ -44,7 +46,7 @@
     </style>
 
     <!-- Floating sheets & dialogs: we draw our own card, the window stays transparent. -->
-    <style name="Theme.NothingLauncher.Sheet" parent="Theme.MaterialComponents.Dialog">
+    <style name="Theme.NothingLauncher.Sheet" parent="Theme.MaterialComponents.Light.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
         <item name="windowNoTitle">true</item>
@@ -57,7 +59,10 @@
         <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
-        <item name="colorControlActivated">@color/nothing_white</item>
+        <item name="android:textColorHint">@color/text_tertiary</item>
+        <item name="android:textColorHighlight">@color/text_highlight</item>
+        <!-- text_primary rather than white: a white cursor/handle is invisible on light sheets. -->
+        <item name="colorControlActivated">@color/text_primary</item>
         <item name="colorControlHighlight">@color/ripple_light</item>
     </style>
 

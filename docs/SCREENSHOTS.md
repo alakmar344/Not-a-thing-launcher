@@ -1,4 +1,4 @@
-# Not-a-Thing Launcher: Visual Showcase & Screenshots (Version 10.0 GA)
+# Not-a-Thing Launcher: Visual Showcase & Screenshots (Version 10.1)
 
 All screenshots below are generated deterministically using **Cash App Paparazzi** (`app.cash.paparazzi`) and Android Layoutlib directly from the launcher's layout definitions, custom views, and sample data.
 

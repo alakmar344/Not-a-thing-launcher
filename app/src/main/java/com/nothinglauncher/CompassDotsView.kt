@@ -28,20 +28,35 @@ class CompassDotsView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.nothing_red) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 9.5f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 9.5f, resources.displayMetrics)
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.12f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
 
     var headingDegrees: Int = 0
-        set(value) { field = value.mod(360); invalidate() } // mod: never negative
+        set(value) {
+            val v = value.mod(360) // mod: never negative
+            if (v == field) return
+            field = v
+            // Formatted here, not in onDraw: the sensor drives this many times per second.
+            headingText = String.format(java.util.Locale.US, "%03d\u00B0", v)
+            updateDescription()
+            invalidate()
+        }
+
+    private var headingText = "000\u00B0"
 
     var directionText: String = "N"
-        set(value) { field = value; invalidate() }
+        set(value) { if (field != value) { field = value; updateDescription(); invalidate() } }
 
     var statusText: String? = null
-        set(value) { field = value; contentDescription = value; invalidate() }
+        set(value) { field = value; updateDescription(); invalidate() }
+
+    private fun updateDescription() {
+        val status = statusText
+        contentDescription = if (!status.isNullOrBlank()) status else "$headingDegrees\u00B0 $directionText"
+    }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -73,8 +88,7 @@ class CompassDotsView @JvmOverloads constructor(
         }
 
         // 2. Heading degrees in DotFont
-        val text = String.format(java.util.Locale.US, "%03d°", headingDegrees)
-        val raster = DotFont.rasterize(text)
+        val raster = DotFont.rasterizeCached(headingText)
         val pitch = min(ringR * 0.22f, (ringR * 1.2f) / raster.columns.coerceAtLeast(1))
         val r = pitch * 0.38f
         val textW = raster.columns * pitch

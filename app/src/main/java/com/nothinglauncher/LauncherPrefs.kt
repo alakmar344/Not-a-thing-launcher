@@ -82,7 +82,8 @@ class LauncherPrefs(context: Context) {
         set(value) = putSetting(K_RECENTS, value)
 
     var quickNote: String
-        get() = sp.getString(K_QUICK_NOTE, "NOTHING BUT TIME") ?: "NOTHING BUT TIME"
+        get() = sp.getString(K_QUICK_NOTE, null)?.takeIf { it.isNotBlank() }
+            ?: appContext.getString(R.string.quick_note_default)
         set(value) = putSetting(K_QUICK_NOTE, value)
 
     var showDotGrid: Boolean
@@ -304,6 +305,7 @@ class LauncherPrefs(context: Context) {
 
     private fun parsePages(json: String): List<WorkspacePage>? = try {
         val arr = JSONArray(json)
+        val defaultFolderName = appContext.getString(R.string.folder_name_default)
         List(arr.length()) { i ->
             val obj = arr.optJSONObject(i) ?: JSONObject()
             val id = obj.optString("id", "page_$i").ifBlank { "page_$i" }
@@ -320,7 +322,7 @@ class LauncherPrefs(context: Context) {
                     if (fApps.isEmpty()) continue
                     folders += WorkspaceFolder(
                         id = fObj.optString("id", "f_${i}_$fIdx").ifBlank { "f_${i}_$fIdx" },
-                        name = fObj.optString("name", "FOLDER").ifBlank { "FOLDER" },
+                        name = fObj.optString("name", "").ifBlank { defaultFolderName },
                         appKeys = fApps,
                         isEnlarged = fObj.optBoolean("isEnlarged", false)
                     )
@@ -337,15 +339,15 @@ class LauncherPrefs(context: Context) {
                     val folderObj = itObj.optJSONObject("folder")
                     val folder = if (folderObj != null) {
                         WorkspaceFolder(
-                            id = folderObj.optString("id", "f_$itIdx"),
-                            name = folderObj.optString("name", "FOLDER"),
+                            id = folderObj.optString("id", "").ifBlank { "f_${i}_$itIdx" },
+                            name = folderObj.optString("name", "").ifBlank { defaultFolderName },
                             appKeys = folderObj.optJSONArray("apps").toStringList(),
                             isEnlarged = folderObj.optBoolean("isEnlarged", false)
                         )
                     } else null
                     if (type == WorkspaceItem.Type.FOLDER && folder?.appKeys.isNullOrEmpty()) continue
                     items += WorkspaceItem(
-                        id = itObj.optString("id", "item_$itIdx"),
+                        id = itObj.optString("id", "").ifBlank { "item_${i}_$itIdx" },
                         type = type,
                         cellX = itObj.optInt("cellX", 0).coerceAtLeast(0),
                         cellY = itObj.optInt("cellY", 0).coerceAtLeast(0),

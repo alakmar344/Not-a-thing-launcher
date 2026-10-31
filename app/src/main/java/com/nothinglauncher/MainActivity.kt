@@ -5,7 +5,6 @@ import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.app.Activity
-import android.app.DatePickerDialog
 import android.app.Dialog
 import android.appwidget.AppWidgetHostView
 import android.appwidget.AppWidgetManager
@@ -22,7 +21,6 @@ import android.media.MediaPlayer
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -43,9 +41,6 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.nothinglauncher.databinding.ActivityMainBinding
 import java.io.File
-import java.time.LocalDate
-import java.time.ZoneId
-import java.util.Calendar
 import kotlin.math.abs
 
 class MainActivity : AppCompatActivity() {
@@ -686,7 +681,7 @@ class MainActivity : AppCompatActivity() {
     /** Plays the last saved memo. Failures surface honestly (no silent no-ops). */
     fun playLastMemo() {
         val path = prefs.lastRecordingPath
-        val file = path?.let { java.io.File(it) }
+        val file = path?.let { File(it) }
         if (file == null || !file.exists() || file.length() <= 0L) {
             AppLauncher.toast(this, R.string.recorder_no_recording)
             return
@@ -716,7 +711,7 @@ class MainActivity : AppCompatActivity() {
         } catch (_: Exception) {
             try { player.release() } catch (_: Exception) {}
             memoPlayer = null
-            AppLauncher.toast(this, R.string.recorder_failed)
+            AppLauncher.toast(this, R.string.recorder_playback_failed)
         }
     }
 
@@ -732,7 +727,7 @@ class MainActivity : AppCompatActivity() {
 
     fun hasLastMemo(): Boolean {
         val path = prefs.lastRecordingPath ?: return false
-        val file = java.io.File(path)
+        val file = File(path)
         return file.exists() && file.length() > 0L
     }
 
@@ -776,11 +771,7 @@ class MainActivity : AppCompatActivity() {
         folderTitle.text = folder.name
         folderClose.setOnClickListener { dialog.dismiss() }
         folderRename.setOnClickListener {
-            Sheets.showRename(this, folder.name) { newName ->
-                val sanitized = newName.ifBlank { folder.name }
-                viewModel.renameFolder(pageIndex, folder.id, sanitized)
-                AppLauncher.toast(this, R.string.folder_renamed)
-            }
+            showRenameFolder(pageIndex, folder) { renamed -> folderTitle.text = renamed }
         }
 
         val folderAdapter = HomeIconAdapter(
@@ -825,11 +816,23 @@ class MainActivity : AppCompatActivity() {
         folderDissolve.setOnClickListener {
             dialog.dismiss()
             viewModel.dissolveFolder(pageIndex, folder.id)
-            AppLauncher.toast(this, R.string.folder_ungroup)
+            AppLauncher.toast(this, R.string.folder_dissolved)
         }
 
         openDialog = dialog
         dialog.show()
+    }
+
+    /** Rename sheet seeded with the folder's current name (not a stale snapshot). */
+    private fun showRenameFolder(pageIndex: Int, folder: WorkspaceFolder, onRenamed: (String) -> Unit = {}) {
+        val currentName = viewModel.folderById(pageIndex, folder.id)?.name ?: folder.name
+        Sheets.showRename(this, currentName) { newName ->
+            val sanitized = newName.trim()
+            if (sanitized.isEmpty() || sanitized == currentName) return@showRename
+            viewModel.renameFolder(pageIndex, folder.id, sanitized)
+            onRenamed(viewModel.folderById(pageIndex, folder.id)?.name ?: sanitized)
+            AppLauncher.toast(this, R.string.folder_renamed)
+        }
     }
 
     private fun showAddAppToFolderPicker(pageIndex: Int, folder: WorkspaceFolder) {
@@ -839,8 +842,10 @@ class MainActivity : AppCompatActivity() {
             AppLauncher.toast(this, R.string.folder_no_apps)
             return
         }
+        openDialog?.dismiss()
         val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
         val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.75f)
+        dialog.setOnDismissListener { if (openDialog === dialog) openDialog = null }
         dialogView.findViewById<DotMatrixView>(R.id.listTitle).text = getString(R.string.folder_add_apps)
         dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
         val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
@@ -868,25 +873,22 @@ class MainActivity : AppCompatActivity() {
     /** Long-press menu on a folder tile: open, add apps, rename or dissolve. */
     fun showFolderPopup(pageIndex: Int, folder: WorkspaceFolder, anchor: View) {
         dismissPopup()
+        val enlarged = viewModel.isFolderEnlarged(pageIndex, folder.id)
         val actions = mutableListOf(
             AppPopup.Action(R.drawable.ic_folder, getString(R.string.folder_open)) {
                 showFolderSheet(pageIndex, folder)
             },
             AppPopup.Action(
-                if (viewModel.isFolderEnlarged(pageIndex, folder.id)) R.drawable.ic_minimize else R.drawable.ic_maximize,
-                getString(if (viewModel.isFolderEnlarged(pageIndex, folder.id)) R.string.action_shrink else R.string.action_enlarge)
+                if (enlarged) R.drawable.ic_minimize else R.drawable.ic_maximize,
+                getString(if (enlarged) R.string.action_shrink else R.string.action_enlarge)
             ) {
                 viewModel.toggleEnlargeFolder(pageIndex, folder.id)
             },
             AppPopup.Action(R.drawable.ic_add, getString(R.string.folder_add_apps)) {
                 showAddAppToFolderPicker(pageIndex, folder)
             },
-            AppPopup.Action(R.drawable.ic_info, getString(R.string.folder_rename_title)) {
-                Sheets.showRename(this, folder.name) { newName ->
-                    val sanitized = newName.ifBlank { folder.name }
-                    viewModel.renameFolder(pageIndex, folder.id, sanitized)
-                    AppLauncher.toast(this, R.string.folder_renamed)
-                }
+            AppPopup.Action(R.drawable.ic_edit, getString(R.string.folder_rename_title)) {
+                showRenameFolder(pageIndex, folder)
             }
         )
         actions += AppPopup.Action(
@@ -895,12 +897,12 @@ class MainActivity : AppCompatActivity() {
             destructive = true
         ) {
             viewModel.dissolveFolder(pageIndex, folder.id)
-            AppLauncher.toast(this, R.string.folder_ungroup)
+            AppLauncher.toast(this, R.string.folder_dissolved)
         }
         popup.show(
             anchor = anchor,
             title = folder.name,
-            subtitle = "${folder.appKeys.size} APPS",
+            subtitle = resources.getQuantityString(R.plurals.folder_app_count, folder.appKeys.size, folder.appKeys.size),
             icon = null,
             shortcuts = emptyList(),
             actions = actions
@@ -960,14 +962,19 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAddToFolderDialog(pageIndex: Int, app: AppInfo) {
         val page = viewModel.workspacePages.value?.getOrNull(pageIndex) ?: return
-        if (page.folders.isEmpty()) {
-            viewModel.createFolder(pageIndex, "FOLDER", app.key)
-            AppLauncher.toast(this, R.string.action_new_folder)
+        // A folder that already holds the app is not a valid target.
+        val folders = page.folders.filterNot { app.key in it.appKeys }
+        if (folders.isEmpty()) {
+            if (viewModel.createFolder(pageIndex, getString(R.string.folder_name_default), app.key) != null) {
+                AppLauncher.toast(this, R.string.drag_folder_created)
+            }
             return
         }
-        val options = listOf(getString(R.string.action_new_folder)) + page.folders.map { it.name }
+        val options = listOf(getString(R.string.action_new_folder)) + folders.map { it.name }
+        openDialog?.dismiss()
         val dialogView = layoutInflater.inflate(R.layout.dialog_list, null)
         val dialog = Sheets.create(this, dialogView, maxHeightFraction = 0.6f)
+        dialog.setOnDismissListener { if (openDialog === dialog) openDialog = null }
         dialogView.findViewById<DotMatrixView>(R.id.listTitle).text = getString(R.string.action_add_to_folder)
         dialogView.findViewById<View>(R.id.listClose).setOnClickListener { dialog.dismiss() }
         val recycler = dialogView.findViewById<RecyclerView>(R.id.listRecycler)
@@ -990,9 +997,11 @@ class MainActivity : AppCompatActivity() {
                 holder.itemView.setOnClickListener {
                     dialog.dismiss()
                     if (position == 0) {
-                        viewModel.createFolder(pageIndex, "FOLDER", app.key)
+                        if (viewModel.createFolder(pageIndex, getString(R.string.folder_name_default), app.key) != null) {
+                            AppLauncher.toast(this@MainActivity, R.string.drag_folder_created)
+                        }
                     } else {
-                        val folder = page.folders[position - 1]
+                        val folder = folders.getOrNull(position - 1) ?: return@setOnClickListener
                         viewModel.addAppToFolder(pageIndex, folder.id, app.key)
                     }
                 }
@@ -1045,7 +1054,6 @@ class MainActivity : AppCompatActivity() {
             },
             onChanged = {
                 appliedSettingsVersion = prefs.settingsVersion
-                applyThemeMode()
                 applyAllPrefs()
             }
         )
@@ -1276,9 +1284,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         actions += AppPopup.Action(R.drawable.ic_delete, getString(R.string.remove_widget), destructive = true) {
-            viewModel.removeWidget(id)
-            try { widgetHost.deleteAppWidgetId(id) } catch (_: Exception) {}
-            homeFragment?.renderWidgets()
+            removeWidgetHost(id)
         }
         popup.show(
             anchor = anchor,
@@ -1416,7 +1422,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             BespokeElement.QUICK_NOTE -> {
-                actions += AppPopup.Action(R.drawable.ic_pin, getString(R.string.action_edit_note)) {
+                actions += AppPopup.Action(R.drawable.ic_edit, getString(R.string.action_edit_note)) {
                     showEditNoteDialog()
                 }
             }
@@ -1480,7 +1486,5 @@ class MainActivity : AppCompatActivity() {
         private const val REQUEST_CONFIGURE_WIDGET = 2001
         private const val REQUEST_RECONFIGURE_WIDGET = 2002
         private const val KEY_PENDING_WIDGET = "pending_widget"
-        private const val DEFAULT_WIDGET_HEIGHT_DP = 120
-        private const val WIDGET_HEIGHT_STEP_DP = 40
     }
 }

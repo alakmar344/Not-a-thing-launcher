@@ -43,7 +43,14 @@ class BatteryDotsView @JvmOverloads constructor(
     }
 
     var level: Int = 0
-        set(value) { field = value.coerceIn(0, 100); updateDescription(); invalidate() }
+        set(value) {
+            field = value.coerceIn(0, 100)
+            levelText = field.toString()
+            updateDescription()
+            invalidate()
+        }
+
+    private var levelText = "0"
 
     var charging: Boolean = false
         set(value) { field = value; updateDescription(); updatePulse(); invalidate() }
@@ -58,6 +65,11 @@ class BatteryDotsView @JvmOverloads constructor(
     private val lowThreshold = 15
 
     private var receiverRegistered = false
+
+    // Resolved once: onDraw runs at 60 fps while the charging pulse animates.
+    private val labelCharging = context.getString(R.string.charging).uppercase()
+    private val labelLow = context.getString(R.string.battery_low).uppercase()
+    private val labelNormal = context.getString(R.string.battery).uppercase()
 
     private val batteryReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -126,8 +138,7 @@ class BatteryDotsView @JvmOverloads constructor(
         }
 
         // Percentage in dot-matrix type.
-        val text = level.toString()
-        val raster = DotFont.rasterize(text)
+        val raster = DotFont.rasterizeCached(levelText)
         val pitch = min(ringR * 0.17f, (ringR * 1.15f) / raster.columns.coerceAtLeast(1))
         val r = pitch * 0.38f
         val textW = raster.columns * pitch
@@ -141,13 +152,11 @@ class BatteryDotsView @JvmOverloads constructor(
             }
         }
 
-        val label = context.getString(
-            when {
-                charging -> R.string.charging
-                low -> R.string.battery_low
-                else -> R.string.battery
-            }
-        ).uppercase()
+        val label = when {
+            charging -> labelCharging
+            low -> labelLow
+            else -> labelNormal
+        }
         canvas.drawText(label, cx, y0 + textH + 16f * density, labelPaint)
     }
 

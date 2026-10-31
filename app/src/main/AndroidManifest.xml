@@ -21,6 +21,12 @@
     <!-- The Quick Toggles torch control goes through CameraManager. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera.flash" android:required="false" />
+    <!-- CAMERA and RECORD_AUDIO imply these features as *required*, which would hide the app
+         from devices without them on Play. Every element degrades gracefully instead. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
 
     <!-- Package visibility (Android 11+): a launcher must be able to see launchable apps,
          widget providers and the default handlers used to pick sensible dock apps. -->
@@ -137,7 +143,7 @@
         <service
             android:name=".MediaNotificationListenerService"
             android:exported="true"
-            android:label="@string/element_media"
+            android:label="@string/app_name"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />

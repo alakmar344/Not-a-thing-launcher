@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.DialogListBinding
 import com.nothinglauncher.databinding.ItemWidgetHeaderBinding
 import com.nothinglauncher.databinding.ItemWidgetPreviewBinding
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,7 +41,7 @@ object WidgetPickerDialog {
     ): Dialog {
         val b = DialogListBinding.inflate(LayoutInflater.from(context))
         val dialog = Sheets.create(context, b.root, maxHeightFraction = 0.86f)
-        b.listTitle.text = "ELEMENTS"
+        b.listTitle.text = context.getString(R.string.widget_picker_title).uppercase()
         b.listClose.setOnClickListener { dialog.dismiss() }
         b.listEmpty.setText(R.string.no_widgets)
 
@@ -66,10 +67,17 @@ object WidgetPickerDialog {
         b.listRecycler.isVisible = true
         b.listEmpty.isVisible = false
 
-        dialog.show()
+        Sheets.showSafely(context, dialog)
 
         scope.launch {
-            val thirdParty = withContext(Dispatchers.IO) { loadThirdPartyRows(context) }
+            val thirdParty = try {
+                withContext(Dispatchers.IO) { loadThirdPartyRows(context) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // A misbehaving provider must not crash the picker; built-in elements still work.
+                emptyList()
+            }
             if (!dialog.isShowing || thirdParty.isEmpty()) return@launch
             adapter.appendRows(thirdParty)
         }
@@ -97,7 +105,7 @@ object WidgetPickerDialog {
         } ?: try {
             awm.installedProviders
         } catch (e: Exception) {
-            emptyList()
+            null
         } ?: emptyList()
         // Keyguard-only / search-box-only providers cannot be hosted on a home screen.
         val homeProviders = providers.filter {

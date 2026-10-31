@@ -18,6 +18,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.nothinglauncher.databinding.FragmentAppDrawerBinding
+import java.text.Normalizer
 import java.util.Locale
 
 class AppDrawerFragment : Fragment() {
@@ -131,13 +132,14 @@ class AppDrawerFragment : Fragment() {
     private fun setupScroller() {
         binding.letterBubbleText.panel = false
         binding.alphabetScroller.onLetterChanged = { letter, centerY ->
-            letterPositions[letter]?.let {
-                layoutManager.scrollToPositionWithOffset(it, 0)
-                binding.alphabetScroller.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-            }
+            // The scroller already plays the haptic tick for every letter change.
+            letterPositions[letter]?.let { layoutManager.scrollToPositionWithOffset(it, 0) }
             binding.letterBubbleText.text = letter.toString()
             val bubble = binding.letterBubble
-            bubble.translationY = binding.alphabetScroller.top + centerY - bubble.height / 2f
+            val container = bubble.parent as? View
+            val maxY = ((container?.height ?: 0) - bubble.height).toFloat().coerceAtLeast(0f)
+            // Keep the bubble fully on screen for the first / last letters.
+            bubble.translationY = (binding.alphabetScroller.top + centerY - bubble.height / 2f).coerceIn(0f, maxY)
         }
         binding.alphabetScroller.onTouchingChanged = { touching ->
             hideKeyboard()
@@ -256,9 +258,10 @@ class AppDrawerFragment : Fragment() {
 
     /** Prefix matches first, then word-start matches, then substring / package matches. */
     private fun rank(q: String): List<AppInfo> {
-        val needle = q.lowercase(Locale.getDefault())
+        val needle = normalize(q)
+        if (needle.isEmpty()) return emptyList()
         return allApps.mapNotNull { app ->
-            val label = app.label.lowercase(Locale.getDefault())
+            val label = normalize(app.label)
             val score = when {
                 label.startsWith(needle) -> 0
                 label.split(' ', '-', '.', '_').any { it.startsWith(needle) } -> 1
@@ -270,6 +273,12 @@ class AppDrawerFragment : Fragment() {
             if (score < 0) null else score to app
         }.sortedWith(compareBy({ it.first }, { it.second.label.lowercase(Locale.getDefault()) })).map { it.second }
     }
+
+    /** Lower-cases and strips diacritics so "cafe" finds "Café". */
+    private fun normalize(text: String): String =
+        Normalizer.normalize(text.lowercase(Locale.getDefault()), Normalizer.Form.NFD)
+            .replace(DIACRITICS, "")
+            .trim()
 
     private fun initials(label: String): String =
         label.split(' ', '-', '_').filter { it.isNotEmpty() }.joinToString("") { it.first().toString() }
@@ -292,7 +301,7 @@ class AppDrawerFragment : Fragment() {
     }
 
     fun showKeyboard() {
-        val field = binding.searchBar
+        val field = _binding?.searchBar ?: return
         field.requestFocus()
         field.post {
             val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
@@ -307,7 +316,14 @@ class AppDrawerFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        // Detach the adapter so the old view hierarchy isn't kept alive through its observers.
+        binding.appsRecyclerView.adapter = null
+        binding.letterBubble.animate().cancel()
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        val DIACRITICS = Regex("\\p{Mn}+")
     }
 }

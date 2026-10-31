@@ -28,6 +28,7 @@ class DotGridDrawable(
 
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val backgroundPaint = Paint().apply { color = backgroundColor }
 
     init {
         val pitch = max(4, (pitchDp * density).roundToInt())
@@ -45,7 +46,9 @@ class DotGridDrawable(
         vignettePaint.shader = RadialGradient(
             bounds.exactCenterX(), bounds.top + bounds.height() * 0.38f,
             max(bounds.width(), bounds.height()) * 0.78f,
-            intArrayOf(Color.TRANSPARENT, Color.TRANSPARENT, 0xCC000000.toInt()),
+            // Fade towards the background colour rather than hard-coded black, so the light
+            // theme's edges don't turn muddy grey (identical to before on a black background).
+            intArrayOf(Color.TRANSPARENT, Color.TRANSPARENT, (backgroundColor and 0x00FFFFFF) or 0xCC000000.toInt()),
             floatArrayOf(0f, 0.45f, 1f),
             Shader.TileMode.CLAMP
         )
@@ -53,7 +56,8 @@ class DotGridDrawable(
 
     override fun draw(canvas: Canvas) {
         val b = bounds
-        canvas.drawColor(backgroundColor)
+        // Fill only our bounds; drawColor() would paint the whole clip.
+        canvas.drawRect(b, backgroundPaint)
         canvas.drawRect(b, gridPaint)
         canvas.drawRect(b, vignettePaint)
     }
@@ -69,5 +73,6 @@ class DotGridDrawable(
     }
 
     @Deprecated("Deprecated in Java")
-    override fun getOpacity(): Int = PixelFormat.OPAQUE
+    override fun getOpacity(): Int =
+        if (Color.alpha(backgroundColor) == 0xFF) PixelFormat.OPAQUE else PixelFormat.TRANSLUCENT
 }

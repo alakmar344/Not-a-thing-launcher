@@ -107,13 +107,16 @@ object WeatherRepository {
                 prefs.weatherCache = serialize(result)
             }
             val resolved = result ?: cached(prefs)
+            // Clear the flag before posting the drain: a caller that queued its callback while
+            // the flag was still set is then guaranteed to be answered by the drain below
+            // (previously it could be enqueued after the drain ran and never be called back).
+            running.set(false)
             main.post {
                 listeners.forEach { it(resolved) }
                 val callbacks = ArrayList<(Weather?) -> Unit>()
                 while (true) callbacks += pendingCallbacks.poll() ?: break
                 callbacks.forEach { it(resolved) }
             }
-            running.set(false)
             // A forced request may have slipped in between the check above and the reset.
             if (rerunRequested.get() && running.compareAndSet(false, true)) continue
             return
@@ -195,7 +198,10 @@ object WeatherRepository {
         val json = getJson("https://ipapi.co/json/") ?: return null
         val lat = json.optDouble("latitude", Double.NaN)
         val lon = json.optDouble("longitude", Double.NaN)
-        val city = json.optString("city", "").ifBlank { json.optString("region", "LOCAL") }
+        // optString() turns JSON null into the literal "null", so treat null fields as absent.
+        fun field(name: String): String =
+            if (json.isNull(name)) "" else json.optString(name, "").trim()
+        val city = field("city").ifBlank { field("region") }.ifBlank { "LOCAL" }
         if (lat.isNaN() || lon.isNaN()) return null
         return Triple(lat, lon, city)
     }
@@ -207,7 +213,7 @@ object WeatherRepository {
                 connectTimeout = 8000
                 readTimeout = 8000
                 requestMethod = "GET"
-                setRequestProperty("User-Agent", "NothingLauncher/9.0 (Android)")
+                setRequestProperty("User-Agent", "NothingLauncher/10.1 (Android)")
                 setRequestProperty("Accept", "application/json")
             }
             if (connection.responseCode !in 200..299) return null
@@ -254,7 +260,7 @@ object WeatherRepository {
             val o = JSONObject(raw)
             if (!o.has("temp")) return null
             Weather(
-                city = o.optString("city", "LOCAL"),
+                city = o.optString("city", "").ifBlank { "LOCAL" },
                 temperature = o.optInt("temp"),
                 condition = o.optString("condition", ""),
                 high = o.optInt("high"),

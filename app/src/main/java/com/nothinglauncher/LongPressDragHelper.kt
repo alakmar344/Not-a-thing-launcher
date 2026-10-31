@@ -83,7 +83,9 @@ class LongPressDragHelper(
                 v.removeCallbacks(longPressRunnable)
                 v.isPressed = false
                 if (!longPressed && !movedBeforeLongPress && !dragStarted) {
-                    if (onClick != null) onClick.invoke(v) else v.performClick()
+                    // [attach] installs [onClick] as the click listener, so performClick() covers
+                    // both cases and also plays the click sound / sends the accessibility event.
+                    if (!v.performClick()) onClick?.invoke(v)
                 }
                 reset()
             }

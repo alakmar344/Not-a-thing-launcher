@@ -12,6 +12,7 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -36,13 +37,13 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_primary)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 11f, resources.displayMetrics)
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_bold) } catch (e: Exception) { null }
     }
@@ -52,10 +53,31 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
         set(value) { accentPaint.color = value; invalidate() }
 
     var batteryLevel: Int = 85
-        set(value) { field = value.coerceIn(0, 100); invalidate() }
+        set(value) {
+            field = value.coerceIn(0, 100)
+            pctText = "$field%"
+            updateDescription()
+            invalidate()
+        }
 
     var isCharging: Boolean = false
-        set(value) { field = value; invalidate() }
+        set(value) { field = value; updateDescription(); invalidate() }
+
+    private var pctText = "85%"
+
+    // Resolved once instead of on every frame.
+    private val titleText = context.getString(R.string.battery_dots_label)
+    private val chargingText = context.getString(R.string.battery_charging_label)
+    private val lowText = context.getString(R.string.battery_low).uppercase()
+    private val normalText = context.getString(R.string.battery_status_normal)
+
+    /** Same rule as [BatteryDotsView]: a charging battery is never shown as "low". */
+    private val isLow: Boolean get() = batteryLevel <= LOW_THRESHOLD && !isCharging
+
+    private fun updateDescription() {
+        contentDescription = "${context.getString(R.string.battery_widget)} $batteryLevel%" +
+            if (isCharging) ", ${context.getString(R.string.charging)}" else ""
+    }
 
     private var receiverRegistered = false
 
@@ -66,7 +88,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
             val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
             val status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
             if (level >= 0 && scale > 0) {
-                batteryLevel = (level * 100 / scale.toFloat()).toInt()
+                batteryLevel = (level * 100 / scale.toFloat()).roundToInt()
             }
             isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
         }
@@ -74,6 +96,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
 
     init {
         queryInitialBattery()
+        updateDescription()
     }
 
     private fun queryInitialBattery() {
@@ -86,7 +109,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
                 val scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
                 val status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
                 if (level >= 0 && scale > 0) {
-                    batteryLevel = (level * 100 / scale.toFloat()).toInt()
+                    batteryLevel = (level * 100 / scale.toFloat()).roundToInt()
                 }
                 isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
             }
@@ -117,14 +140,14 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
         super.onDraw(canvas)
         val w = width.toFloat()
         val h = height.toFloat()
+        if (w <= 0f || h <= 0f) return
+        val low = isLow
 
         // 1. Draw Title
-        val title = context.getString(R.string.battery_dots_label)
-        canvas.drawText(title, 0f, 12f * density, titlePaint)
+        canvas.drawText(titleText, 0f, 12f * density, titlePaint)
 
         // 2. Draw DotFont battery percentage
-        val pctText = "$batteryLevel%"
-        val raster = DotFont.rasterize(pctText, 1)
+        val raster = DotFont.rasterizeCached(pctText, 1)
         val dotPitch = 2.8f * density
         val dotRadius = dotPitch * 0.38f
         val startY = 22f * density
@@ -135,17 +158,17 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
                 if (raster.lit[r][c]) {
                     val cx = startX + c * dotPitch + dotRadius
                     val cy = startY + r * dotPitch + dotRadius
-                    val paint = if (batteryLevel <= 15) accentPaint else onPaint
+                    val paint = if (low) accentPaint else onPaint
                     canvas.drawCircle(cx, cy, dotRadius, paint)
                 }
             }
         }
 
         // 3. Draw Subtitle
-        val sub = if (isCharging) {
-            context.getString(R.string.battery_charging_label)
-        } else {
-            if (batteryLevel <= 15) context.getString(R.string.battery_low).uppercase() else "STATUS · NORMAL"
+        val sub = when {
+            isCharging -> chargingText
+            low -> lowText
+            else -> normalText
         }
         canvas.drawText(sub, 0f, startY + DotFont.ROWS * dotPitch + 15f * density, textPaint)
 
@@ -162,7 +185,7 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
             val cy = ringCenterY + ringRadius * sin(angle).toFloat()
 
             val paint = if (i < activeDots) {
-                if (isCharging) accentPaint else if (batteryLevel <= 15) accentPaint else onPaint
+                if (isCharging || low) accentPaint else onPaint
             } else offPaint
 
             val r = if (i == 0 || i == totalDots / 2) 2.2f * density else 1.5f * density
@@ -175,5 +198,9 @@ class BatteryGaugeDotsView @JvmOverloads constructor(
         } else {
             canvas.drawCircle(ringCenterX, ringCenterY, 2f * density, onPaint)
         }
+    }
+
+    private companion object {
+        const val LOW_THRESHOLD = 15
     }
 }

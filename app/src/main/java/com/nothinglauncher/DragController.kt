@@ -143,6 +143,19 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         update(rawX, rawY)
     }
 
+    /**
+     * Called when the workspace rebinds while dragging: if [view] is the freshly created view of
+     * the item being dragged, hide it and track it so it is restored when the drag ends
+     * (otherwise the original pops back in place mid-drag, or stays hidden after a cancel).
+     */
+    fun adoptHiddenSource(pageIndex: Int, itemId: String, view: View) {
+        val item = currentItem ?: return
+        if (!isDragging || hiddenSource == null || item.itemId != itemId || item.pageIndex != pageIndex) return
+        if (hiddenSource !== view) hiddenSource?.visibility = View.VISIBLE
+        view.visibility = View.INVISIBLE
+        hiddenSource = view
+    }
+
     private fun createDragView(item: DragItem, source: View): Pair<View, Float> {
         val maxW = activity.resources.displayMetrics.widthPixels * 0.92f
         val bitmap = snapshot(source)
@@ -229,8 +242,6 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         dropBar.animate().translationY(0f).alpha(1f).setDuration(200).setInterpolator(easeInterpolator).start()
         // Spring-loaded workspace (stock): move the grid below the drop targets so the first
         // row stays reachable while dragging.
-        val barLoc = IntArray(2)
-        dropBar.getLocationOnScreen(barLoc)
         val lp = dropBar.layoutParams as? ViewGroup.MarginLayoutParams
         val barBottom = (lp?.topMargin ?: 0) + dropBar.height.coerceAtLeast((64 * density).toInt())
         activity.setSpringLoaded(true, barBottom + (8 * density).toInt())
@@ -322,13 +333,14 @@ class DragController(private val activity: MainActivity, private val binding: Ac
         activity.updateWorkspaceDropHover(item, cx, cy, rawX, rawY)
 
         val screenWidth = activity.resources.displayMetrics.widthPixels
-        setEdge(
-            when {
-                rawX < edgeWidth -> -1
-                rawX > screenWidth - edgeWidth -> 1
-                else -> 0
-            }
-        )
+        // In RTL the pager is mirrored: the previous page sits on the right.
+        val rtl = binding.root.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        val edge = when {
+            rawX < edgeWidth -> -1
+            rawX > screenWidth - edgeWidth -> 1
+            else -> 0
+        }
+        setEdge(if (rtl) -edge else edge)
     }
 
     private fun setEdge(direction: Int) {

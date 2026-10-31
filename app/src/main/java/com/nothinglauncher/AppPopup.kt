@@ -98,6 +98,8 @@ class AppPopup(private val context: Context) {
         anchorBounds: Rect? = null
     ) {
         dismiss()
+        // Showing a window for a finishing activity throws BadTokenException.
+        (context as? Activity)?.let { if (it.isFinishing || it.isDestroyed) return }
         val rows = shortcuts.map { s ->
             ShortcutRow(
                 label = (s.shortLabel ?: s.longLabel ?: "").toString(),
@@ -108,15 +110,18 @@ class AppPopup(private val context: Context) {
         val content = buildContent(title, subtitle, icon, rows, actions)
         val screenW = context.resources.displayMetrics.widthPixels
         val screenH = context.resources.displayMetrics.heightPixels
+        val density = context.resources.displayMetrics.density
+        val margin = (12 * density).toInt()
+        // The card is inflated without a parent, so its 248dp root width is lost; apply it
+        // explicitly (never wider than the screen) or long titles stretch it edge to edge.
+        val cardW = (CARD_WIDTH_DP * density).toInt().coerceAtMost(screenW - 2 * margin).coerceAtLeast(1)
         content.measure(
-            View.MeasureSpec.makeMeasureSpec(screenW, View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(cardW, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         val popupW = content.measuredWidth
         val popupH = content.measuredHeight
 
-        val density = context.resources.displayMetrics.density
-        val margin = (12 * density).toInt()
         val gap = (6 * density).toInt()
         val anchorTop: Int
         val anchorBottom: Int
@@ -151,7 +156,7 @@ class AppPopup(private val context: Context) {
             (context as? Activity)?.window?.decorView
         } ?: return
 
-        val pw = PopupWindow(content, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, true).apply {
+        val pw = PopupWindow(content, popupW, ViewGroup.LayoutParams.WRAP_CONTENT, true).apply {
             setBackgroundDrawable(ColorDrawable(0))
             isOutsideTouchable = true
             elevation = 24 * density
@@ -163,5 +168,9 @@ class AppPopup(private val context: Context) {
         } catch (e: Exception) {
             window = null
         }
+    }
+
+    private companion object {
+        const val CARD_WIDTH_DP = 248
     }
 }

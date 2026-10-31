@@ -96,12 +96,9 @@ object LauncherSystem {
     }
 
     fun openNotificationAccessSettings(context: Context) {
-        startSafely(
-            context,
-            Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
-                .takeIf { it.resolveActivity(context.packageManager) != null }
-                ?: Intent(Settings.ACTION_SETTINGS)
-        )
+        // No resolveActivity() pre-check: with Android 11 package visibility it can report
+        // null for the Settings app; startSafely already falls back to the main Settings page.
+        startSafely(context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
     fun hasAccessibility(context: Context): Boolean {
@@ -153,8 +150,6 @@ object LauncherSystem {
     }
 
     const val REQUEST_HOME_ROLE = 4001
-    const val REQUEST_STEP_PERMISSION = 4002
-    const val REQUEST_AUDIO_PERMISSION = 4003
 }
 
 /**

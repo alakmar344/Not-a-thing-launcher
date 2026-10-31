@@ -34,12 +34,15 @@ object StepRepository {
     private var registered = false
     private var paused = false
     private var latestTotal = -1
+    /** False while [latestTotal] is a reading cached from before the sensor was released. */
+    private var readingFresh = false
     private var state = State()
 
     private val listener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             if (event.sensor.type != Sensor.TYPE_STEP_COUNTER) return
             latestTotal = event.values.firstOrNull()?.toInt() ?: return
+            readingFresh = true
             publishSteps()
         }
 
@@ -115,7 +118,13 @@ object StepRepository {
             stepSensor = it
         }
         if (sensor == null) {
-            update(State(sensorAvailable = false, permissionGranted = LauncherSystem.hasActivityRecognition(ctx)))
+            update(
+                State(
+                    sensorAvailable = false,
+                    permissionGranted = LauncherSystem.hasActivityRecognition(ctx),
+                    goal = LauncherPrefs(ctx).stepGoal
+                )
+            )
             return
         }
         // Only hold the sensor while something on screen is listening and not paused
@@ -135,6 +144,7 @@ object StepRepository {
             } catch (_: Exception) {
             }
             registered = false
+            readingFresh = false
         }
     }
 
@@ -143,7 +153,14 @@ object StepRepository {
         val prefs = LauncherPrefs(ctx)
         val today = LocalDate.now().toEpochDay()
         var baseline = prefs.stepBaseline
-        if (prefs.stepDay != today || baseline < 0 || latestTotal < baseline) {
+        val needsBaseline = prefs.stepDay != today || baseline < 0 || latestTotal < baseline
+        if (needsBaseline && !readingFresh) {
+            // Resumed on a new day with only yesterday's cached total: rebasing on it would
+            // count steps taken before midnight. Wait for the next live sensor reading.
+            update(State(sensorAvailable = true, permissionGranted = true, steps = 0, goal = prefs.stepGoal))
+            return
+        }
+        if (needsBaseline) {
             // First reading today (or after a reboot): count from this moment onward.
             baseline = latestTotal
             prefs.stepBaseline = baseline
@@ -341,15 +358,19 @@ object CompassRepository {
         // Rotation vector / magnetometer are power hungry: never register without a listener or when paused.
         if (!registered && !paused && listeners.isNotEmpty()) {
             registered = try {
-                if (hasRotation) {
-                    sm.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)
-                } else {
-                    val ok = sm.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI) &&
-                        sm.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
-                    if (!ok) sm.unregisterListener(listener)
-                    ok
-                }
+                // Fall back to accelerometer + magnetometer if the rotation vector refuses to register.
+                (hasRotation && sm.registerListener(listener, rotationSensor, SensorManager.SENSOR_DELAY_UI)) ||
+                    (hasFallback && run {
+                        val ok = sm.registerListener(listener, accelerometer, SensorManager.SENSOR_DELAY_UI) &&
+                            sm.registerListener(listener, magnetometer, SensorManager.SENSOR_DELAY_UI)
+                        if (!ok) sm.unregisterListener(listener)
+                        ok
+                    })
             } catch (e: Exception) {
+                try {
+                    sm.unregisterListener(listener)
+                } catch (_: Exception) {
+                }
                 false
             }
         }

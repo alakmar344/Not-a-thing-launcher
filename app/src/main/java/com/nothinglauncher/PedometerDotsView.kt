@@ -29,21 +29,38 @@ class PedometerDotsView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.nothing_red) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 9.5f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 9.5f, resources.displayMetrics)
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.12f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
 
     var steps: Int = 0
-        set(value) { field = value; invalidate() }
+        set(value) {
+            field = value.coerceAtLeast(0)
+            stepsText = field.toString()
+            updateDescription()
+            invalidate()
+        }
 
     var goal: Int = 10000
         set(value) { field = value.coerceAtLeast(1); invalidate() }
 
     /** Optional honest state line ("TAP TO ALLOW MOTION", "NO STEP SENSOR"). */
     var statusText: String? = null
-        set(value) { field = value; contentDescription = value; invalidate() }
+        set(value) { field = value; updateDescription(); invalidate() }
+
+    private var stepsText = "0"
+    private val stepsLabel = context.getString(R.string.pedometer_steps)
+
+    init {
+        updateDescription()
+    }
+
+    private fun updateDescription() {
+        val status = statusText
+        contentDescription = if (!status.isNullOrBlank()) status else "$steps $stepsLabel"
+    }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -74,8 +91,7 @@ class PedometerDotsView @JvmOverloads constructor(
         }
 
         // 2. Steps text in DotFont
-        val text = steps.toString()
-        val raster = DotFont.rasterize(text)
+        val raster = DotFont.rasterizeCached(stepsText)
         val pitch = min(ringR * 0.22f, (ringR * 1.2f) / raster.columns.coerceAtLeast(1))
         val r = pitch * 0.38f
         val textW = raster.columns * pitch
@@ -92,7 +108,7 @@ class PedometerDotsView @JvmOverloads constructor(
         }
 
         // 3. Label below
-        canvas.drawText(context.getString(R.string.pedometer_steps), cx, cy + textH / 2f + 14f * density, labelPaint)
+        canvas.drawText(stepsLabel, cx, cy + textH / 2f + 14f * density, labelPaint)
         statusText?.takeIf { it.isNotBlank() }?.let { text ->
             canvas.drawText(text, cx, height - 6f * density, labelPaint)
         }

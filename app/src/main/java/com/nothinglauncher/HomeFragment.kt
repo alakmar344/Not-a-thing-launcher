@@ -1,7 +1,5 @@
 package com.nothinglauncher
 
-import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.view.GestureDetector
 import android.view.HapticFeedbackConstants
@@ -286,8 +284,11 @@ class HomeFragment : Fragment() {
 
     fun scrollToPage(index: Int) {
         if (_binding == null) return
-        binding.workspaceRecycler.smoothScrollToPosition(index)
-        setCurrentPage(index)
+        val count = workspaceAdapter.itemCount
+        if (count == 0) return
+        val idx = index.coerceIn(0, count - 1)
+        binding.workspaceRecycler.smoothScrollToPosition(idx)
+        setCurrentPage(idx)
     }
 
     /** True when ([rawX], [rawY]) is over empty workspace (not over an icon or widget). */
@@ -374,7 +375,7 @@ class HomeFragment : Fragment() {
         cellLayout.getLocationOnScreen(loc)
         val stepX = cellLayout.cellWidth + cellLayout.cellGapX
         val stepY = cellLayout.cellHeight + cellLayout.cellGapY
-        val left = loc[0] + cellLayout.paddingStart + target.cellX * stepX
+        val left = loc[0] + cellLayout.paddingLeft + target.cellX * stepX
         val top = loc[1] + cellLayout.paddingTop + target.cellY * stepY
         val w = target.spanX * cellLayout.cellWidth + (target.spanX - 1) * cellLayout.cellGapX
         val h = target.spanY * cellLayout.cellHeight + (target.spanY - 1) * cellLayout.cellGapY
@@ -385,6 +386,11 @@ class HomeFragment : Fragment() {
 
     fun updateDropHover(item: DragController.DragItem, centerX: Float, centerY: Float, rawX: Float, rawY: Float) {
         val cellLayout = cellLayoutFor(currentPageIndex) ?: return
+        // After an edge flip the outline must not linger on the page that was left.
+        for (i in 0 until workspaceLayoutManager.childCount) {
+            workspaceLayoutManager.getChildAt(i)?.findViewById<CellLayout>(R.id.cellLayout)
+                ?.takeIf { it !== cellLayout }?.clearDropTarget()
+        }
         when (val plan = planDrop(item, centerX, centerY, rawX, rawY)) {
             is DropPlan.CreateFolder -> cellLayout.setDropTarget(plan.target.cellX, plan.target.cellY, plan.target.spanX, plan.target.spanY, isFolderMerge = true)
             is DropPlan.AddToFolder -> cellLayout.setDropTarget(plan.target.cellX, plan.target.cellY, plan.target.spanX, plan.target.spanY, isFolderMerge = true)
@@ -466,6 +472,14 @@ class HomeFragment : Fragment() {
 
     override fun onDestroyView() {
         if (::workspaceAdapter.isInitialized) workspaceAdapter.unbindAll()
+        _binding?.let { b ->
+            b.workspaceRecycler.animate().cancel()
+            // The snap helper outlives the view; detach it so it does not leak the old RecyclerView.
+            snapHelper.attachToRecyclerView(null)
+            b.workspaceRecycler.adapter = null
+            b.homeRoot.listener = null
+            b.homeRoot.touchObserver = null
+        }
         super.onDestroyView()
         _binding = null
     }

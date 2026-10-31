@@ -39,7 +39,7 @@ class HabitTrackerDotsView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
@@ -84,13 +84,39 @@ class HabitTrackerDotsView @JvmOverloads constructor(
     private var lastRawX = 0f
     private var lastRawY = 0f
 
+    /** Cached so onDraw does not format a string resource every frame. */
+    private var progressLabel: String = ""
+
+    init {
+        progressLabel = progressText()
+        contentDescription = progressLabel
+        // Lets TalkBack / switch access "click" the tracker: each click fills the next dot.
+        isClickable = true
+    }
+
     var count: Int
         get() = completedCount
         set(value) {
             completedCount = value.coerceIn(0, totalHabits)
-            contentDescription = progressText()
+            progressLabel = progressText()
+            contentDescription = progressLabel
             invalidate()
         }
+
+    /** Accessibility click (touch taps go through [onTouchEvent]/[toggleAt] instead). */
+    override fun performClick(): Boolean {
+        super.performClick()
+        setCountFromUser(if (completedCount >= totalHabits) 0 else completedCount + 1)
+        return true
+    }
+
+    private fun setCountFromUser(newCount: Int) {
+        completedCount = newCount.coerceIn(0, totalHabits)
+        progressLabel = progressText()
+        contentDescription = progressLabel
+        onCountChanged?.invoke(completedCount)
+        invalidate()
+    }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
@@ -156,11 +182,8 @@ class HabitTrackerDotsView @JvmOverloads constructor(
         if (w <= 0f) return
         val slotWidth = w / totalHabits
         val tappedIdx = (x / slotWidth).toInt().coerceIn(0, totalHabits - 1)
-        completedCount = if (tappedIdx < completedCount) tappedIdx else tappedIdx + 1
-        contentDescription = progressText()
         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        onCountChanged?.invoke(completedCount)
-        invalidate()
+        setCountFromUser(if (tappedIdx < completedCount) tappedIdx else tappedIdx + 1)
         super.performClick()
     }
 
@@ -193,6 +216,6 @@ class HabitTrackerDotsView @JvmOverloads constructor(
             }
         }
 
-        canvas.drawText(progressText(), 0f, h - 2f * density, labelPaint)
+        canvas.drawText(progressLabel, 0f, h - 2f * density, labelPaint)
     }
 }

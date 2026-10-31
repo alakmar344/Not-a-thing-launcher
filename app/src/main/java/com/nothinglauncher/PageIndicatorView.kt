@@ -40,6 +40,7 @@ class PageIndicatorView @JvmOverloads constructor(
             if (field != v) {
                 field = v
                 currentPage = currentPage.coerceIn(0, field - 1)
+                updateDescription()
                 requestLayout()
                 invalidate()
             }
@@ -51,10 +52,23 @@ class PageIndicatorView @JvmOverloads constructor(
             if (field != v) {
                 animateToPage(v)
                 field = v
+                updateDescription()
             }
         }
 
     var onPageSelected: ((Int) -> Unit)? = null
+
+    init {
+        updateDescription()
+    }
+
+    private fun updateDescription() {
+        contentDescription = context.getString(R.string.page_indicator, currentPage + 1, pageCount)
+    }
+
+    /** Pages run right-to-left in RTL (the pager is mirrored), so the dots must be too. */
+    private fun pageForSlot(slot: Int): Int =
+        if (layoutDirection == LAYOUT_DIRECTION_RTL) pageCount - 1 - slot else slot
 
     private var animatedPage = 0f
     private var animator: ValueAnimator? = null
@@ -113,10 +127,10 @@ class PageIndicatorView @JvmOverloads constructor(
         var startX = (width - totalW) / 2f
         val cy = height / 2f
 
-        for (i in 0 until pageCount) {
+        for (slot in 0 until pageCount) {
+            val i = pageForSlot(slot)
             val dist = abs(i - animatedPage).coerceIn(0f, 1f)
             val w = activeW * (1f - dist) + (dotR * 2) * dist
-            val h = dotR * 2
             val x = startX
             rect.set(x, cy - dotR, x + w, cy + dotR)
             if (dist < 0.5f) {
@@ -139,7 +153,7 @@ class PageIndicatorView @JvmOverloads constructor(
             val totalW = (pageCount - 1) * (dotD + spacing) + activeW
             val startX = (width - totalW) / 2f
             val slot = totalW / pageCount
-            val clicked = ((event.x - startX) / slot).toInt().coerceIn(0, pageCount - 1)
+            val clicked = pageForSlot(((event.x - startX) / slot).toInt().coerceIn(0, pageCount - 1))
             if (clicked != currentPage) {
                 currentPage = clicked
                 onPageSelected?.invoke(clicked)

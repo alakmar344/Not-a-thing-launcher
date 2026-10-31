@@ -118,6 +118,11 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
             MotionEvent.ACTION_MOVE -> {
                 lastRawX = event.rawX
                 lastRawY = event.rawY
+                // When no child consumed the down, moves arrive here instead of the intercept:
+                // a drag across the widget must still cancel the pending long press.
+                if (!longPressed && (abs(event.x - downX) > slop || abs(event.y - downY) > slop)) {
+                    removeCallbacks(longPressRunnable)
+                }
                 if (longPressed) {
                     val dx = abs(event.rawX - longPressRawX)
                     val dy = abs(event.rawY - longPressRawY)
@@ -143,6 +148,12 @@ class LauncherWidgetHostView(context: Context) : AppWidgetHostView(context) {
         }
         if (event.actionMasked == MotionEvent.ACTION_DOWN) return true
         return super.onTouchEvent(event)
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(longPressRunnable)
+        longPressed = false
+        super.onDetachedFromWindow()
     }
 
     override fun cancelLongPress() {

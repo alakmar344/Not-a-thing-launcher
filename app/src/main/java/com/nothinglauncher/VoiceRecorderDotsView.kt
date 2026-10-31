@@ -32,7 +32,7 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
@@ -45,6 +45,17 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
         private set
 
     private var recordStartTime: Long = 0L
+
+    private val idleStatus = context.getString(R.string.recorder_ready) + " \u00B7 " + context.getString(R.string.recorder_idle)
+    private val recordingStatus = context.getString(R.string.recorder_recording) + " \u00B7 " +
+        context.getString(R.string.recorder_tap_save)
+
+    private var cachedSec = -1L
+    private var cachedTime = ""
+
+    init {
+        contentDescription = context.getString(R.string.recorder_idle)
+    }
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -128,16 +139,21 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val elapsedSec = if (isRecording) (SystemClock.elapsedRealtime() - recordStartTime) / 1000 else 0L
-        val min = elapsedSec / 60
-        val sec = elapsedSec % 60
-        val timeStr = String.format(java.util.Locale.US, "%02d:%02d", min, sec) // DotFont is ASCII-only
+        val elapsedSec = if (isRecording) {
+            ((SystemClock.elapsedRealtime() - recordStartTime) / 1000).coerceAtLeast(0L)
+        } else 0L
+        // Only re-format when the second changes (onDraw runs ~8x per second while recording).
+        if (elapsedSec != cachedSec) {
+            cachedSec = elapsedSec
+            cachedTime = String.format(java.util.Locale.US, "%02d:%02d", elapsedSec / 60, elapsedSec % 60) // DotFont is ASCII-only
+        }
+        val timeStr = cachedTime
 
         val dotPitch = 3.8f * density
         val dotRadius = 1.5f * density
 
-        // Draw timer in DotFont
-        var startX = 0f
+        // Draw timer in DotFont (inset by one radius so the first column isn't clipped)
+        var startX = dotRadius
         val startY = 4f * density
 
         for (ch in timeStr) {
@@ -173,11 +189,7 @@ class VoiceRecorderDotsView @JvmOverloads constructor(
             }
         }
 
-        val statusText = if (isRecording) {
-            "${context.getString(R.string.recorder_recording)} · ${context.getString(R.string.recorder_tap_save)}"
-        } else {
-            "READY · ${context.getString(R.string.recorder_idle)}"
-        }
+        val statusText = if (isRecording) recordingStatus else idleStatus
         canvas.drawText(statusText, 0f, h - 2f * density, labelPaint)
     }
 }

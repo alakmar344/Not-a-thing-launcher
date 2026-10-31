@@ -34,7 +34,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     /** Every visible (non-hidden) app, alphabetically. */
     val allApps: LiveData<List<AppInfo>> = _allApps
 
-    private val _workspacePages = MutableLiveData<List<WorkspacePage>>(emptyList())
+    // No initial value: an early empty emission would make the home screen clamp (and
+    // persist) the restored active page to 0 before the real layout is published.
+    private val _workspacePages = MutableLiveData<List<WorkspacePage>>()
     /** Ordered workspace pages. */
     val workspacePages: LiveData<List<WorkspacePage>> = _workspacePages
 
@@ -175,9 +177,10 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         // Pages: saved -> migrated -> sensible defaults (2 pages out of the box)
         var savedPages = prefs.pages
         if (savedPages == null || savedPages.isEmpty()) {
-            val legacyHome = prefs.legacyHomePackages?.mapNotNull { pkg -> installed.firstOrNull { it.packageName == pkg }?.key }
-                ?: prefs.homeItems
-            val homeKeys = legacyHome ?: defaultHome(visible, dock).map { it.key }
+            // Newest saved list first (v2 component keys), then the v1 package list.
+            val savedHome = prefs.homeItems
+                ?: prefs.legacyHomePackages?.mapNotNull { pkg -> installed.firstOrNull { it.packageName == pkg }?.key }
+            val homeKeys = savedHome ?: defaultHome(visible, dock).map { it.key }
             val page0Items = WorkspacePage.buildItemsFromLegacy(
                 columns = prefs.gridColumns,
                 elements = listOf(BespokeElement.CLOCK.id, BespokeElement.BATTERY_CALENDAR.id),
@@ -274,9 +277,6 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     private fun appItemId(key: String) = "app_$key"
-
-    fun findFreeCell(page: WorkspacePage, spanX: Int = 1, spanY: Int = 1): Pair<Int, Int> =
-        GridMath.firstFree(page.items, columns, spanX, spanY)
 
     private fun pages(): MutableList<WorkspacePage> = _workspacePages.value.orEmpty().toMutableList()
 
@@ -470,9 +470,21 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
      */
     fun resizeItem(pageIndex: Int, itemId: String, spanX: Int, spanY: Int, transform: (WorkspaceItem) -> WorkspaceItem = { it }) {
         val current = pages()
-        if (pageIndex !in current.indices) return
+        if (resizeIn(current, pageIndex, itemId, spanX, spanY, transform)) savePages(current)
+    }
+
+    /** Applies a resize to [current] in place; returns false when the item does not exist. */
+    private fun resizeIn(
+        current: MutableList<WorkspacePage>,
+        pageIndex: Int,
+        itemId: String,
+        spanX: Int,
+        spanY: Int,
+        transform: (WorkspaceItem) -> WorkspaceItem = { it }
+    ): Boolean {
+        if (pageIndex !in current.indices) return false
         val page = current[pageIndex]
-        val item = page.items.firstOrNull { it.id == itemId } ?: return
+        val item = page.items.firstOrNull { it.id == itemId } ?: return false
         val cols = columns
         val sx = spanX.coerceIn(1, cols)
         val sy = spanY.coerceAtLeast(1)
@@ -488,7 +500,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             kept += other.copy(cellX = c, cellY = r)
         }
         current[pageIndex] = WorkspacePage(page.id, kept)
-        savePages(current)
+        return true
     }
 
     /** Grows an element that does not fit its rows (never shrinks a user choice). */
@@ -614,8 +626,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             type = if (willEnlarge) WorkspaceItem.Type.MAX_APP else WorkspaceItem.Type.APP
         )
         current[idx] = WorkspacePage(current[idx].id, current[idx].items.map { if (it.id == item.id) swapped else it })
-        _workspacePages.value = current
-        resizeItem(idx, swapped.id, span, span)
+        if (resizeIn(current, idx, swapped.id, span, span)) savePages(current)
     }
 
     fun isAppEnlarged(pageIndex: Int, appKey: String): Boolean =
@@ -675,7 +686,7 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             type = WorkspaceItem.Type.FOLDER,
             cellX = target.cellX,
             cellY = target.cellY,
-            folder = WorkspaceFolder(id = folderId, name = "FOLDER", appKeys = listOf(targetAppKey, droppedAppKey))
+            folder = WorkspaceFolder(id = folderId, name = defaultFolderName(), appKeys = listOf(targetAppKey, droppedAppKey))
         )
         cleaned[pageIndex] = cleaned[pageIndex].place(folderItem, target.cellX, target.cellY)
         savePages(cleaned)
@@ -702,6 +713,8 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
         if (pageIndex !in current.indices) return
         val page = current[pageIndex]
         val folderItem = page.items.firstOrNull { it.type == WorkspaceItem.Type.FOLDER && it.folder?.id == folderId } ?: return
+        // Placing an app that is not in this folder would create a second home copy of it.
+        if (appKey !in folderItem.folder?.appKeys.orEmpty()) return
         val updatedItems = page.items.mapNotNull { itm ->
             if (itm.id == folderItem.id) {
                 collapseFolderAfterRemoval(itm, itm.folder?.appKeys.orEmpty().filterNot { it == appKey })
@@ -729,18 +742,23 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
     }
 
     fun renameFolder(pageIndex: Int, folderId: String, newName: String) {
+        val name = newName.trim().take(MAX_FOLDER_NAME)
+        if (name.isEmpty()) return
         val current = pages()
         if (pageIndex !in current.indices) return
         val page = current[pageIndex]
         current[pageIndex] = WorkspacePage(page.id, page.items.map { itm ->
             if (itm.type == WorkspaceItem.Type.FOLDER && itm.folder?.id == folderId) {
-                itm.copy(folder = itm.folder.copy(name = newName.take(MAX_FOLDER_NAME)))
+                itm.copy(folder = itm.folder.copy(name = name))
             } else itm
         })
         savePages(current)
     }
 
     private fun savePages(pages: List<WorkspacePage>) {
+        // Nothing published yet: any mutation was computed from an empty list and would
+        // overwrite the saved layout.
+        if (_workspacePages.value == null) return
         val normalized = pages.map { normalizePage(it) }
         prefs.pages = normalized
         _workspacePages.value = normalized
@@ -869,6 +887,9 @@ class LauncherViewModel(application: Application) : AndroidViewModel(application
             e.printStackTrace()
         }
     }
+
+    private fun defaultFolderName(): String =
+        getApplication<Application>().getString(R.string.folder_name_default)
 
     private fun defaultElementRows(elementId: String): Int = when (elementId) {
         BespokeElement.CLOCK.id, BespokeElement.BATTERY_CALENDAR.id -> 2

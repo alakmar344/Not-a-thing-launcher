@@ -53,6 +53,11 @@ class AlphabetScrollerView @JvmOverloads constructor(
     private var activeIndex = -1
     private val exclusionRect = Rect()
 
+    init {
+        // A pure touch-drag control; TalkBack users scroll the list itself instead.
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+
     private fun slotHeight(): Float =
         if (letters.isEmpty()) 0f else min(height / letters.size.toFloat(), 18f * density)
 
@@ -84,7 +89,7 @@ class AlphabetScrollerView @JvmOverloads constructor(
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
-        if (letters.isEmpty()) return false
+        if (letters.isEmpty() && event.actionMasked == MotionEvent.ACTION_DOWN) return false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) {
@@ -92,6 +97,8 @@ class AlphabetScrollerView @JvmOverloads constructor(
                     onTouchingChanged?.invoke(true)
                 }
                 val slot = slotHeight()
+                // The letter list can be cleared mid-gesture (e.g. a search started).
+                if (slot <= 0f || letters.isEmpty()) return true
                 val idx = ((event.y - topOffset()) / slot).toInt().coerceIn(0, letters.size - 1)
                 if (idx != activeIndex) {
                     activeIndex = idx
@@ -102,6 +109,7 @@ class AlphabetScrollerView @JvmOverloads constructor(
                 return true
             }
             MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                parent?.requestDisallowInterceptTouchEvent(false)
                 activeIndex = -1
                 onTouchingChanged?.invoke(false)
                 invalidate()

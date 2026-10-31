@@ -30,7 +30,7 @@ class CountdownDotsView @JvmOverloads constructor(
     }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
@@ -40,14 +40,32 @@ class CountdownDotsView @JvmOverloads constructor(
         set(value) { accentPaint.color = value; invalidate() }
 
     var daysRemaining: Int = 0
-        set(value) { field = value.coerceAtLeast(0); invalidate() }
+        set(value) { field = value.coerceAtLeast(0); daysText = field.toString(); updateText(); invalidate() }
 
     var eventTitle: String = context.getString(R.string.countdown_no_target)
-        set(value) { field = value.uppercase(); contentDescription = "$field, $daysRemaining"; invalidate() }
+        set(value) { field = value.uppercase(); updateText(); invalidate() }
 
     /** False when no date is configured or the date has already passed. */
     var targetActive: Boolean = false
-        set(value) { field = value; invalidate() }
+        set(value) { field = value; updateText(); invalidate() }
+
+    private val daysLabel = context.getString(R.string.countdown_days_unit)
+    private var daysText = "0"
+    private var subText = eventTitle
+
+    init {
+        updateText()
+    }
+
+    /** Builds the strings once per change instead of on every frame. */
+    private fun updateText() {
+        subText = if (targetActive) "$eventTitle \u00B7 ${context.getString(R.string.countdown_target)}" else eventTitle
+        contentDescription = if (targetActive) {
+            context.getString(R.string.countdown_days, daysRemaining) + ", " + eventTitle
+        } else {
+            eventTitle
+        }
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -55,11 +73,12 @@ class CountdownDotsView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val daysStr = daysRemaining.toString()
+        val daysStr = daysText
         val dotPitch = 4.2f * density
         val dotRadius = 1.6f * density
 
-        var startX = 0f
+        // Dots are centred on their grid point, so inset by one radius or the first column clips.
+        var startX = dotRadius
         val startY = 4f * density
 
         for (ch in daysStr) {
@@ -80,14 +99,10 @@ class CountdownDotsView @JvmOverloads constructor(
         // Draw "DAYS REMAINING" suffix text next to numbers
         val suffixX = startX + 6f * density
         val suffixY = startY + (DotFont.ROWS * dotPitch / 2f) + 4f * density
-        canvas.drawText("DAYS", suffixX, suffixY, labelPaint)
+        canvas.drawText(daysLabel, suffixX, suffixY, labelPaint)
 
-        // Subtitle line at bottom
-        val subText = if (targetActive) {
-            "$eventTitle · ${context.getString(R.string.countdown_target)}"
-        } else {
-            eventTitle
-        }
-        canvas.drawText(subText, 0f, h - 2f * density, labelPaint)
+        // Subtitle line at bottom; long titles are cut at the tile edge instead of overflowing.
+        val fit = labelPaint.breakText(subText, true, w, null)
+        canvas.drawText(subText, 0, fit, 0f, h - 2f * density, labelPaint)
     }
 }

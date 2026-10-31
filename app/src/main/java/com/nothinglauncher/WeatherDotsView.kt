@@ -34,13 +34,13 @@ class WeatherDotsView @JvmOverloads constructor(
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_primary)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 11f, resources.displayMetrics)
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_bold) } catch (e: Exception) { null }
     }
@@ -49,14 +49,35 @@ class WeatherDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    /** Paints the moon's "bite" in the tile surface colour (bg_tile_dark uses @color/surface). */
+    private val cutoutPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.surface)
+    }
+
+    // Upper-cased copies are made once per change instead of on every draw.
+    private var cityUpper = ""
+    private var conditionUpper = ""
+    private var conditionKey = ""
+
     var city: String = ""
-        set(value) { field = value; invalidate() }
+        set(value) { field = value; cityUpper = value.uppercase(); invalidate() }
 
     var temperature: String = "--\u00B0"
         set(value) { field = value; invalidate() }
 
     var condition: String = context.getString(R.string.weather_loading)
-        set(value) { field = value; invalidate() }
+        set(value) {
+            field = value
+            conditionUpper = value.uppercase()
+            conditionKey = value.uppercase(Locale.US)
+            invalidate()
+        }
+
+    init {
+        conditionUpper = condition.uppercase()
+        conditionKey = condition.uppercase(Locale.US)
+        contentDescription = condition
+    }
 
     var highLow: String = ""
         set(value) { field = value; invalidate() }
@@ -78,21 +99,24 @@ class WeatherDotsView @JvmOverloads constructor(
         condition = weather.condition
         highLow = "H:${weather.high}\u00B0  L:${weather.low}\u00B0"
         isDay = weather.isDay
-        contentDescription = "${weather.city}, ${weather.temperature}, ${weather.condition}"
+        contentDescription = "${weather.city}, ${weather.temperature}\u00B0, ${weather.condition}"
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        if (width <= 0 || height <= 0) return
         val padX = 14f * density
         val padY = 16f * density
 
-        // 1. Header: Accent dot + City name
+        // 1. Header: Accent dot + City name (cut at the right padding instead of overflowing)
         val dotR = 2.5f * density
         canvas.drawCircle(padX + dotR, padY, dotR, accentPaint)
-        canvas.drawText(city.uppercase(), padX + dotR * 2f + 6f * density, padY + 3.5f * density, titlePaint)
+        val cityX = padX + dotR * 2f + 6f * density
+        val cityFit = titlePaint.breakText(cityUpper, true, (width - padX - cityX).coerceAtLeast(0f), null)
+        canvas.drawText(cityUpper, 0, cityFit, cityX, padY + 3.5f * density, titlePaint)
 
         // 2. Center-Left: Temperature in DotFont
-        val raster = DotFont.rasterize(temperature)
+        val raster = DotFont.rasterizeCached(temperature)
         val availableH = height * 0.44f
         val pitch = min(availableH / DotFont.ROWS, (width * 0.45f) / raster.columns.coerceAtLeast(1))
         val dotRadius = pitch * 0.36f
@@ -114,15 +138,17 @@ class WeatherDotsView @JvmOverloads constructor(
 
         // 4. Footer: Condition label & High/Low
         val footerY = height - 14f * density
-        canvas.drawText(condition.uppercase(), padX, footerY - 12f * density, titlePaint)
+        val condFit = titlePaint.breakText(conditionUpper, true, (width - padX * 2f).coerceAtLeast(0f), null)
+        canvas.drawText(conditionUpper, 0, condFit, padX, footerY - 12f * density, titlePaint)
         if (highLow.isNotBlank()) canvas.drawText(highLow, padX, footerY, textPaint)
     }
 
     private fun drawConditionIcon(canvas: Canvas, cx: Float, cy: Float) {
-        val c = condition.uppercase(Locale.US)
-        val rain = c.contains("RAIN") || c.contains("DRIZZLE") || c.contains("SHOWER") || c.contains("THUNDER")
+        val c = conditionKey
+        val thunder = c.contains("THUNDER")
+        val rain = c.contains("RAIN") || c.contains("DRIZZLE") || c.contains("SHOWER")
         val snow = c.contains("SNOW")
-        val cloudy = rain || snow || c.contains("CLOUD") || c.contains("OVERCAST") || c.contains("FOG")
+        val cloudy = thunder || rain || snow || c.contains("CLOUD") || c.contains("OVERCAST") || c.contains("FOG")
         if (!cloudy && isDay) {
             // Sun: solid core with orbital rays.
             canvas.drawCircle(cx, cy, 8f * density, onPaint)
@@ -136,10 +162,8 @@ class WeatherDotsView @JvmOverloads constructor(
         }
         if (!cloudy && !isDay) {
             // Crescent moon made from two overlapping circles.
-            val clear = ContextCompat.getColor(context, R.color.nothing_bg)
             canvas.drawCircle(cx, cy, 10f * density, onPaint)
-            canvas.drawCircle(cx + 5f * density, cy - 3f * density, 9f * density,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply { color = clear })
+            canvas.drawCircle(cx + 5f * density, cy - 3f * density, 9f * density, cutoutPaint)
             canvas.drawCircle(cx - 1f * density, cy + 1f * density, 2f * density, accentPaint)
             return
         }
@@ -153,19 +177,21 @@ class WeatherDotsView @JvmOverloads constructor(
         for (col in -4..4) {
             canvas.drawCircle(cx + col * 4.2f * density, cloudY + 4f * density, 2.4f * density, onPaint)
         }
-        if (rain) {
+        if (thunder) {
+            // Checked first: THUNDER used to be folded into `rain`, so the bolt was unreachable.
+            canvas.drawCircle(cx, cloudY + 12f * density, 2.2f * density, accentPaint)
+            canvas.drawCircle(cx - 2.5f * density, cloudY + 16f * density, 1.5f * density, accentPaint)
+        } else if (snow) {
+            // Before rain: "SNOW SHOWERS" also matches SHOWER.
+            for (col in -3..3 step 2) {
+                canvas.drawCircle(cx + col * 4.5f * density, cloudY + 12f * density, 1.7f * density, onPaint)
+            }
+        } else if (rain) {
             for (col in -3..3) {
                 val px = cx + col * 4.5f * density
                 val py = cloudY + 11f * density + (if (col % 2 == 0) 0f else 3f * density)
                 canvas.drawCircle(px, py, 1.5f * density, if (col == 0) accentPaint else onPaint)
             }
-        } else if (snow) {
-            for (col in -3..3 step 2) {
-                canvas.drawCircle(cx + col * 4.5f * density, cloudY + 12f * density, 1.7f * density, onPaint)
-            }
-        } else if (c.contains("THUNDER")) {
-            canvas.drawCircle(cx, cloudY + 12f * density, 2.2f * density, accentPaint)
-            canvas.drawCircle(cx - 2.5f * density, cloudY + 16f * density, 1.5f * density, accentPaint)
         }
     }
 }

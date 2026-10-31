@@ -34,13 +34,13 @@ class ScreenTimeDotsView @JvmOverloads constructor(
     }
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 10f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 10f, resources.displayMetrics)
         letterSpacing = 0.08f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
     }
     private val titlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_primary)
-        textSize = 11f * resources.displayMetrics.scaledDensity
+        textSize = android.util.TypedValue.applyDimension(android.util.TypedValue.COMPLEX_UNIT_SP, 11f, resources.displayMetrics)
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_bold) } catch (e: Exception) { null }
     }
@@ -76,8 +76,11 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         refresh()
     }
 
+    private val titleText = context.getString(R.string.screen_time_label)
+
     private fun updateRunning() {
-        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE
+        // Also pause when the tile itself (or an ancestor page) is hidden, not only the window.
+        val shouldRun = isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
         if (shouldRun == running) return
         running = shouldRun
         removeCallbacks(refreshTicker)
@@ -97,6 +100,16 @@ class ScreenTimeDotsView @JvmOverloads constructor(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
         updateRunning()
     }
 
@@ -217,9 +230,9 @@ class ScreenTimeDotsView @JvmOverloads constructor(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        canvas.drawText(context.getString(R.string.screen_time_label), 0f, 12f * density, titlePaint)
+        canvas.drawText(titleText, 0f, 12f * density, titlePaint)
 
-        val raster = DotFont.rasterize(timeText, 1)
+        val raster = DotFont.rasterizeCached(timeText, 1)
         val dotPitch = 2.8f * density
         val dotRadius = dotPitch * 0.38f
         val startY = 22f * density
@@ -231,13 +244,16 @@ class ScreenTimeDotsView @JvmOverloads constructor(
             }
         }
 
-        canvas.drawText(subtitleText, 0f, startY + DotFont.ROWS * dotPitch + 15f * density, textPaint)
-
         val barAreaRight = w - 4f * density
         val barWidth = 4f * density
         val barGap = 4.5f * density
         val totalBarsWidth = 7 * barWidth + 6 * barGap
         val barAreaLeft = barAreaRight - totalBarsWidth
+
+        // Keep the subtitle ("TAP TO GRANT USAGE ACCESS") from running under the bars.
+        val subMaxW = (barAreaLeft - 8f * density).coerceAtLeast(0f)
+        val subFit = textPaint.breakText(subtitleText, true, subMaxW, null)
+        canvas.drawText(subtitleText, 0, subFit, 0f, startY + DotFont.ROWS * dotPitch + 15f * density, textPaint)
         val barBottom = h - 6f * density
         val barMaxHeight = h - 24f * density
 

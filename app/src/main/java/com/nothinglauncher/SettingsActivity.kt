@@ -277,7 +277,13 @@ class SettingsActivity : AppCompatActivity() {
                 }
             }
             val version = try {
-                packageManager.getPackageInfo(packageName, 0).versionName
+                val info = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    packageManager.getPackageInfo(packageName, PackageManager.PackageInfoFlags.of(0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    packageManager.getPackageInfo(packageName, 0)
+                }
+                info.versionName.orEmpty()
             } catch (e: PackageManager.NameNotFoundException) { "" }
             SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, version))
         }

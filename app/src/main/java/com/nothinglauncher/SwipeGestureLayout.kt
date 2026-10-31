@@ -135,6 +135,13 @@ class SwipeGestureLayout @JvmOverloads constructor(
         tracker = VelocityTracker.obtain().also { it.addMovement(ev) }
     }
 
+    override fun onDetachedFromWindow() {
+        // No further events will arrive for an in-flight gesture; don't leak the tracker.
+        dragging = false
+        recycleTracker()
+        super.onDetachedFromWindow()
+    }
+
     private fun recycleTracker() {
         tracker?.recycle()
         tracker = null

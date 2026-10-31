@@ -58,7 +58,9 @@ class AppAdapter(
     inner class AppHolder(private val b: ItemAppBinding) : RecyclerView.ViewHolder(b.root) {
         fun bind(app: AppInfo) {
             b.appIcon.setImageDrawable(app.icon)
-            b.appIcon.contentDescription = app.label
+            // Announce the cell once (as the app name) instead of icon + label separately.
+            b.root.contentDescription = app.label
+            b.appIcon.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             if (iconSizePx > 0) b.appIcon.updateLayoutParams { width = iconSizePx; height = iconSizePx }
             b.appLabel.text = app.label
             LongPressDragHelper.attach(

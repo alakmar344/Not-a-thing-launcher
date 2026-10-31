@@ -1,7 +1,9 @@
 ﻿package com.nothinglauncher
 
 import android.app.Dialog
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.pm.LauncherApps
 import android.graphics.drawable.Drawable
 import android.os.Process
@@ -11,6 +13,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.widget.EditText
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -58,6 +62,34 @@ object Sheets {
         return dialog
     }
 
+    /** Shows [dialog] unless its activity is going away (avoids BadTokenException). */
+    fun showSafely(context: Context, dialog: Dialog) {
+        var c: Context? = context
+        while (c is ContextWrapper && c !is Activity) c = c.baseContext
+        val activity = c as? Activity
+        if (activity != null && (activity.isFinishing || activity.isDestroyed)) return
+        try {
+            dialog.show()
+        } catch (_: WindowManager.BadTokenException) {
+        }
+    }
+
+    /** Opens the keyboard with the sheet and lets the IME "Done" key confirm it. */
+    private fun setupTextInput(dialog: Dialog, input: EditText, onDone: () -> Unit) {
+        dialog.window?.setSoftInputMode(
+            WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
+        )
+        input.requestFocus()
+        input.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                onDone()
+                true
+            } else {
+                false
+            }
+        }
+    }
+
     fun showCustomize(
         context: Context,
         onWidgets: () -> Unit,
@@ -87,7 +119,7 @@ object Sheets {
         tile(b.tileRemovePage, R.drawable.ic_delete, R.string.remove_page, enabled = canRemovePage, action = onRemovePage)
         tile(b.tileWallpaper, R.drawable.ic_wallpaper, R.string.wallpaper_style, action = onWallpaper)
         tile(b.tileSettings, R.drawable.ic_tune, R.string.settings, action = onSettings)
-        dialog.show()
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -163,7 +195,7 @@ object Sheets {
             onChanged()
         }
 
-        dialog.show()
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -174,16 +206,18 @@ object Sheets {
     ): Dialog {
         val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root)
-        b.noteTitle.text = "QUICK NOTE"
+        b.noteTitle.text = context.getString(R.string.element_quick_note).uppercase()
         b.noteInput.setText(currentNote)
-        b.noteInput.setSelection(currentNote.length)
+        // The field has a maxLength filter, so a longer stored note gets truncated on setText.
+        b.noteInput.setSelection(b.noteInput.text.length)
         b.noteCancel.setOnClickListener { dialog.dismiss() }
         b.noteSave.setOnClickListener {
             dialog.dismiss()
             val text = b.noteInput.text.toString().trim()
-            onSave(text.ifEmpty { "NOTHING BUT TIME" })
+            onSave(text.ifEmpty { context.getString(R.string.quick_note_default) })
         }
-        dialog.show()
+        setupTextInput(dialog, b.noteInput) { b.noteSave.performClick() }
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -195,7 +229,7 @@ object Sheets {
     ): Dialog {
         val b = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root)
-        b.noteTitle.text = "RENAME"
+        b.noteTitle.text = context.getString(R.string.sheet_title_rename).uppercase()
         b.noteInput.setText(currentName)
         b.noteInput.setSelection(b.noteInput.text.length)
         b.noteInput.hint = context.getString(R.string.folder_rename_hint)
@@ -204,7 +238,8 @@ object Sheets {
             dialog.dismiss()
             onSave(b.noteInput.text.toString().trim())
         }
-        dialog.show()
+        setupTextInput(dialog, b.noteInput) { b.noteSave.performClick() }
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -220,7 +255,7 @@ object Sheets {
     ): Dialog {
         val b = DialogCountdownBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root)
-        b.countdownTitle.text = "EDIT COUNTDOWN"
+        b.countdownTitle.text = context.getString(R.string.edit_countdown_title).uppercase()
         b.countdownInput.setText(prefs.countdownTitle)
         b.countdownInput.setSelection(b.countdownInput.text.length)
 
@@ -282,7 +317,7 @@ object Sheets {
         }
 
         updateDateRow()
-        dialog.show()
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -303,20 +338,23 @@ object Sheets {
         val dialog = create(context, b.root)
         b.noteTitle.text = title.uppercase()
         b.noteInput.hint = hint
-        b.noteInput.setText(initial)
-        b.noteInput.setSelection(initial.length)
         b.noteInput.inputType = if (numeric) {
             android.text.InputType.TYPE_CLASS_NUMBER
         } else {
             android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         }
         b.noteInput.filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
+        // Set the text after the filter/input type so it isn't clipped by the layout's
+        // 24-char limit and the selection index is always within bounds.
+        b.noteInput.setText(initial)
+        b.noteInput.setSelection(b.noteInput.text.length)
         b.noteCancel.setOnClickListener { dialog.dismiss() }
         b.noteSave.setOnClickListener {
             dialog.dismiss()
             onSave(b.noteInput.text.toString().trim())
         }
-        dialog.show()
+        setupTextInput(dialog, b.noteInput) { b.noteSave.performClick() }
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -328,7 +366,7 @@ object Sheets {
         b.confirmOk.setText(ok)
         b.confirmCancel.setOnClickListener { dialog.dismiss() }
         b.confirmOk.setOnClickListener { dialog.dismiss(); onOk() }
-        dialog.show()
+        showSafely(context, dialog)
         return dialog
     }
 
@@ -336,7 +374,7 @@ object Sheets {
     fun showHiddenApps(context: Context, prefs: LauncherPrefs, onChanged: () -> Unit): Dialog {
         val b = DialogListBinding.inflate(LayoutInflater.from(context))
         val dialog = create(context, b.root, maxHeightFraction = 0.8f)
-        b.listTitle.text = "HIDDEN"
+        b.listTitle.text = context.getString(R.string.sheet_title_hidden).uppercase()
         b.listClose.setOnClickListener { dialog.dismiss() }
         b.listEmpty.setText(R.string.setting_hidden_none)
 
@@ -345,14 +383,14 @@ object Sheets {
         val la = context.getSystemService(LauncherApps::class.java)
         val sizePx = context.resources.getDimensionPixelSize(R.dimen.icon_render_size)
         val density = context.resources.displayMetrics.densityDpi
+        val um = context.getSystemService(android.os.UserManager::class.java)
+        val profiles = (try { la?.profiles } catch (e: Exception) { null })
+            ?.takeIf { it.isNotEmpty() } ?: listOf(Process.myUserHandle())
         val rows = prefs.hiddenApps.mapNotNull { key ->
             val pkg = key.substringBefore('/')
             // Keys of work-profile apps end in "#<profile serial>" (see AppInfo.key).
             val component = key.substringBefore('#')
             val serial = key.substringAfter('#', "").toLongOrNull()
-            val um = context.getSystemService(android.os.UserManager::class.java)
-            val profiles = (try { la?.profiles } catch (e: Exception) { null })
-                ?.takeIf { it.isNotEmpty() } ?: listOf(Process.myUserHandle())
             val candidates = if (serial == null) {
                 listOf(Process.myUserHandle())
             } else {
@@ -369,7 +407,7 @@ object Sheets {
                 val icon = try { IconFactory.render(context.resources, info.getIcon(density), prefs.iconStyle, sizePx) } catch (e: Exception) { null }
                 Row(key, info.label?.toString().orEmpty().ifEmpty { info.componentName.className }, icon)
             }
-        }.sortedBy { it.label.lowercase() }
+        }.sortedWith(compareBy(java.text.Collator.getInstance()) { it.label })
 
         b.listEmpty.isVisible = rows.isEmpty()
         b.listRecycler.isVisible = rows.isNotEmpty()
@@ -392,7 +430,7 @@ object Sheets {
                 }
             }
         }
-        dialog.show()
+        showSafely(context, dialog)
         return dialog
     }
 }

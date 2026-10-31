@@ -11,6 +11,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
+import android.view.accessibility.AccessibilityEvent
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import androidx.core.view.isVisible
 import com.nothinglauncher.databinding.ItemSettingRowBinding
 import com.nothinglauncher.databinding.ItemSettingSectionBinding
@@ -64,7 +68,23 @@ object SettingsUi {
         b.root.setOnClickListener { sw.setChecked(!sw.isChecked, animate = true, notify = true) }
         sw.isClickable = false
         sw.isFocusable = false
-        b.root.contentDescription = title
+        sw.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+        // The whole row is the control: announce it as a switch with its on/off state (title
+        // and subtitle are read from the row's text, so no contentDescription override).
+        ViewCompat.setAccessibilityDelegate(b.root, object : AccessibilityDelegateCompat() {
+            override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+                super.onInitializeAccessibilityNodeInfo(host, info)
+                info.className = android.widget.Switch::class.java.name
+                info.isCheckable = true
+                info.isChecked = sw.isChecked
+            }
+
+            override fun onInitializeAccessibilityEvent(host: View, event: AccessibilityEvent) {
+                super.onInitializeAccessibilityEvent(host, event)
+                event.className = android.widget.Switch::class.java.name
+                event.isChecked = sw.isChecked
+            }
+        })
         return sw
     }
 
