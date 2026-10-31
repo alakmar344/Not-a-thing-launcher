@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.view.LayoutInflater
 import android.view.View

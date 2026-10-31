@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 /**
  * A hand-built 5×7 dot-matrix typeface (digits, A–Z and a few symbols).

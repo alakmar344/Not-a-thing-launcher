@@ -115,8 +115,8 @@ jobs:
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
-          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.1' }}
+          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.1' }}
           overwrite_files: true
           files: |
             app/build/outputs/apk/debug/*.apk

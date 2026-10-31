@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.content.res.ColorStateList
 import android.view.Gravity

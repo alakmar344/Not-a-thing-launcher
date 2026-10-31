@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.graphics.Bitmap
 import android.graphics.BitmapShader

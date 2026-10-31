@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.appwidget.AppWidgetHost
 import android.appwidget.AppWidgetHostView

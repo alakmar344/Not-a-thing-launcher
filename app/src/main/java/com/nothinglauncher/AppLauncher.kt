@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.app.ActivityOptions
 import android.app.SearchManager

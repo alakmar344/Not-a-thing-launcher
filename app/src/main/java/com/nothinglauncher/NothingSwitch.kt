@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter

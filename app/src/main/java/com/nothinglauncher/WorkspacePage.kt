@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 enum class BespokeElement(val id: String, val titleRes: Int, val subRes: Int, val iconRes: Int) {
     CLOCK("clock", R.string.element_clock, R.string.element_clock_sub, R.drawable.ic_alarm),

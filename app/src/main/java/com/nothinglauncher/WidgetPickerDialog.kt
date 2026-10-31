@@ -1,4 +1,4 @@
-﻿package com.nothinglauncher
+package com.nothinglauncher
 
 import android.app.Dialog
 import android.appwidget.AppWidgetManager
