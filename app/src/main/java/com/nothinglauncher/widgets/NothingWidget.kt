@@ -1,0 +1,76 @@
+package com.nothinglauncher.widgets
+
+import android.appwidget.AppWidgetHostView
+import android.appwidget.AppWidgetProviderInfo
+import android.content.ComponentName
+import android.content.Context
+import android.os.Build
+import android.view.View
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import com.android.launcher3.widget.LauncherAppWidgetProviderInfo
+import com.android.systemui.plugins.CustomWidgetPlugin
+
+/**
+ * A Not a Thing dot-matrix element, hosted by stock Launcher3 as an in-process custom widget.
+ *
+ * Launcher3 lists every class in `R.array.custom_widget_providers` in its widget picker; the
+ * user adds, moves, resizes and removes elements exactly like any other widget. Subclasses only
+ * describe themselves and build their view.
+ */
+abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPlugin {
+
+    abstract val labelRes: Int
+    /** One-line description, used for accessibility. */
+    abstract val descriptionRes: Int
+    open val spanX: Int = 4
+    open val spanY: Int = 2
+    open val minSpanX: Int = 2
+    open val minSpanY: Int = 1
+    open val resizeMode: Int =
+        AppWidgetProviderInfo.RESIZE_HORIZONTAL or AppWidgetProviderInfo.RESIZE_VERTICAL
+
+    /** Builds the element's view for a newly bound widget host. */
+    abstract fun createView(host: AppWidgetHostView): View
+
+    final override fun onViewCreated(parent: AppWidgetHostView) {
+        parent.removeAllViews()
+        // The host already applies the widget cell padding; the element fills it.
+        parent.setPadding(0, 0, 0, 0)
+        parent.addView(
+            createView(parent),
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+    }
+
+    override fun updateWidgetInfo(info: AppWidgetProviderInfo, context: Context) {
+        // Group the elements under this app in the stock picker (and load previews/icons from
+        // this package). The class name keeps Launcher3's custom-widget prefix.
+        info.provider = ComponentName(
+            context.packageName,
+            LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX + javaClass.name
+        )
+        info.label = context.getString(labelRes)
+        info.icon = com.nothinglauncher.R.mipmap.ic_launcher
+        info.initialLayout = 0
+        // The info is cloned from another app's provider (CustomWidgetManager), and the framework
+        // resolves preview/description resources through that clone's package. Clear them so the
+        // picker draws Launcher3's own preview tile (grid + this app's icon) instead.
+        info.previewImage = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            info.previewLayout = 0
+            info.descriptionRes = 0
+        }
+        info.resizeMode = resizeMode
+        info.widgetCategory = AppWidgetProviderInfo.WIDGET_CATEGORY_HOME_SCREEN
+        if (info is LauncherAppWidgetProviderInfo) {
+            info.spanX = spanX
+            info.spanY = spanY
+            info.minSpanX = minSpanX
+            info.minSpanY = minSpanY
+            info.maxSpanX = 4.coerceAtLeast(spanX)
+            info.maxSpanY = 4.coerceAtLeast(spanY)
+        }
+    }
+
+}

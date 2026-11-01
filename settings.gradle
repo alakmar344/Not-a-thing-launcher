@@ -14,4 +14,12 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "NothingLauncher"
+
+// The launcher itself: Not a Thing design layer + app packaging (com.nothinglauncher).
 include ':app'
+
+// Stock AOSP Launcher3 (packages/apps/Launcher3) and the SystemUI libraries it needs.
+// Sources live untouched under third_party/aosp; these modules only describe how to build them.
+include ':launcher3'
+include ':iconloader'
+include ':animationlib'

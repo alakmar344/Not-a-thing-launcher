@@ -8,7 +8,8 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
-import android.service.notification.NotificationListenerService
+import androidx.core.app.NotificationManagerCompat
+import com.android.launcher3.notification.NotificationListener
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
@@ -49,8 +50,16 @@ object MediaSessionRepository {
         main.post { attachBestController(sessions.orEmpty()) }
     }
 
+    // Launcher3's notification-dots listener doubles as the media session bridge: granting
+    // "notification access" once enables both dots and the media element.
     private fun listenerComponent(context: Context): ComponentName =
-        ComponentName(context, MediaNotificationListenerService::class.java)
+        ComponentName(context, NotificationListener::class.java)
+
+    fun hasNotificationAccess(context: Context): Boolean = try {
+        NotificationManagerCompat.getEnabledListenerPackages(context).contains(context.packageName)
+    } catch (_: Exception) {
+        false
+    }
 
     /** Snapshot of the visible playback state; polled or observed by the media element. */
     val state: State
@@ -74,7 +83,7 @@ object MediaSessionRepository {
             manager = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
         }
         registerManagerListener(ctx)
-        if (!LauncherSystem.hasNotificationAccess(ctx)) {
+        if (!hasNotificationAccess(ctx)) {
             update(State(permissionGranted = false))
             return
         }
@@ -86,13 +95,13 @@ object MediaSessionRepository {
         started = false
         unregisterManagerListener()
         detachController()
-        update(State(permissionGranted = ctx != null && LauncherSystem.hasNotificationAccess(ctx)))
+        update(State(permissionGranted = ctx != null && hasNotificationAccess(ctx)))
     }
 
     fun refresh() {
         val ctx = appContext ?: return
         registerManagerListener(ctx)
-        if (!LauncherSystem.hasNotificationAccess(ctx)) {
+        if (!hasNotificationAccess(ctx)) {
             // Access was revoked: drop the stale controller and the (now dead) session
             // listener so it is registered again once access is granted back.
             detachController()
@@ -156,7 +165,7 @@ object MediaSessionRepository {
     /** Registers the session-change listener whenever notification access is available. */
     private fun registerManagerListener(ctx: Context) {
         if (managerListenerRegistered) return
-        if (!LauncherSystem.hasNotificationAccess(ctx)) return
+        if (!hasNotificationAccess(ctx)) return
         val m = manager ?: return
         try {
             m.addOnActiveSessionsChangedListener(sessionsChanged, listenerComponent(ctx))
@@ -169,7 +178,7 @@ object MediaSessionRepository {
     private fun publish() {
         val c = controller
         if (c == null) {
-            update(State(permissionGranted = LauncherSystem.hasNotificationAccess(appContext ?: return)))
+            update(State(permissionGranted = hasNotificationAccess(appContext ?: return)))
             return
         }
         val metadata = try {
@@ -237,18 +246,5 @@ object MediaSessionRepository {
         } catch (_: Exception) {
             refresh()
         }
-    }
-}
-
-/** Registered in the manifest so this package can host the notification listener role. */
-class MediaNotificationListenerService : NotificationListenerService() {
-    override fun onListenerConnected() {
-        val ctx = applicationContext ?: return
-        MediaSessionRepository.start(ctx)
-        MediaSessionRepository.refresh()
-    }
-
-    override fun onListenerDisconnected() {
-        MediaSessionRepository.stop()
     }
 }

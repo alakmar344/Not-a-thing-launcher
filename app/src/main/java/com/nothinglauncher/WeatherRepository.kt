@@ -48,13 +48,13 @@ object WeatherRepository {
     private const val CACHE_FRESH_MS = 30 * 60 * 1000L
     private const val RETRY_BACKOFF_MS = 60 * 1000L
 
-    fun cached(prefs: LauncherPrefs): Weather? = parse(prefs.weatherCache)
+    fun cached(prefs: NothingPrefs): Weather? = parse(prefs.weatherCache)
 
     fun isFresh(weather: Weather?): Boolean =
         weather != null && System.currentTimeMillis() - weather.updatedAt < CACHE_FRESH_MS
 
     /** Every weather element on screen listens here so one fetch updates all of them. */
-    fun addListener(prefs: LauncherPrefs, listener: (Weather?) -> Unit): Weather? {
+    fun addListener(prefs: NothingPrefs, listener: (Weather?) -> Unit): Weather? {
         listeners += listener
         val cached = cached(prefs)
         main.post { if (listener in listeners) listener(cached) }
@@ -67,7 +67,7 @@ object WeatherRepository {
 
     fun refresh(
         context: Context,
-        prefs: LauncherPrefs,
+        prefs: NothingPrefs,
         force: Boolean = false,
         callback: (Weather?) -> Unit
     ) {
@@ -92,7 +92,7 @@ object WeatherRepository {
         io.execute { runFetch(appContext, prefs) }
     }
 
-    private fun runFetch(appContext: Context, prefs: LauncherPrefs) {
+    private fun runFetch(appContext: Context, prefs: NothingPrefs) {
         while (true) {
             rerunRequested.set(false)
             val generation = cityGeneration.get()
@@ -123,14 +123,14 @@ object WeatherRepository {
         }
     }
 
-    fun setCity(context: Context, prefs: LauncherPrefs, city: String, callback: (Weather?) -> Unit) {
+    fun setCity(context: Context, prefs: NothingPrefs, city: String, callback: (Weather?) -> Unit) {
         prefs.weatherCity = city
         prefs.weatherCache = null
         cityGeneration.incrementAndGet()
         refresh(context, prefs, force = true, callback = callback)
     }
 
-    private fun fetch(context: Context, prefs: LauncherPrefs): Weather? {
+    private fun fetch(context: Context, prefs: NothingPrefs): Weather? {
         val manual = prefs.weatherCity.trim()
         var lat: Double
         var lon: Double
