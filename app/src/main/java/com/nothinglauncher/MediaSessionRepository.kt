@@ -80,7 +80,11 @@ object MediaSessionRepository {
         val ctx = appContext ?: return
         if (!started) {
             started = true
-            manager = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+            manager = try {
+                ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager
+            } catch (_: Throwable) {
+                null // e.g. restricted/preview contexts without the service
+            }
         }
         registerManagerListener(ctx)
         if (!hasNotificationAccess(ctx)) {

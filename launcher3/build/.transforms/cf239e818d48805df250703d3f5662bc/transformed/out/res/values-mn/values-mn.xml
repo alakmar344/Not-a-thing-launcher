@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <string msgid="7610119707847920412" name="abandoned_clean_this">"Хасах"</string>
+    <string msgid="3990027586878167529" name="abandoned_promise_explanation">"Энэ дүрсний апп-г суулгаагүй байна. Та үүнийг устгах буюу апп-г хайж суулгах боломжтой."</string>
+    <string msgid="7096178467971716750" name="abandoned_promises_title">"Энэ апп-г суулгаагүй байна"</string>
+    <string msgid="891119232568284442" name="abandoned_search">"Хайх"</string>
+    <string msgid="2277148124685870734" name="accessibility_close">"Хаах"</string>
+    <string msgid="215894119683164916" name="action_add_to_workspace">"Үндсэн нүүрэнд нэмэх"</string>
+    <string msgid="282377193880900022" name="action_decrease_height">"Намсгах"</string>
+    <string msgid="1374549771083094654" name="action_decrease_width">"Нарийсгах"</string>
+    <string msgid="2864038805849372848" name="action_deep_shortcut">"Товчлол"</string>
+    <string msgid="5909461085055959187" name="action_dismiss_notification">"Хаах"</string>
+    <string msgid="459390020612501122" name="action_increase_height">"Өндөрсгөх"</string>
+    <string msgid="8773715375078513326" name="action_increase_width">"Өргөсгөх"</string>
+    <string msgid="4339390619886385032" name="action_move">"Зөөх"</string>
+    <string msgid="2170188780612570250" name="action_move_here">"Энд байршуулах"</string>
+    <string msgid="39528912300293768" name="action_move_to_workspace">"Үндсэн нүүр лүү зөөх"</string>
+    <string msgid="1802976324781771067" name="action_resize">"Хэмжээг өөрчлөх"</string>
+    <string msgid="7456344436509528827" name="activity_not_available">"Апп-г ашиглах боломжгүй"</string>
+    <string msgid="8071924732094499514" name="activity_not_found">"Апп суугаагүй байна."</string>
+    <string msgid="8730547755622776606" name="add_item_request_drag_hint">"Виджетийг үндсэн нүүрний эргэн тойронд зөөхийн тулд түүнд хүрээд, удаан дарна уу"</string>
+    <string msgid="9040534766770853243" name="add_to_folder">"Хавтас: <ns1:g id="NAME">%1$s</ns1:g> руу нэм"</string>
+    <string msgid="4534929978967147231" name="add_to_folder_with_app">"<ns1:g id="NAME">%1$s</ns1:g>-тай хавтас нэмэх"</string>
+    <string msgid="9168649446635919791" name="add_to_home_screen">"Үндсэн нүүрэнд нэмэх"</string>
+    <string msgid="4793259502305558003" name="added_to_folder">"Хавтсанд нэмэгдсэн зүйл"</string>
+    <string msgid="4451545765448884415" name="added_to_home_screen_accessibility_text">"<ns1:g id="WIDGET_NAME">%1$s</ns1:g> виджетийг үндсэн нүүрэнд нэмсэн"</string>
+    <string msgid="8130441508702294465" name="all_apps_button_label">"Апп-н жагсаалт"</string>
+    <string msgid="1315764287305224468" name="all_apps_button_personal_label">"Хувийн аппын жагсаалт"</string>
+    <string msgid="7270707118948892488" name="all_apps_button_work_label">"Ажлын аппын жагсаалт"</string>
+    <string msgid="5015784846527570951" name="all_apps_label">"Бүх апп"</string>
+    <string msgid="5813968043155271636" name="all_apps_loading_message">"Аппыг ачаалж байна..."</string>
+    <string msgid="3200346862396363786" name="all_apps_no_search_results">"\"<ns1:g id="QUERY">%1$s</ns1:g>\"-д тохирох апп олдсонгүй"</string>
+    <string msgid="4190252696685155002" name="all_apps_personal_tab">"Хувийн"</string>
+    <string msgid="1390553134053255246" name="all_apps_search_bar_hint">"Апп хайх"</string>
+    <string msgid="5889367432531296759" name="all_apps_search_results">"Хайлтын илэрц"</string>
+    <string msgid="4884822796154055118" name="all_apps_work_tab">"Ажил"</string>
+    <string msgid="8662546029078692509" name="allow_rotation_desc">"Утсыг эргүүлсэн үед"</string>
+    <string msgid="7222049633713050106" name="allow_rotation_title">"Үндсэн нүүрийг эргүүлэхийг зөвшөөрөх"</string>
+    <string msgid="9124290918876665128" name="app_archived_title">"<ns1:g id="NAME">%1$s</ns1:g>-г архивласан. Татахын тулд товшино уу."</string>
+    <string msgid="8336702962104482644" name="app_downloading_title">"<ns1:g id="NAME">%1$s</ns1:g>-г татаж байна, <ns1:g id="PROGRESS">%2$s</ns1:g> татсан"</string>
+    <string msgid="692894985365717661" name="app_info_drop_target_label">"Аппын мэдээлэл"</string>
+    <string msgid="5864044122733792085" name="app_installing_title">"<ns1:g id="NAME">%1$s</ns1:g>-г суулгаж байна. <ns1:g id="PROGRESS">%2$s</ns1:g> дууссан"</string>
+    <string msgid="649227358658669779" name="app_name">"Launcher3"</string>
+    <string msgid="4045241727446873529" name="app_pair_default_title">"<ns1:g id="APP1">%1$s</ns1:g> | <ns1:g id="APP2">%2$s</ns1:g>"</string>
+    <string msgid="8134106404716224054" name="app_pair_name_format">"Апп хослуулалт: <ns1:g id="APP1">%1$s</ns1:g> болон <ns1:g id="APP2">%2$s</ns1:g>"</string>
+    <string msgid="4588897528143807002" name="app_pair_needs_unfold">"Энэ апп хослуулалтыг ашиглахын тулд төхөөрөмжийг дэлгэнэ үү"</string>
+    <string msgid="3446551575502685376" name="app_pair_unlaunchable_at_screen_size">"Энэ апп хослуулалтыг уг төхөөрөмж дээр дэмждэггүй"</string>
+    <string msgid="7053938513995617849" name="app_waiting_download_title">"<ns1:g id="NAME">%1$s</ns1:g> нь суулгахыг хүлээж байна"</string>
+    <string msgid="7117251166066978730" name="auto_add_shortcuts_description">"Шинэ аппад зориулсан"</string>
+    <string msgid="4926805029653694105" name="auto_add_shortcuts_label">"Үндсэн нүүрэнд аппын дүрс тэмдгүүдийг нэмэх"</string>
+    <string msgid="7410995531938041192" name="bubble_bar_overflow_description">"Урт цэс"</string>
+    <string msgid="4050141361160214248" name="create_folder_with">"Хавтсыг: <ns1:g id="NAME">%1$s</ns1:g> нэрээр үүсгэ"</string>
+    <string msgid="7475544710230993317" name="default_scroll_format">"%2$d-н %1$d хуудас"</string>
+    <string msgid="5896817443635989056" name="developer_options_filter_hint">"Шүүлтүүр"</string>
+    <string msgid="700788437593726194" name="developer_options_title">"Хөгжүүлэгчийн тохиргоо"</string>
+    <string msgid="6510806469849709407" name="dialog_remove">"Хасах"</string>
+    <string msgid="2178028071796141234" name="dialog_update">"Шинэчлэх"</string>
+    <string msgid="4176784553982226114" name="dialog_update_message">"Энэ дүрс тэмдгийн аппыг шинэчлээгүй. Та энэ товчлолыг дахин идэвхжүүлэх эсвэл дүрсийг хасахын тулд гараар шинэчлэх боломжтой."</string>
+    <string msgid="114234265740994042" name="dialog_update_title">"Аппын шинэчлэлт шаардлагатай"</string>
+    <string msgid="6673129024321402780" name="disabled_app_label">"<ns1:g id="APP_NAME">%1$s</ns1:g>-г идэвхгүй болгосон"</string>
+    <string msgid="3357562989568808658" name="dismiss_prediction_label">"Апп бүү санал болго"</string>
+    <string msgid="1865617679843363410" name="dotted_app_label">"{count,plural, =1{{app_name} дээр # мэдэгдэл байна}other{{app_name} дээр # мэдэгдэл байна}}"</string>
+    <string msgid="8947858375782098427" name="edit_home_screen">"Үндсэн нүүрийг засах"</string>
+    <string msgid="2657652999128882431" name="fitness_widget_recommendation_category_label">"Фитнесийн зорилгодоо хүрээрэй"</string>
+    <string msgid="4100806530910930934" name="folder_closed">"Фолдер хаагдав"</string>
+    <string msgid="6409794597405184510" name="folder_created">"Үүсгэсэн хавтас"</string>
+    <string msgid="5174843001373488816" name="folder_hint_text">"Нэр засах"</string>
+    <string msgid="8626242716117004803" name="folder_name_format_exact">"Фолдер: <ns1:g id="NAME">%1$s</ns1:g>, <ns1:g id="SIZE">%2$d</ns1:g> зүйл"</string>
+    <string msgid="4270108890534995199" name="folder_name_format_overflow">"Фолдер: <ns1:g id="NAME">%1$s</ns1:g>, <ns1:g id="SIZE">%2$d</ns1:g> эсвэл үүнээс олон зүйл"</string>
+    <string msgid="94695026776264709" name="folder_opened">"<ns1:g id="WIDTH">%1$d</ns1:g> <ns1:g id="HEIGHT">%2$d</ns1:g> фолдер нээгдэв"</string>
+    <string msgid="1794088362165669656" name="folder_renamed">"Фолдерын нэр <ns1:g id="NAME">%1$s</ns1:g> болов"</string>
+    <string msgid="4625795376335528256" name="folder_tap_to_close">"Фолдерийг хаахын тулд дарна уу"</string>
+    <string msgid="4017685068016979677" name="folder_tap_to_rename">"Шинэ нэрийг хадгалахын тулд дарна уу."</string>
+    <string msgid="309040266978007925" name="gadget_complete_setup_text">"Тохируулгыг дуусгахын тулд товшино уу"</string>
+    <string msgid="740356548025791839" name="gadget_error_text">"Жижиг хэрэгслийг ачаалах боломжгүй"</string>
+    <string msgid="8348374825537681407" name="gadget_setup_text">"Виджетийн тохиргоо"</string>
+    <string msgid="5629429142036709174" name="home_screen">"Нүүр"</string>
+    <string msgid="7448809638125333693" name="hotseat_out_of_space">"\"Дуртай\" трей дээр өөр зай байхгүй байна"</string>
+    <string msgid="2539096853673231757" name="install_drop_target_label">"Суулгах"</string>
+    <string msgid="1616889277073184841" name="install_private_system_shortcut_label">"Хувийнхад суулгах"</string>
+    <string msgid="4211073925752213539" name="item_added_to_workspace">"Нүүр дэлгэцэнд нэмсэн зүйл"</string>
+    <string msgid="4606538322571412879" name="item_moved">"Зөөвөрлөсөн зүйл"</string>
+    <string msgid="851119963877842327" name="item_removed">"Зүйлийг устгалаа"</string>
+    <string msgid="8531721983832654978" name="label_application">"Апп"</string>
+    <string msgid="2733588281439571974" name="long_accessible_way_to_add">"Виджетийг зөөх эсвэл захиалгат үйлдлийг ашиглахын тулд хоёр товшоод, удаан дарна уу."</string>
+    <string msgid="2199537273817090740" name="long_accessible_way_to_add_shortcut">"Товчлолыг зөөх эсвэл захиалгат үйлдлийг ашиглахын тулд хоёр товшоод, удаан дарна уу."</string>
+    <string msgid="5405328730817637737" name="long_press_shortcut_to_add">"Товчлолыг зөөхийн тулд хүрээд, удаан дарна уу."</string>
+    <string msgid="3587712543577675817" name="long_press_widget_to_add">"Виджетийг зөөх бол хүрээд, удаан дарна уу."</string>
+    <string msgid="5254852678218206889" name="move_to_empty_cell_description">"<ns1:g id="STRING">%3$s</ns1:g> дахь <ns1:g id="NUMBER_0">%1$s</ns1:g>-р мөр, <ns1:g id="NUMBER_1">%2$s</ns1:g>-р багана руу зөөх"</string>
+    <string msgid="6295412897075147808" name="move_to_hotseat_position">"Дуртай байршил болох <ns1:g id="NUMBER">%1$s</ns1:g>-д зөөх"</string>
+    <string msgid="6750008980455459790" name="move_to_position">"Байршил <ns1:g id="NUMBER">%1$s</ns1:g>-д зөөх"</string>
+    <string msgid="6898038085516271325" name="msg_disabled_by_admin">"Таны админ идэвхгүй болгосон"</string>
+    <string msgid="281113995110910548" name="msg_missing_notification_access">"Мэдэгдлийн цэгийг харуулахын тулд <ns1:g id="NAME">%1$s</ns1:g>-д аппын мэдэгдлийг асаана уу"</string>
+    <string msgid="3908242346768119070" name="news_widget_recommendation_category_label">"Танд зориулсан мэдээ"</string>
+    <string msgid="3787956167293097509" name="no_search_results">"Виджет эсвэл товчлол олдсонгүй"</string>
+    <string msgid="4337693382501046170" name="no_widgets_available">"Жижиг хэрэгсэл болон товчлол боломжгүй байна"</string>
+    <string msgid="1760796511504341095" name="notification_dots_desc_off">"Унтраалттай"</string>
+    <string msgid="1679848116452218908" name="notification_dots_desc_on">"Асаалттай"</string>
+    <string msgid="4284221181793592871" name="notification_dots_service_title">"Мэдэгдлийн цэгийг харуулах"</string>
+    <string msgid="9062440428204120317" name="notification_dots_title">"Мэдэгдлийн цэг"</string>
+    <string msgid="1404149926117359025" name="notifications_header">"Мэдэгдэл"</string>
+    <string msgid="897876078077284733" name="others_widget_recommendation_category_label">"Танд таалагдаж магадгүй"</string>
+    <string msgid="6455557115204099579" name="out_of_space">"Энэ үндсэн нүүрэнд зай байхгүй байна"</string>
+    <string msgid="7592128424511031410" name="package_state_unknown">"Тодорхойгүй"</string>
+    <string msgid="923466509822011139" name="permdesc_install_shortcut">"Апп нь хэрэглэгчийн оролцоогүйгээр товчлолыг нэмэж чадна"</string>
+    <string msgid="4208061150510996676" name="permdesc_read_settings">"Аппад нүүрэн дэх тохиргоо болон товчлолыг уншихыг зөвшөөрнө."</string>
+    <string msgid="726859348127868466" name="permdesc_write_settings">"Аппад нүүрэн дэх тохиргоо болон товчлолыг өөрчлөхийг зөвшөөрнө."</string>
+    <string msgid="5632423390354674437" name="permlab_install_shortcut">"товчлол суулгах"</string>
+    <string msgid="5136500343007704955" name="permlab_read_settings">"нүүрний тохиргоо болон товчлолыг унших"</string>
+    <string msgid="4820028712156303762" name="permlab_write_settings">"нүүрний тохиргоо болон товчлолыг бичих"</string>
+    <string msgid="4196423321649756498" name="pin_prediction">"Таамаглалыг бэхлэх"</string>
+    <string msgid="2359721649407947001" name="private_space_label">"Хувийн орон зай"</string>
+    <string msgid="611902414159280263" name="private_space_secondary_label">"Хувийн аппуудыг түгжээтэй бөгөөд нуугдсан байлгана уу"</string>
+    <string msgid="1722113555721820766" name="productivity_widget_recommendation_category_label">"Таны өдөр тутмын хэрэгцээт зүйлс"</string>
+    <string msgid="3254274107740952556" name="ps_add_button_content_description">"Хувийн орон зайд аппууд суулгана уу"</string>
+    <string msgid="8611055839242385935" name="ps_add_button_label">"Аппуудыг суулгах"</string>
+    <string msgid="2640257399982364682" name="ps_container_lock_title">"Түгжээ"</string>
+    <string msgid="7605602332253423755" name="ps_container_lock_unlock_button">"Private Space-г түгжих/түгжээг тайлах"</string>
+    <string msgid="6059734123353320479" name="ps_container_settings">"Private Space-н тохиргоо"</string>
+    <string msgid="4391796149519594205" name="ps_container_title">"Хувийн"</string>
+    <string msgid="8667331812048014412" name="ps_container_transition">"Private Space-н шилжилт"</string>
+    <string msgid="6690461455618725183" name="recent_task_option_split_screen">"Дэлгэцийг хуваах"</string>
+    <string msgid="6336962690888067057" name="reconfigurable_widget_education_tip">"Жижиг хэрэгслийн тохиргоог өөрчлөхийн тулд товшино уу"</string>
+    <string msgid="1383965239183576790" name="remote_action_failed">"Амжилтгүй болсон: <ns1:g id="WHAT">%1$s</ns1:g>"</string>
+    <string msgid="7812859488053230776" name="remove_drop_target_label">"Арилгах"</string>
+    <string msgid="9160126848219158407" name="safemode_shortcut_error">"Татаж авсан апп-г Аюулгүй горим дотроос идэвхгүйжүүлсэн"</string>
+    <string msgid="4863470563535682004" name="safemode_widget_error">"Safe горимд виджетүүдийг идэвхгүйжүүлсэн"</string>
+    <string msgid="5647523853662686243" name="save_app_pair">"Апп хослуулалтыг хадгалах"</string>
+    <string msgid="8873672322605444408" name="settings_button_text">"Нүүр хуудасны тохиргоо"</string>
+    <string msgid="2536503539825726397" name="shortcut_not_available">"Товчлол алга"</string>
+    <string msgid="8471715556199592381" name="shortcuts_count">"{count,plural, =1{# товчлол}other{# товчлол}}"</string>
+    <string msgid="2923840997302308191" name="social_and_entertainment_widget_recommendation_category_label">"Таны амралтын бүс"</string>
+    <string msgid="5475288491241414932" name="split_app_info_accessibility">"%1$s-н аппын мэдээлэл"</string>
+    <string msgid="8216961355289236794" name="styles_wallpaper_button_text">"Дэлгэцийн зураг, загвар"</string>
+    <string msgid="1844314680798145222" name="suggested_widgets_header_title">"Зөвлөмжүүд"</string>
+    <string msgid="1376365968844349552" name="title_change_settings">"Тохиргоог өөрчлөх"</string>
+    <string msgid="7503287056163941064" name="title_missing_notification_access">"Мэдэгдлийн хандалт шаардлагатай"</string>
+    <string msgid="4151576204245173321" name="undo">"Болих"</string>
+    <string msgid="4722034217958379417" name="uninstall_drop_target_label">"Устгах"</string>
+    <string msgid="4172046090762920660" name="uninstall_system_app_text">"Энэ апп нь системийн апп ба устгах боломжгүй."</string>
+    <string msgid="6712678763480668598" name="weather_widget_recommendation_category_label">"Цаг агаарын урьдчилсан мэдээлэлтэй байгаарай"</string>
+    <string msgid="3640149169885301790" name="widget_accessible_dims_format">"%1$d өргөн %2$d өндөр"</string>
+    <string msgid="2880537293434387943" name="widget_button_text">"Виджет"</string>
+    <string msgid="8894438636213590446" name="widget_category_conversations">"Харилцан яриа"</string>
+    <string msgid="3469689394504266039" name="widget_category_note_taking">"Тэмдэглэл хөтлөх"</string>
+    <string msgid="2370757736025621599" name="widget_dims_format">"%1$d × %2$d"</string>
+    <string msgid="8676165703104836580" name="widget_education_close_button">"Ойлголоо"</string>
+    <string msgid="1731667670753497052" name="widget_education_content">"Аппуудыг нээлгүйгээр мэдээлэл авахын тулд та үндсэн нүүрэндээ виджетүүд нэмэх боломжтой"</string>
+    <string msgid="4874760613775913787" name="widget_education_header">"Хэрэгтэй мэдээллээ хурууныхаа үзүүрээр аваарай"</string>
+    <string msgid="1673313931455067502" name="widget_picker_right_pane_accessibility_title">"Баруун талд <ns1:g id="SELECTED_HEADER">%1$s</ns1:g>-н виджет, зүүн талд хайлт болон сонгуултууд байна"</string>
+    <string msgid="9045841361655787574" name="widget_preview_context_description">"<ns1:g id="WIDGET_NAME">%1$s</ns1:g> жижиг хэрэгсэл"</string>
+    <string msgid="8811472721881205250" name="widget_reconfigure_button_content_description">"Жижиг хэрэгслийн тохиргоог өөрчлөх"</string>
+    <string msgid="9130327887929620" name="widget_resized">"Виджэтийн өргөн <ns1:g id="NUMBER_0">%1$s</ns1:g>, өндөр <ns1:g id="NUMBER_1">%2$s</ns1:g> болсон"</string>
+    <string msgid="7209136747878365116" name="widgets_and_shortcuts_count">"<ns1:g id="WIDGETS_COUNT">%1$s</ns1:g>, <ns1:g id="SHORTCUTS_COUNT">%2$s</ns1:g>"</string>
+    <string msgid="6467746476364652096" name="widgets_count">"{count,plural, =1{# виджет}other{# виджет}}"</string>
+    <string msgid="5766167035728653605" name="widgets_full_sheet_cancel_button_description">"Хайх хэсгээс текстийг арилгах"</string>
+    <string msgid="2743540105607120182" name="widgets_full_sheet_personal_tab">"Хувийн виджетүүд"</string>
+    <string msgid="8484659090860596457" name="widgets_full_sheet_search_bar_hint">"Хайх"</string>
+    <string msgid="3767150027110633765" name="widgets_full_sheet_work_tab">"Ажил"</string>
+    <string msgid="796804551140113767" name="widgets_list">"Жижиг хэрэгслийн жагсаалт"</string>
+    <string msgid="6141506579418771922" name="widgets_list_closed">"Жижиг хэрэгслийн жагсаалтыг хаасан"</string>
+    <string msgid="1736198302467317371" name="work_apps_enable_btn_text">"Түр зогсоохоо болих"</string>
+    <string msgid="4669288269140620646" name="work_apps_pause_btn_text">"Ажлын аппуудыг түр зогсоох"</string>
+    <string msgid="261634750995824906" name="work_apps_paused_body">"Таны ажлын аппууд танд мэдэгдэл илгээх, таны батарейг ашиглах эсвэл байршилд тань хандах боломжгүй"</string>
+    <string msgid="6377476824357318532" name="work_apps_paused_edu_accept">"Ойлголоо"</string>
+    <string msgid="8872412121608402058" name="work_apps_paused_edu_banner">"Ажлын аппуудыг тэмдэглэсэн бөгөөд танай IT админд харагдана"</string>
+    <string msgid="1687828929959237477" name="work_apps_paused_info_body">"Та ажлын аппуудаасаа мэдэгдэл хүлээн авахгүй"</string>
+    <string msgid="8358872357502756790" name="work_apps_paused_telephony_unavailable_body">"Та ажлын аппуудаасаа утасны дуудлага, мессеж эсвэл мэдэгдэл хүлээн авахгүй"</string>
+    <string msgid="3040901117349444598" name="work_apps_paused_title">"Ажлын аппуудыг түр зогсоосон"</string>
+    <string msgid="3753320833950115786" name="work_folder_name">"Ажил"</string>
+    <string msgid="6069788082535149071" name="work_profile_edu_accept">"Ойлголоо"</string>
+    <string msgid="7895468576497746520" name="work_profile_edu_work_apps">"Ажлын аппуудыг тэмдэглэсэн бөгөөд танай IT админд харагдана"</string>
+    <string msgid="3081029915775481146" name="work_profile_toggle_label">"Ажлын профайл"</string>
+    <string msgid="257366611030256142" name="workspace_new_page">"Шинэ үндсэн нүүр хуудас"</string>
+    <string msgid="8458889198184077399" name="workspace_scroll_format">"%2$d-н Нүүр дэлгэц %1$d"</string>
+</resources>

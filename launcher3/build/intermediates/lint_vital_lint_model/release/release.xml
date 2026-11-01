@@ -1,0 +1,32 @@
+<variant
+    name="release"
+    package="com.android.launcher3"
+    minSdkVersion="26"
+    targetSdkVersion="26"
+    mergedManifest="build/intermediates/merged_manifest/release/AndroidManifest.xml"
+    manifestMergeReport="build/outputs/logs/manifest-merger-release-report.txt"
+    proguardFiles="build/intermediates/default_proguard_files/global/proguard-android.txt-8.2.2"
+    consumerProguardFiles="/home/daytona/project/third_party/aosp/launcher3/proguard.flags:consumer-rules.pro"
+    partialResultsDir="build/intermediates/lint_vital_partial_results/release/out">
+  <buildFeatures
+      namespacing="REQUIRED"/>
+  <sourceProviders>
+    <sourceProvider
+        manifests="AndroidManifest.xml"
+        javaDirectories="/home/daytona/project/third_party/aosp/launcher3/src:/home/daytona/project/third_party/aosp/launcher3/src_plugins:/home/daytona/project/third_party/aosp/launcher3/src_shortcuts_overrides:src/overrides/java:/home/daytona/project/third_party/aosp/launcher3/tests/multivalentTests/shared:/home/daytona/project/third_party/aosp/plugin_core/src:src/config/java:src/release/java:src/main/kotlin:src/release/kotlin"
+        resDirectories="/home/daytona/project/third_party/aosp/launcher3/res:src/release/res"
+        assetsDirectories="src/main/assets:src/release/assets"/>
+  </sourceProviders>
+  <testSourceProviders>
+  </testSourceProviders>
+  <testFixturesSourceProviders>
+  </testFixturesSourceProviders>
+  <artifact
+      classOutputs="build/intermediates/javac/release/classes:build/tmp/kotlin-classes/release:build/intermediates/compile_r_class_jar/release/R.jar"
+      type="MAIN"
+      applicationId="com.android.launcher3"
+      generatedSourceFolders="build/generated/source/proto/release/java:build/generated/ap_generated_sources/release/out"
+      generatedResourceFolders="build/generated/res/resValues/release"
+      desugaredMethodsFiles="/home/daytona/.gradle/caches/transforms-3/b94323123559439425dec208567574d3/transformed/D8BackportedDesugaredMethods.txt">
+  </artifact>
+</variant>

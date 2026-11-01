@@ -125,6 +125,9 @@ android {
         // Launcher3 is vendored AOSP code; its own lint baseline is not part of this build.
         checkDependencies false
         abortOnError false
+        // The base (unqualified) values of overridden Launcher3 resources live in :launcher3.
+        disable 'MissingDefaultResource'
+
     }
 }
 
