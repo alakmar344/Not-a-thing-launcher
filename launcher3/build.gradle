@@ -1,0 +1,92 @@
+// Stock AOSP Launcher3 (android-14.0.0_r75, packages/apps/Launcher3) built as a library.
+//
+// Only the "aospWithoutQuickstep" variant is used: Quickstep (recents/gesture integration) needs
+// platform signature privileges that no installable home app has. Sources are compiled straight
+// from third_party/aosp/launcher3 without modification; platform-generated classes (aconfig flags,
+// BuildConfig, statsd constants) come from src/config/java. The :app module layers the
+// Not a Thing design (theme, fonts, colours, dot-matrix widgets) on top via resource overrides.
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.protobuf'
+}
+
+def aosp = rootProject.file('third_party/aosp/launcher3')
+
+android {
+    namespace 'com.android.launcher3'
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 26
+        consumerProguardFiles "$aosp/proguard.flags", 'consumer-rules.pro'
+    }
+
+    buildFeatures {
+        buildConfig false
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = [
+                "$aosp/src",
+                "$aosp/src_plugins",
+                "$aosp/src_shortcuts_overrides",
+                // Derivative-owned copy of $aosp/src_ui_overrides (AOSP intends derivatives to replace it).
+                'src/overrides/java',
+                "$aosp/tests/multivalentTests/shared",
+                rootProject.file('third_party/aosp/plugin_core/src'),
+                'src/config/java',
+            ]
+            res.srcDirs = ["$aosp/res"]
+            proto.srcDirs = ["$aosp/protos", "$aosp/protos_overrides"]
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += ["-Xjvm-default=all"]
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = 'com.google.protobuf:protoc:3.25.3'
+    }
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java { option 'lite' }
+            }
+        }
+    }
+}
+
+dependencies {
+    api project(':iconloader')
+    api project(':animationlib')
+
+    api 'com.google.protobuf:protobuf-javalite:3.25.3'
+    api 'androidx.core:core-ktx:1.12.0'
+    api 'androidx.annotation:annotation:1.7.1'
+    api 'androidx.recyclerview:recyclerview:1.3.2'
+    api 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+    api 'androidx.fragment:fragment-ktx:1.6.2'
+    api 'androidx.preference:preference-ktx:1.2.1'
+    api 'androidx.slice:slice-view:1.0.0'
+    api 'androidx.cardview:cardview:1.0.0'
+    api 'androidx.window:window:1.2.0'
+    api 'androidx.constraintlayout:constraintlayout:2.1.4'
+    api 'com.google.android.material:material:1.11.0'
+}

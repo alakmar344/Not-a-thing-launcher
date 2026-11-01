@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name shown by Launcher3 (launcher label, settings, notification dots). -->
+    <string name="derived_app_name" translatable="false">Not a Thing</string>
+    <string name="nt_cannot_open">Couldn’t open that</string>
+    <string name="media_play">Play</string>
+    <string name="media_pause">Pause</string>
+    <string name="element_clock">LED Clock</string>
+    <string name="element_clock_sub">Dot-matrix panel with seconds ticker</string>
+    <string name="element_battery_cal">Battery &amp; Date</string>
+    <string name="element_battery_cal_sub">40-dot battery ring &amp; calendar day</string>
+    <string name="element_weather_sub">Dot-matrix temperature &amp; conditions</string>
+    <string name="element_media_sub">Playback controls &amp; live waveform visualizer</string>
+    <string name="media_label_empty">MEDIA</string>
+    <string name="media_permission_needed">NOTIFICATION ACCESS NEEDED</string>
+    <string name="media_no_session">NO ACTIVE PLAYBACK</string>
+    <string name="media_connect_hint">CONNECT A PLAYER</string>
+    <string name="nt_glance_battery">%1$d%%</string>
+    <string name="nt_glance_battery_charging">%1$d%% · CHARGING</string>
+    <string name="nt_pref_themed_icons_title">Monochrome icons</string>
+    <string name="nt_pref_themed_icons_summary">Show app icons in the Not a Thing monochrome style when the app supports it</string>
+</resources>

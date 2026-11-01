@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Stock Launcher3 home settings (same entries and keys as AOSP) plus the Not a Thing options.
+-->
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:launcher="http://schemas.android.com/apk/res-auto">
+
+    <com.android.launcher3.settings.NotificationDotsPreference
+        android:key="pref_icon_badging"
+        android:title="@string/notification_dots_title"
+        android:persistent="false"
+        android:widgetLayout="@layout/notification_pref_warning" />
+
+    <!-- Read by Launcher3 (Themes.KEY_THEMED_ICONS); icons refresh as soon as it changes. -->
+    <SwitchPreference
+        android:key="themed_icons"
+        android:title="@string/nt_pref_themed_icons_title"
+        android:summary="@string/nt_pref_themed_icons_summary"
+        android:defaultValue="true"
+        android:persistent="true" />
+
+    <SwitchPreference
+        android:key="pref_add_icon_to_home"
+        android:title="@string/auto_add_shortcuts_label"
+        android:summary="@string/auto_add_shortcuts_description"
+        android:defaultValue="true"
+        android:persistent="true"
+        launcher:logIdOn="613"
+        launcher:logIdOff="614" />
+
+    <SwitchPreference
+        android:key="pref_allowRotation"
+        android:title="@string/allow_rotation_title"
+        android:summary="@string/allow_rotation_desc"
+        android:defaultValue="false"
+        android:persistent="true"
+        launcher:logIdOn="615"
+        launcher:logIdOff="616" />
+</androidx.preference.PreferenceScreen>

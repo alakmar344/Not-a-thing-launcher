@@ -1,0 +1,1756 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:ns1="urn:oasis:names:tc:xliff:document:1.2">
+    <array name="custom_widget_providers"/>
+    <array name="dynamic_resources">
+        <item>@dimen/swipe_up_scale_start</item>
+        <item>@dimen/swipe_up_max_velocity</item>
+    </array>
+    <string-array name="filtered_components"/>
+    <string-array name="fitness_recommendations"/>
+    <integer-array name="icon_size_steps">
+        <item>@dimen/iconSize48dp</item>
+        <item>@dimen/iconSize50dp</item>
+        <item>@dimen/iconSize52dp</item>
+        <item>@dimen/iconSize54dp</item>
+        <item>@dimen/iconSize56dp</item>
+        <item>@dimen/iconSize58dp</item>
+        <item>@dimen/iconSize60dp</item>
+        <item>@dimen/iconSize66dp</item>
+        <item>@dimen/iconSize72dp</item>
+        <item>@dimen/iconSize82dp</item>
+        <item>@dimen/iconSize110dp</item>
+        <item>@dimen/iconSize144dp</item>
+    </integer-array>
+    <string-array name="skip_private_profile_shortcut_packages" translatable="false">
+        <item>com.android.settings</item>
+    </string-array>
+    <string-array name="weather_recommendations"/>
+    <attr format="color" name="allAppsNavBarScrimColor"/>
+    <attr format="color" name="allAppsScrimColor"/>
+    <attr format="reference" name="allAppsTheme"/>
+    <attr format="color" name="allappsHeaderProtectionColor"/>
+    <attr format="color" name="dropTargetHoverButtonColor"/>
+    <attr format="color" name="dropTargetHoverTextColor"/>
+    <attr format="color" name="eduHalfSheetBGColor"/>
+    <attr format="color" name="focusOutlineColor"/>
+    <attr format="color" name="folderBackgroundColor"/>
+    <attr format="color" name="folderHintTextColor"/>
+    <attr format="color" name="folderIconBorderColor"/>
+    <attr format="float" name="folderIconRadius"/>
+    <attr format="color" name="folderPaginationColor"/>
+    <attr format="color" name="folderPreviewColor"/>
+    <attr format="color" name="folderTextColor"/>
+    <attr format="color" name="iconOnlyShortcutColor"/>
+    <attr format="boolean" name="isFolderDarkText"/>
+    <attr format="boolean" name="isMainColorDark"/>
+    <attr format="boolean" name="isWorkspaceDarkText"/>
+    <attr format="color" name="materialColorErrorContainer"/>
+    <attr format="color" name="materialColorOnBackground"/>
+    <attr format="color" name="materialColorOnError"/>
+    <attr format="color" name="materialColorOnErrorContainer"/>
+    <attr format="color" name="materialColorOnPrimary"/>
+    <attr format="color" name="materialColorOnPrimaryContainer"/>
+    <attr format="color" name="materialColorOnPrimaryFixed"/>
+    <attr format="color" name="materialColorOnPrimaryFixedVariant"/>
+    <attr format="color" name="materialColorOnSecondary"/>
+    <attr format="color" name="materialColorOnSecondaryContainer"/>
+    <attr format="color" name="materialColorOnSecondaryFixed"/>
+    <attr format="color" name="materialColorOnSecondaryFixedVariant"/>
+    <attr format="color" name="materialColorOnSurface"/>
+    <attr format="color" name="materialColorOnSurfaceInverse"/>
+    <attr format="color" name="materialColorOnSurfaceVariant"/>
+    <attr format="color" name="materialColorOnTertiary"/>
+    <attr format="color" name="materialColorOnTertiaryContainer"/>
+    <attr format="color" name="materialColorOnTertiaryFixed"/>
+    <attr format="color" name="materialColorOnTertiaryFixedVariant"/>
+    <attr format="color" name="materialColorOutline"/>
+    <attr format="color" name="materialColorOutlineVariant"/>
+    <attr format="color" name="materialColorPrimary"/>
+    <attr format="color" name="materialColorPrimaryContainer"/>
+    <attr format="color" name="materialColorPrimaryFixed"/>
+    <attr format="color" name="materialColorPrimaryFixedDim"/>
+    <attr format="color" name="materialColorPrimaryInverse"/>
+    <attr format="color" name="materialColorSecondary"/>
+    <attr format="color" name="materialColorSecondaryContainer"/>
+    <attr format="color" name="materialColorSecondaryFixed"/>
+    <attr format="color" name="materialColorSecondaryFixedDim"/>
+    <attr format="color" name="materialColorSurface"/>
+    <attr format="color" name="materialColorSurfaceBright"/>
+    <attr format="color" name="materialColorSurfaceContainer"/>
+    <attr format="color" name="materialColorSurfaceContainerHigh"/>
+    <attr format="color" name="materialColorSurfaceContainerHighest"/>
+    <attr format="color" name="materialColorSurfaceContainerLow"/>
+    <attr format="color" name="materialColorSurfaceContainerLowest"/>
+    <attr format="color" name="materialColorSurfaceDim"/>
+    <attr format="color" name="materialColorSurfaceInverse"/>
+    <attr format="color" name="materialColorSurfaceVariant"/>
+    <attr format="color" name="materialColorTertiary"/>
+    <attr format="color" name="materialColorTertiaryContainer"/>
+    <attr format="color" name="materialColorTertiaryFixed"/>
+    <attr format="color" name="materialColorTertiaryFixedDim"/>
+    <attr format="color" name="notificationDotColor"/>
+    <attr format="color" name="overviewScrimColor"/>
+    <attr format="color" name="popupColorBackground"/>
+    <attr format="color" name="popupColorPrimary"/>
+    <attr format="color" name="popupColorSecondary"/>
+    <attr format="color" name="popupColorTertiary"/>
+    <attr format="color" name="popupNotificationDotColor"/>
+    <attr format="color" name="popupShadeFirst"/>
+    <attr format="color" name="popupShadeSecond"/>
+    <attr format="color" name="popupShadeThird"/>
+    <attr format="color" name="popupTextColor"/>
+    <attr format="color" name="preloadIconAccentColor"/>
+    <attr format="color" name="preloadIconBackgroundColor"/>
+    <attr format="color" name="widgetPickerCollapseHandleColor"/>
+    <attr format="color" name="widgetPickerHeaderAppSubtitleColor"/>
+    <attr format="color" name="widgetPickerHeaderAppTitleColor"/>
+    <attr format="color" name="widgetPickerHeaderBackgroundColor"/>
+    <attr format="color" name="widgetPickerPrimarySurfaceColor"/>
+    <attr format="color" name="widgetPickerSearchTextColor"/>
+    <attr format="color" name="widgetPickerSecondarySurfaceColor"/>
+    <attr format="color" name="widgetPickerSelectedTabTextColor"/>
+    <attr format="color" name="widgetPickerSuggestionsIconBackgroundColor"/>
+    <attr format="color" name="widgetPickerSuggestionsIconColor"/>
+    <attr format="color" name="widgetPickerTabBackgroundSelected"/>
+    <attr format="color" name="widgetPickerTabBackgroundUnselected"/>
+    <attr format="color" name="widgetPickerTitleColor"/>
+    <attr format="color" name="widgetPickerUnselectedTabTextColor"/>
+    <attr format="reference" name="widgetsTheme"/>
+    <attr format="color" name="workspaceAccentColor"/>
+    <attr format="color" name="workspaceAmbientShadowColor"/>
+    <attr format="color" name="workspaceKeyShadowColor"/>
+    <attr format="color" name="workspaceShadowColor"/>
+    <attr format="color" name="workspaceSurfaceColor"/>
+    <attr format="color" name="workspaceTextColor"/>
+    <bool name="config_enableTaskSnapshotPreloading">true</bool>
+    <bool name="config_largeHeap">false</bool>
+    <bool name="floating_rotation_button_position_left">true</bool>
+    <color name="default_shadow_color_no_alpha">#FF000000</color>
+    <color name="delete_target_hover_tint">#FFC1C1C1</color>
+    <color name="drop_target_hover_button_color_dark">#0842A0</color>
+    <color name="drop_target_hover_button_color_light">#D3E3FD</color>
+    <color name="drop_target_hover_text_color_dark">#D3E3FD</color>
+    <color name="drop_target_hover_text_color_light">#041E49</color>
+    <color name="focused_background">#80c6c5c5</color>
+    <color name="folder_background_dark">#1F2020</color>
+    <color name="folder_background_light">#EFEDED</color>
+    <color name="folder_hint_text_color_dark">#C4C7C5</color>
+    <color name="folder_hint_text_color_light">#444746</color>
+    <color name="folder_pagination_color_dark">#A8C7FA</color>
+    <color name="folder_pagination_color_light">#0B57D0</color>
+    <color name="folder_preview_dark">#1E1F20</color>
+    <color name="folder_preview_light">#7FCFFF</color>
+    <color name="folder_text_color_dark">#E3E3E3</color>
+    <color name="folder_text_color_light">#1F1F1F</color>
+    <color name="icon_background">#E0E0E0</color>
+    <color name="material_color_error_container">#FFDAD5</color>
+    <color name="material_color_on_background">#1B1B1F</color>
+    <color name="material_color_on_error">#FFFFFF</color>
+    <color name="material_color_on_error_container">#410000</color>
+    <color name="material_color_on_primary">#FFFFFF</color>
+    <color name="material_color_on_primary_container">#001A41</color>
+    <color name="material_color_on_primary_fixed">#001A41</color>
+    <color name="material_color_on_primary_fixed_variant">#2B4678</color>
+    <color name="material_color_on_secondary">#FFFFFF</color>
+    <color name="material_color_on_secondary_container">#141B2C</color>
+    <color name="material_color_on_secondary_fixed">#141B2C</color>
+    <color name="material_color_on_secondary_fixed_variant">#3F4759</color>
+    <color name="material_color_on_surface">#1B1B1F</color>
+    <color name="material_color_on_surface_inverse">#E3E2E6</color>
+    <color name="material_color_on_surface_variant">#44474F</color>
+    <color name="material_color_on_tertiary">#FFFFFF</color>
+    <color name="material_color_on_tertiary_container">#29132D</color>
+    <color name="material_color_on_tertiary_fixed">#29132D</color>
+    <color name="material_color_on_tertiary_fixed_variant">#583E5B</color>
+    <color name="material_color_outline">#72747D</color>
+    <color name="material_color_outline_variant">#C4C7C5</color>
+    <color name="material_color_primary">#445E91</color>
+    <color name="material_color_primary_container">#D8E2FF</color>
+    <color name="material_color_primary_fixed">#D8E2FF</color>
+    <color name="material_color_primary_fixed_dim">#ADC6FF</color>
+    <color name="material_color_primary_inverse">#ADC6FF</color>
+    <color name="material_color_secondary">#575E71</color>
+    <color name="material_color_secondary_container">#DBE2F9</color>
+    <color name="material_color_secondary_fixed">#DBE2F9</color>
+    <color name="material_color_secondary_fixed_dim">#BFC6DC</color>
+    <color name="material_color_surface">#FAF9FD</color>
+    <color name="material_color_surface_bright">#FAF9FD</color>
+    <color name="material_color_surface_container">#EFEDF1</color>
+    <color name="material_color_surface_container_high">#E9E7EC</color>
+    <color name="material_color_surface_container_highest">#E3E2E6</color>
+    <color name="material_color_surface_container_low">#F5F3F7</color>
+    <color name="material_color_surface_container_lowest">#FFFFFF</color>
+    <color name="material_color_surface_dim">#DBD9DD</color>
+    <color name="material_color_surface_inverse">#121316</color>
+    <color name="material_color_surface_variant">#E1E2EC</color>
+    <color name="material_color_tertiary">#715573</color>
+    <color name="material_color_tertiary_container">#FBD7FC</color>
+    <color name="material_color_tertiary_fixed">#FBD7FC</color>
+    <color name="material_color_tertiary_fixed_dim">#DEBCDF</color>
+    <color name="notification_dot_color_dark">#C4EED0</color>
+    <color name="notification_dot_color_light">#6DD58C</color>
+    <color name="notification_icon_default_color">#757575</color>
+    <color name="popup_color_neutral_dark">#3C4043</color>
+    <color name="popup_color_primary_dark">#3C4043</color>
+    <color name="popup_color_primary_light">#FFF</color>
+    <color name="popup_color_secondary_dark">#202124</color>
+    <color name="popup_color_secondary_light">#F1F3F4</color>
+    <color name="popup_color_tertiary_dark">#757575</color>
+    <color name="popup_color_tertiary_light">#E0E0E0</color>
+    <color name="popup_notification_dot_dark">#757575</color>
+    <color name="popup_notification_dot_light">#FFF</color>
+    <color name="popup_shade_first_dark">#303030</color>
+    <color name="popup_shade_first_light">#F9F9F9</color>
+    <color name="popup_shade_second_dark">#262626</color>
+    <color name="popup_shade_second_light">#F1F1F1</color>
+    <color name="popup_shade_third_dark">#1B1B1B</color>
+    <color name="popup_shade_third_light">#E2E2E2</color>
+    <color name="popup_text_color_dark">#E3E3E3</color>
+    <color name="popup_text_color_light">#1F1F1F</color>
+    <color name="preload_icon_accent_color_dark">#4BB6E8</color>
+    <color name="preload_icon_accent_color_light">#00668B</color>
+    <color name="preload_icon_background_color_dark">#40484D</color>
+    <color name="preload_icon_background_color_light">#B5CAD7</color>
+    <color name="spring_loaded_highlighted_panel_border_color">#FFF</color>
+    <color name="spring_loaded_panel_color">#40FFFFFF</color>
+    <color name="text_color_primary_dark">#FFFFFFFF</color>
+    <color name="text_color_secondary_dark">#FFFFFFFF</color>
+    <color name="text_color_tertiary_dark">#CCFFFFFF</color>
+    <color name="uninstall_target_hover_tint">#FFF0592B</color>
+    <color name="wallpaper_popup_scrim">?android:attr/colorAccent</color>
+    <color name="widget_picker_collapse_handle_color_dark">#444746</color>
+    <color name="widget_picker_collapse_handle_color_light">#C4C7C5</color>
+    <color name="widget_picker_header_app_subtitle_color_dark">#C4C7C5</color>
+    <color name="widget_picker_header_app_subtitle_color_light">#444746</color>
+    <color name="widget_picker_header_app_title_color_dark">#E3E3E3</color>
+    <color name="widget_picker_header_app_title_color_light">#1F1F1F</color>
+    <color name="widget_picker_header_background_color_dark">#004A77</color>
+    <color name="widget_picker_header_background_color_light">#C2E7FF</color>
+    <color name="widget_picker_primary_surface_color_dark">#1F2020</color>
+    <color name="widget_picker_primary_surface_color_light">#EFEDED</color>
+    <color name="widget_picker_search_text_color_dark">#C4C7C5</color>
+    <color name="widget_picker_search_text_color_light">#444746</color>
+    <color name="widget_picker_secondary_surface_color_dark">#393939</color>
+    <color name="widget_picker_secondary_surface_color_light">#FAF9F8</color>
+    <color name="widget_picker_selected_tab_text_color_dark">#2D312F</color>
+    <color name="widget_picker_selected_tab_text_color_light">#FFFFFF</color>
+    <color name="widget_picker_suggestions_icon_background_color_dark">#FFFFFFFF</color>
+    <color name="widget_picker_suggestions_icon_background_color_light">#FFFFFF</color>
+    <color name="widget_picker_suggestions_icon_color_dark">#062E6F</color>
+    <color name="widget_picker_suggestions_icon_color_light">#0B57D0</color>
+    <color name="widget_picker_tab_background_selected_dark">#A8C7FA</color>
+    <color name="widget_picker_tab_background_selected_light">#0B57D0</color>
+    <color name="widget_picker_tab_background_unselected_dark">#343535</color>
+    <color name="widget_picker_tab_background_unselected_light">#E3E3E3</color>
+    <color name="widget_picker_title_color_dark">#E3E3E3</color>
+    <color name="widget_picker_title_color_light">#1F1F1F</color>
+    <color name="widget_picker_unselected_tab_text_color_dark">#C4C7C5</color>
+    <color name="widget_picker_unselected_tab_text_color_light">#444746</color>
+    <color name="work_fab_bg_color">#A8C7FA</color>
+    <color name="work_fab_icon_color">#041E49</color>
+    <color name="work_turn_on_stroke">?android:attr/colorAccent</color>
+    <color name="workspace_accent_color_dark">#041E49</color>
+    <color name="workspace_accent_color_light">#D3E3FD</color>
+    <color name="workspace_surface_color">#D3E3FD</color>
+    <color name="workspace_text_color_dark">#FF000000</color>
+    <color name="workspace_text_color_light">#FFF</color>
+    <dimen format="float" name="activity_split_ratio">0.5</dimen>
+    <dimen name="all_apps_additional_top_padding_floating_search">16dp</dimen>
+    <dimen name="all_apps_content_fade_in_offset">150dp</dimen>
+    <dimen name="all_apps_divider_height">2dp</dimen>
+    <dimen name="all_apps_divider_margin_vertical">8dp</dimen>
+    <dimen name="all_apps_divider_width">128dp</dimen>
+    <dimen name="all_apps_empty_search_message_top_offset">40dp</dimen>
+    <dimen name="all_apps_header_bottom_adjustment">4dp</dimen>
+    <dimen name="all_apps_header_bottom_padding">14dp</dimen>
+    <dimen name="all_apps_header_pill_corner_radius">12dp</dimen>
+    <dimen name="all_apps_header_pill_height">48dp</dimen>
+    <dimen name="all_apps_header_tab_height">48dp</dimen>
+    <dimen name="all_apps_header_top_adjustment">6dp</dimen>
+    <dimen name="all_apps_header_top_margin">33dp</dimen>
+    <dimen name="all_apps_header_top_padding">36dp</dimen>
+    <dimen name="all_apps_height_extra">6dp</dimen>
+    <dimen name="all_apps_icon_drawable_padding">8dp</dimen>
+    <dimen name="all_apps_paged_view_top_padding">40dp</dimen>
+    <dimen name="all_apps_predicted_icon_vertical_padding">8dp</dimen>
+    <dimen name="all_apps_recycler_view_decorator_group_radius">28dp</dimen>
+    <dimen name="all_apps_recycler_view_decorator_padding">1dp</dimen>
+    <dimen name="all_apps_recycler_view_decorator_result_radius">4dp</dimen>
+    <dimen name="all_apps_search_bar_bottom_padding">30dp</dimen>
+    <dimen name="all_apps_search_bar_content_overlap">24dp</dimen>
+    <dimen name="all_apps_search_bar_field_height">48dp</dimen>
+    <dimen name="all_apps_search_top_row_extra_height">4dp</dimen>
+    <item format="float" name="all_apps_spring_damping_ratio" type="dimen">0.75</item>
+    <item format="float" name="all_apps_spring_stiffness" type="dimen">600</item>
+    <dimen name="all_apps_starting_vertical_translate">300dp</dimen>
+    <dimen name="all_apps_tabs_button_horizontal_padding">4dp</dimen>
+    <dimen name="all_apps_tabs_indicator_height">2dp</dimen>
+    <dimen name="all_apps_tabs_margin_top">8dp</dimen>
+    <dimen name="all_apps_tabs_vertical_padding">6dp</dimen>
+    <dimen name="all_apps_tip_bottom_margin">8dp</dimen>
+    <dimen name="all_apps_work_profile_tab_footer_bottom_padding">20dp</dimen>
+    <dimen name="all_apps_work_profile_tab_footer_top_padding">16dp</dimen>
+    <dimen name="arrow_toast_arrow_height">10dp</dimen>
+    <dimen name="arrow_toast_arrow_width">10dp</dimen>
+    <dimen name="arrow_toast_corner_radius">2dp</dimen>
+    <dimen name="arrow_toast_elevation">2dp</dimen>
+    <dimen name="arrow_toast_text_size">14sp</dimen>
+    <dimen name="base_swift_detector_fling_release_velocity">1dp</dimen>
+    <dimen name="bg_popup_item_height">52dp</dimen>
+    <dimen name="bg_popup_item_vertical_padding">12dp</dimen>
+    <dimen name="bg_popup_item_width">216dp</dimen>
+    <dimen name="bg_popup_padding">2dp</dimen>
+    <dimen name="bg_round_rect_radius">8dp</dimen>
+    <dimen name="blur_size_click_shadow">4dp</dimen>
+    <dimen name="blur_size_medium_outline">2dp</dimen>
+    <dimen name="blur_size_thin_outline">1dp</dimen>
+    <dimen name="bottom_sheet_edu_padding">24dp</dimen>
+    <dimen name="bottom_sheet_handle_area_height">36dp</dimen>
+    <dimen name="bottom_sheet_handle_corner_radius">2dp</dimen>
+    <dimen name="bottom_sheet_handle_height">4dp</dimen>
+    <dimen name="bottom_sheet_handle_margin">16dp</dimen>
+    <dimen name="bottom_sheet_handle_width">32dp</dimen>
+    <dimen name="bubblebar_hotseat_adjustment_threshold">0dp</dimen>
+    <dimen name="button_drop_target_min_text_size">10sp</dimen>
+    <dimen name="button_drop_target_resize_text_increment">1sp</dimen>
+    <dimen name="cell_layout_padding">10.77dp</dimen>
+    <dimen name="click_shadow_elevation">4dp</dimen>
+    <dimen name="click_shadow_high_shift">2dp</dimen>
+    <item format="float" name="config_wallpaperMaxScale" type="dimen">0</item>
+    <dimen name="deep_shortcut_drawable_padding">16dp</dimen>
+    <dimen name="deep_shortcut_icon_size">35dp</dimen>
+    <dimen name="deep_shortcuts_elevation">2dp</dimen>
+    <dimen name="deep_shortcuts_start_drag_threshold">16dp</dimen>
+    <dimen name="deep_shortcuts_text_padding_start">54dp</dimen>
+    <dimen name="default_dialog_corner_radius">26dp</dimen>
+    <dimen name="default_ime_height">300dp</dimen>
+    <dimen name="developer_options_filter_margins">10dp</dimen>
+    <dimen name="dialogCornerRadius">@dimen/default_dialog_corner_radius</dimen>
+    <item format="float" name="dismiss_task_trans_x_damping_ratio" type="dimen">0.73</item>
+    <item format="float" name="dismiss_task_trans_x_stiffness" type="dimen">800</item>
+    <item format="float" name="dismiss_task_trans_y_damping_ratio" type="dimen">0.73</item>
+    <item format="float" name="dismiss_task_trans_y_stiffness" type="dimen">800</item>
+    <dimen name="drag_distanceThreshold">30dp</dimen>
+    <dimen name="drag_elevation">30dp</dimen>
+    <dimen name="drag_flingToDeleteMinVelocity">-1500dp</dimen>
+    <dimen name="drop_target_bar_margin_horizontal">4dp</dimen>
+    <dimen name="drop_target_bottom_margin">16dp</dimen>
+    <dimen name="drop_target_bottom_margin_wide_portrait">32dp</dimen>
+    <dimen name="drop_target_button_drawable_horizontal_padding">16dp</dimen>
+    <dimen name="drop_target_button_drawable_padding">8dp</dimen>
+    <dimen name="drop_target_button_drawable_size">20dp</dimen>
+    <dimen name="drop_target_button_drawable_vertical_padding">8dp</dimen>
+    <dimen name="drop_target_button_frame_radius">80dp</dimen>
+    <dimen name="drop_target_button_gap">28dp</dimen>
+    <dimen name="drop_target_button_workspace_edge_gap">0dp</dimen>
+    <dimen name="drop_target_drag_padding">14dp</dimen>
+    <dimen name="drop_target_shadow_elevation">2dp</dimen>
+    <dimen name="drop_target_text_size">16sp</dimen>
+    <dimen name="drop_target_top_margin">32dp</dimen>
+    <dimen name="drop_target_vertical_gap">20dp</dimen>
+    <dimen name="dynamic_grid_cell_border_spacing">16dp</dimen>
+    <dimen name="dynamic_grid_cell_padding_x">8dp</dimen>
+    <dimen name="dynamic_grid_drop_target_size">56dp</dimen>
+    <dimen name="dynamic_grid_edge_margin">10.77dp</dimen>
+    <dimen name="dynamic_grid_hotseat_bottom_tall_padding">0dp</dimen>
+    <dimen name="dynamic_grid_hotseat_side_padding">0dp</dimen>
+    <dimen name="dynamic_grid_left_right_margin">8dp</dimen>
+    <dimen name="dynamic_grid_spring_loaded_min_next_space_visible">24dp</dimen>
+    <dimen name="easy_fling_threshold_velocity">400dp</dimen>
+    <dimen name="enforced_rounded_corner_max_radius">16dp</dimen>
+    <dimen name="fastscroll_bottom_margin_floating_search">4dp</dimen>
+    <dimen name="fastscroll_end_margin">-26dp</dimen>
+    <dimen name="fastscroll_popup_height">62dp</dimen>
+    <dimen name="fastscroll_popup_margin">19dp</dimen>
+    <dimen name="fastscroll_popup_padding">13dp</dimen>
+    <dimen name="fastscroll_popup_text_size">32dp</dimen>
+    <dimen name="fastscroll_popup_width">75dp</dimen>
+    <dimen name="fastscroll_thumb_height">52dp</dimen>
+    <dimen name="fastscroll_thumb_padding">1dp</dimen>
+    <dimen name="fastscroll_thumb_touch_inset">-24dp</dimen>
+    <dimen name="fastscroll_track_max_width">8dp</dimen>
+    <dimen name="fastscroll_track_min_width">6dp</dimen>
+    <dimen name="fastscroll_width">58dp</dimen>
+    <dimen name="fling_threshold_velocity">500dp</dimen>
+    <dimen name="floating_ime_inset_height">0dp</dimen>
+    <dimen name="focus_outline_radius">16dp</dimen>
+    <dimen name="focus_outline_stroke_width">3dp</dimen>
+    <dimen name="folder_cell_x_padding">9dp</dimen>
+    <dimen name="folder_cell_y_padding">6dp</dimen>
+    <dimen name="folder_content_padding_left_right">8dp</dimen>
+    <dimen name="folder_content_padding_top">16dp</dimen>
+    <dimen name="folder_footer_height_default">56dp</dimen>
+    <dimen name="folder_footer_horiz_padding">20dp</dimen>
+    <dimen name="folder_label_text_scale">1.14</dimen>
+    <dimen name="folder_top_padding_default">24dp</dimen>
+    <dimen name="grid_visualization_horizontal_cell_spacing">6dp</dimen>
+    <dimen name="grid_visualization_rounding_radius">16dp</dimen>
+    <dimen name="grid_visualization_vertical_cell_spacing">6dp</dimen>
+    <item format="float" name="hint_scale_damping_ratio" type="dimen">0.7</item>
+    <item format="float" name="hint_scale_stiffness" type="dimen">200</item>
+    <dimen name="hint_scale_velocity_dp_per_s">0.3dp</dimen>
+    <dimen name="horizontal_ellipsis_size">18dp</dimen>
+    <item format="float" name="horizontal_spring_damping_ratio" type="dimen">0.8</item>
+    <item format="float" name="horizontal_spring_stiffness" type="dimen">250</item>
+    <dimen name="hotseat_bar_bottom_space_default">48</dimen>
+    <dimen name="hotseat_qsb_space_default">0</dimen>
+    <dimen name="iconSize110dp">121dp</dimen>
+    <dimen name="iconSize144dp">158dp</dimen>
+    <dimen name="iconSize48dp">52dp</dimen>
+    <dimen name="iconSize50dp">55dp</dimen>
+    <dimen name="iconSize52dp">57dp</dimen>
+    <dimen name="iconSize54dp">59dp</dimen>
+    <dimen name="iconSize56dp">61dp</dimen>
+    <dimen name="iconSize58dp">63dp</dimen>
+    <dimen name="iconSize60dp">66dp</dimen>
+    <dimen name="iconSize66dp">72dp</dimen>
+    <dimen name="iconSize72dp">79dp</dimen>
+    <dimen name="iconSize82dp">90dp</dimen>
+    <dimen name="keyboard_drag_stroke_width">4dp</dimen>
+    <dimen name="max_hotseat_icon_space">50dp</dimen>
+    <dimen name="max_width_and_height_of_small_display_cutout">136px</dimen>
+    <dimen name="min_fling_velocity">250dp</dimen>
+    <dimen name="min_hotseat_icon_space">18dp</dimen>
+    <dimen name="min_hotseat_qsb_width">0dp</dimen>
+    <dimen name="min_page_snap_velocity">1500dp</dimen>
+    <dimen name="min_qsb_margin">8dp</dimen>
+    <dimen name="minimum_icon_label_size">8sp</dimen>
+    <dimen name="notification_circle_icon_size">24dp</dimen>
+    <dimen name="notification_container_height">104dp</dimen>
+    <dimen name="notification_header_count_text_size">12sp</dimen>
+    <dimen name="notification_header_padding_start">14dp</dimen>
+    <dimen name="notification_header_text_size">14sp</dimen>
+    <dimen name="notification_icon_padding_start">10dp</dimen>
+    <dimen name="notification_icon_size">32dp</dimen>
+    <dimen name="notification_main_text_padding_start">54dp</dimen>
+    <dimen name="notification_main_text_size">14sp</dimen>
+    <dimen name="notification_main_title_size">14sp</dimen>
+    <dimen name="notification_max_trans">8dp</dimen>
+    <dimen name="notification_padding_bottom">12dp</dimen>
+    <dimen name="notification_padding_end">16dp</dimen>
+    <dimen name="notification_padding_header_top">16dp</dimen>
+    <dimen name="notification_padding_top">12dp</dimen>
+    <dimen name="notification_space">8dp</dimen>
+    <dimen name="options_menu_icon_size">24dp</dimen>
+    <dimen name="options_menu_thumb_size">32dp</dimen>
+    <dimen name="overview_actions_button_spacing">0dp</dimen>
+    <dimen name="overview_actions_height">0dp</dimen>
+    <dimen name="overview_actions_margin_gesture">0dp</dimen>
+    <dimen name="overview_actions_top_margin">0dp</dimen>
+    <dimen name="overview_bottom_margin_grid_only">0dp</dimen>
+    <dimen name="overview_grid_row_spacing">0dp</dimen>
+    <dimen name="overview_grid_side_margin">0dp</dimen>
+    <dimen name="overview_page_spacing">0dp</dimen>
+    <dimen name="overview_task_margin">0dp</dimen>
+    <dimen name="overview_top_margin_grid_only">0dp</dimen>
+    <dimen name="padded_rounded_button_height">48dp</dimen>
+    <dimen name="padded_rounded_button_padding">8dp</dimen>
+    <dimen name="page_indicator_dot_size">6dp</dimen>
+    <dimen name="page_indicator_size">10dp</dimen>
+    <dimen name="pending_widget_elevation">2dp</dimen>
+    <dimen name="pending_widget_min_padding">8dp</dimen>
+    <dimen name="pin_widget_button_inset_horizontal">4dp</dimen>
+    <dimen name="pin_widget_button_inset_vertical">6dp</dimen>
+    <dimen name="pin_widget_button_padding_horizontal">8dp</dimen>
+    <dimen name="pin_widget_button_padding_vertical">4dp</dimen>
+    <dimen name="popup_arrow_corner_radius">2dp</dimen>
+    <dimen name="popup_arrow_height">10dp</dimen>
+    <dimen name="popup_arrow_horizontal_center_offset">26dp</dimen>
+    <dimen name="popup_arrow_vertical_offset">-1dp</dimen>
+    <dimen name="popup_arrow_width">12dp</dimen>
+    <dimen name="popup_margin">2dp</dimen>
+    <dimen name="popup_padding_end">14dp</dimen>
+    <dimen name="popup_padding_start">10dp</dimen>
+    <dimen name="popup_single_item_radius">100dp</dimen>
+    <dimen name="popup_smaller_radius">4dp</dimen>
+    <dimen name="popup_vertical_padding">4dp</dimen>
+    <dimen name="pre_drag_view_scale">6dp</dimen>
+    <dimen name="profile_badge_margin">5dp</dimen>
+    <dimen name="profile_badge_minimum_top">2dp</dimen>
+    <dimen name="profile_badge_size">24dp</dimen>
+    <dimen name="ps_app_divider_padding">16dp</dimen>
+    <dimen name="ps_button_height">40dp</dimen>
+    <dimen name="ps_button_width">40dp</dimen>
+    <dimen name="ps_container_corner_radius">24dp</dimen>
+    <dimen name="ps_header_height">64dp</dimen>
+    <dimen name="ps_header_image_height">48dp</dimen>
+    <dimen name="ps_header_layout_margin">16dp</dimen>
+    <dimen name="ps_header_relative_layout_height">48dp</dimen>
+    <dimen name="ps_header_settings_icon_margin_end">8dp</dimen>
+    <dimen name="ps_header_text_height">24dp</dimen>
+    <dimen name="ps_header_text_size">16sp</dimen>
+    <dimen name="ps_lock_button_background_padding">10dp</dimen>
+    <dimen name="ps_lock_button_width">89dp</dimen>
+    <dimen name="ps_lock_corner_radius">20dp</dimen>
+    <dimen name="ps_lock_icon_margin_bottom">10dp</dimen>
+    <dimen name="ps_lock_icon_margin_top">10dp</dimen>
+    <dimen name="ps_lock_icon_size">20dp</dimen>
+    <dimen name="ps_lock_icon_text_margin_end_expanded">6dp</dimen>
+    <dimen name="ps_lock_icon_text_margin_start_expanded">8dp</dimen>
+    <dimen name="qsb_shadow_height">0dp</dimen>
+    <dimen name="qsb_widget_height">0dp</dimen>
+    <dimen name="resize_frame_background_padding">24dp</dimen>
+    <dimen name="resize_frame_invalid_drag_across_two_panel_opacity_margin">24dp</dimen>
+    <dimen name="resize_frame_margin">23dp</dimen>
+    <dimen name="rounded_button_height">48dp</dimen>
+    <dimen name="rounded_button_padding">8dp</dimen>
+    <dimen name="rounded_button_radius">200dp</dimen>
+    <dimen name="rounded_button_width">24dp</dimen>
+    <dimen name="search_and_recommended_widgets_container_bottom_margin">16dp</dimen>
+    <dimen name="search_and_recommended_widgets_container_small_bottom_margin">10dp</dimen>
+    <dimen name="search_row_icon_size">48dp</dimen>
+    <dimen name="search_row_small_icon_size">32dp</dimen>
+    <dimen name="shortcut_preview_padding_left">0dp</dimen>
+    <dimen name="shortcut_preview_padding_right">0dp</dimen>
+    <dimen name="shortcut_preview_padding_top">0dp</dimen>
+    <dimen name="snackbar_content_height">48dp</dimen>
+    <dimen name="snackbar_elevation">3dp</dimen>
+    <dimen name="snackbar_height">48dp</dimen>
+    <dimen name="snackbar_margin_bottom">30dp</dimen>
+    <dimen name="snackbar_max_margin_left_right">72dp</dimen>
+    <dimen name="snackbar_max_text_size">14sp</dimen>
+    <dimen name="snackbar_max_width">504dp</dimen>
+    <dimen name="snackbar_min_margin_left_right">6dp</dimen>
+    <dimen name="snackbar_min_text_size">12sp</dimen>
+    <dimen name="snackbar_padding">8dp</dimen>
+    <dimen name="split_instructions_bottom_margin_phone_landscape">24dp</dimen>
+    <dimen name="split_instructions_bottom_margin_phone_portrait">60dp</dimen>
+    <dimen name="split_instructions_drawable_padding">10dp</dimen>
+    <dimen name="split_instructions_elevation">1dp</dimen>
+    <dimen name="split_instructions_horizontal_padding">24dp</dimen>
+    <dimen name="split_instructions_radius">22dp</dimen>
+    <dimen name="split_instructions_start_margin_cancel">8dp</dimen>
+    <dimen name="split_instructions_vertical_padding">12dp</dimen>
+    <dimen name="split_placeholder_icon_size">44dp</dimen>
+    <dimen name="split_placeholder_inset">16dp</dimen>
+    <dimen name="split_placeholder_size">72dp</dimen>
+    <dimen name="spring_loaded_hotseat_top_margin">76dp</dimen>
+    <dimen name="spring_loaded_hotseat_top_margin_wide_portrait">64dp</dimen>
+    <dimen name="spring_loaded_panel_border">2dp</dimen>
+    <item format="float" name="staggered_damping_ratio" type="dimen">0.7</item>
+    <item format="float" name="staggered_stiffness" type="dimen">150</item>
+    <dimen name="swipe_back_window_corner_radius">40dp</dimen>
+    <dimen name="swipe_back_window_scale_x_margin">10dp</dimen>
+    <dimen name="swipe_up_fling_min_visible_change">18dp</dimen>
+    <dimen name="swipe_up_max_velocity">7.619dp</dimen>
+    <dimen name="swipe_up_max_workspace_trans_y">-60dp</dimen>
+    <item format="float" name="swipe_up_rect_scale_damping_ratio" type="dimen">0.75</item>
+    <item format="float" name="swipe_up_rect_scale_higher_stiffness" type="dimen">400</item>
+    <item format="float" name="swipe_up_rect_scale_stiffness" type="dimen">200</item>
+    <item format="float" name="swipe_up_rect_xy_damping_ratio" type="dimen">0.8</item>
+    <item format="float" name="swipe_up_rect_xy_fling_friction" type="dimen">1.5</item>
+    <item format="float" name="swipe_up_rect_xy_stiffness" type="dimen">200</item>
+    <item format="float" name="swipe_up_scale_start" type="dimen">0.88</item>
+    <dimen name="system_shortcut_header_height">52dp</dimen>
+    <dimen name="system_shortcut_header_icon_padding">14dp</dimen>
+    <dimen name="system_shortcut_header_icon_padding_inner">12dp</dimen>
+    <dimen name="system_shortcut_header_icon_padding_outer">16dp</dimen>
+    <dimen name="system_shortcut_header_icon_touch_size">48dp</dimen>
+    <dimen name="system_shortcut_icon_size">20dp</dimen>
+    <dimen name="system_shortcut_margin_start">16dp</dimen>
+    <dimen name="task_menu_edge_padding">0dp</dimen>
+    <dimen name="task_menu_width_grid">216dp</dimen>
+    <dimen name="task_thumbnail_icon_drawable_size">0dp</dimen>
+    <dimen name="task_thumbnail_icon_drawable_size_grid">0dp</dimen>
+    <dimen name="task_thumbnail_icon_menu_drawable_touch_size">0dp</dimen>
+    <dimen name="task_thumbnail_icon_size">0dp</dimen>
+    <dimen name="taskbar_button_margin_6_5">0dp</dimen>
+    <dimen name="taskbar_button_margin_default">0dp</dimen>
+    <dimen name="taskbar_button_margin_split">0dp</dimen>
+    <dimen name="taskbar_button_space_inbetween">0dp</dimen>
+    <dimen name="taskbar_button_space_inbetween_phone">0dp</dimen>
+    <dimen name="taskbar_contextual_button_margin">0dp</dimen>
+    <dimen name="taskbar_hotseat_nav_spacing">0dp</dimen>
+    <item format="float" name="taskbar_icon_size" type="dimen">0</item>
+    <dimen name="taskbar_icon_spacing">0dp</dimen>
+    <dimen name="taskbar_nav_buttons_size">0dp</dimen>
+    <dimen name="taskbar_phone_content_padding">8dp</dimen>
+    <dimen name="taskbar_phone_home_button_size">80dp</dimen>
+    <dimen name="taskbar_phone_rounded_corner_content_margin">
+        @*android:dimen/rounded_corner_content_padding
+    </dimen>
+    <dimen name="taskbar_phone_size">@*android:dimen/navigation_bar_frame_height</dimen>
+    <dimen name="taskbar_size">0dp</dimen>
+    <dimen name="taskbar_stashed_size">0dp</dimen>
+    <item format="float" name="taskbar_swipe_up_rect_scale_stiffness" type="dimen">200</item>
+    <item format="float" name="taskbar_swipe_up_rect_x_damping" type="dimen">0.9</item>
+    <item format="float" name="taskbar_swipe_up_rect_x_stiffness" type="dimen">350</item>
+    <item format="float" name="taskbar_swipe_up_rect_y_damping" type="dimen">0.78</item>
+    <item format="float" name="taskbar_swipe_up_rect_y_stiffness" type="dimen">200</item>
+    <dimen name="transient_taskbar_bottom_margin">0dp</dimen>
+    <dimen name="transient_taskbar_clamped_offset_bound">0dp</dimen>
+    <dimen name="transient_taskbar_key_shadow_distance">0dp</dimen>
+    <dimen name="transient_taskbar_padding">0dp</dimen>
+    <dimen name="transient_taskbar_shadow_blur">0dp</dimen>
+    <dimen name="transient_taskbar_stashed_height">0dp</dimen>
+    <dimen name="unlock_staggered_velocity_dp_per_s">2dp</dimen>
+    <dimen name="widget_apps_tabs_vertical_padding">6dp</dimen>
+    <dimen name="widget_cell_app_icon_padding">8dp</dimen>
+    <dimen name="widget_cell_app_icon_size">24dp</dimen>
+    <dimen name="widget_cell_font_size">14sp</dimen>
+    <dimen name="widget_cell_horizontal_padding">16dp</dimen>
+    <dimen name="widget_cell_vertical_padding">8dp</dimen>
+    <dimen name="widget_handle_margin">13dp</dimen>
+    <dimen name="widget_list_content_corner_radius">4dp</dimen>
+    <dimen name="widget_list_entry_spacing">2dp</dimen>
+    <dimen name="widget_list_header_view_vertical_padding">20dp</dimen>
+    <dimen name="widget_list_horizontal_margin">16dp</dimen>
+    <dimen name="widget_list_horizontal_margin_two_pane">24dp</dimen>
+    <dimen name="widget_list_left_pane_horizontal_margin">0dp</dimen>
+    <dimen name="widget_list_top_bottom_corner_radius">28dp</dimen>
+    <dimen name="widget_picker_education_tip_max_width">308dp</dimen>
+    <dimen name="widget_picker_education_tip_min_margin">4dp</dimen>
+    <dimen name="widget_picker_landscape_tablet_left_right_margin">117dp</dimen>
+    <dimen name="widget_picker_two_panels_left_right_margin">0dp</dimen>
+    <dimen name="widget_preview_cell_divider_width">0.5dp</dimen>
+    <dimen name="widget_preview_corner_radius">2dp</dimen>
+    <dimen name="widget_preview_key_shadow_distance">1dp</dimen>
+    <dimen name="widget_preview_shadow_blur">0.5dp</dimen>
+    <dimen name="widget_preview_shortcut_padding">8dp</dimen>
+    <dimen name="widget_recommendations_table_horizontal_padding">16dp</dimen>
+    <dimen name="widget_recommendations_table_vertical_padding">8dp</dimen>
+    <dimen name="widget_reconfigure_button_corner_radius">14dp</dimen>
+    <dimen name="widget_reconfigure_button_margin">32dp</dimen>
+    <dimen name="widget_reconfigure_button_padding">6dp</dimen>
+    <dimen name="widget_reconfigure_button_size">36dp</dimen>
+    <dimen name="widget_reconfigure_tip_top_margin">16dp</dimen>
+    <dimen name="widget_row_divider">2dp</dimen>
+    <dimen name="widget_row_padding">8dp</dimen>
+    <dimen name="widget_section_height">56dp</dimen>
+    <dimen name="widget_section_horizontal_padding">16dp</dimen>
+    <dimen name="widget_section_icon_size">40dp</dimen>
+    <dimen name="widget_section_vertical_padding">8dp</dimen>
+    <dimen name="widget_tabs_button_horizontal_padding">4dp</dimen>
+    <dimen name="widget_tabs_horizontal_padding">16dp</dimen>
+    <dimen name="work_apps_paused_button_stroke">1dp</dimen>
+    <dimen name="work_card_button_height">52dp</dimen>
+    <dimen name="work_card_margin">24dp</dimen>
+    <dimen name="work_card_padding_horizontal">10dp</dimen>
+    <dimen name="work_edu_card_bottom_margin">26dp</dimen>
+    <dimen name="work_edu_card_margin">16dp</dimen>
+    <dimen name="work_edu_card_radius">16dp</dimen>
+    <dimen name="work_edu_card_text_end_margin">32dp</dimen>
+    <dimen name="work_fab_height">56dp</dimen>
+    <dimen name="work_fab_icon_size">24dp</dimen>
+    <dimen name="work_fab_margin">16dp</dimen>
+    <dimen name="work_fab_margin_bottom">20dp</dimen>
+    <dimen name="work_fab_radius">16dp</dimen>
+    <dimen name="work_fab_text_start_margin">8dp</dimen>
+    <dimen name="work_fab_width">214dp</dimen>
+    <dimen name="work_mode_fab_padding">16dp</dimen>
+    <dimen name="work_profile_footer_padding">20dp</dimen>
+    <item format="float" name="workspace_content_scale" type="dimen">0.97</item>
+    <dimen name="workspace_page_indicator_height">24dp</dimen>
+    <dimen name="workspace_page_indicator_line_height">1dp</dimen>
+    <dimen name="workspace_page_indicator_overlap_workspace">0dp</dimen>
+    <dimen name="x_icon_padding">4dp</dimen>
+    <dimen name="x_icon_size">16dp</dimen>
+    <item name="accessibility_button" type="id"/>
+    <item name="action_add_to_workspace" type="id"/>
+    <item name="action_deep_shortcuts" type="id"/>
+    <item name="action_dismiss_prediction" type="id"/>
+    <item name="action_move" type="id"/>
+    <item name="action_move_screen_backwards" type="id"/>
+    <item name="action_move_screen_forwards" type="id"/>
+    <item name="action_move_to_workspace" type="id"/>
+    <item name="action_pin_prediction" type="id"/>
+    <item name="action_reconfigure" type="id"/>
+    <item name="action_remote_action_shortcut" type="id"/>
+    <item name="action_remove" type="id"/>
+    <item name="action_resize" type="id"/>
+    <item name="action_uninstall" type="id"/>
+    <item name="apps_list_view_work" type="id"/>
+    <item name="back" type="id"/>
+    <item name="cache_entry_tag_id" type="id"/>
+    <item name="cell_layout_jail_id" type="id"/>
+    <item name="close" type="id"/>
+    <item name="dismiss_view" type="id"/>
+    <item name="drag_event_parity" type="id"/>
+    <item name="home" type="id"/>
+    <item name="ime_switcher" type="id"/>
+    <item name="menu_apply_flags" type="id"/>
+    <item name="notifications_button" type="id"/>
+    <item name="overview_panel" type="id"/>
+    <item name="ps_container_header" type="id"/>
+    <item name="ps_lock_unlock_button" type="id"/>
+    <item name="ps_settings_button" type="id"/>
+    <item name="ps_transition_image" type="id"/>
+    <item name="qsb_widget" type="id"/>
+    <item name="quick_settings_button" type="id"/>
+    <item name="recent_apps" type="id"/>
+    <item name="rotate_suggestion" type="id"/>
+    <item name="saved_clip_children_tag_id" type="id"/>
+    <item name="saved_floating_widget_background" type="id"/>
+    <item name="saved_floating_widget_foreground" type="id"/>
+    <item name="search_container_all_apps" type="id"/>
+    <item name="search_container_hotseat" type="id"/>
+    <item name="search_container_workspace" type="id"/>
+    <item name="space" type="id"/>
+    <item name="split_bottomRight_appInfo" type="id"/>
+    <item name="split_topLeft_appInfo" type="id"/>
+    <item name="spring_animation_tag" type="id"/>
+    <item name="view_type_widgets_header" type="id"/>
+    <item name="view_type_widgets_list" type="id"/>
+    <item name="view_type_widgets_space" type="id"/>
+    <item name="view_unhighlight_background" type="id"/>
+    <item name="work_tab_state_id" type="id"/>
+    <integer name="config_allAppsCloseDuration">300</integer>
+    <integer name="config_allAppsOpenDuration">600</integer>
+    <integer name="config_bottomSheetCloseDuration">267</integer>
+    <integer name="config_bottomSheetOpenDuration">267</integer>
+    <integer name="config_caretAnimationDuration">200</integer>
+    <integer name="config_dragOutlineFadeTime">500</integer>
+    <integer name="config_dragOutlineMaxAlpha">255</integer>
+    <integer name="config_dropAnimMaxDist">800</integer>
+    <integer name="config_dropAnimMaxDuration">500</integer>
+    <integer name="config_dropAnimMinDuration">100</integer>
+    <integer name="config_folderDelay">30</integer>
+    <integer name="config_keyboardTaskFocusSnapAnimationDuration">750</integer>
+    <integer name="config_materialFolderExpandDuration">200</integer>
+    <integer name="config_pageSnapAnimationDuration">750</integer>
+    <integer name="config_searchHintAnimationDuration">50</integer>
+    <integer name="extracted_color_gradient_alpha">153</integer>
+    <integer name="min_width_split">720</integer>
+    <string name="abandoned_clean_this">Remove</string>
+    <string name="abandoned_promise_explanation">The app for this icon isn\'t installed.
+        You can remove it, or search for the app and install it manually.
+    </string>
+    <string name="abandoned_promises_title">This app is not installed</string>
+    <string name="abandoned_search">Search</string>
+    <string name="accessibility_close">Close</string>
+    <string name="action_add_to_workspace">Add to home screen</string>
+    <string name="action_decrease_height">Decrease height</string>
+    <string name="action_decrease_width">Decrease width</string>
+    <string name="action_deep_shortcut">Shortcuts</string>
+    <string name="action_dismiss_notification">Dismiss</string>
+    <string name="action_increase_height">Increase height</string>
+    <string name="action_increase_width">Increase width</string>
+    <string name="action_move">Move item</string>
+    <string name="action_move_here">Move item here</string>
+    <string name="action_move_to_workspace">Move to home screen</string>
+    <string name="action_resize">Resize</string>
+    <string name="activity_not_available">App isn\'t available</string>
+    <string name="activity_not_found">App isn\'t installed.</string>
+    <string name="add_item_request_drag_hint">Touch &amp; hold the widget to move it around the home screen</string>
+    <string name="add_to_folder">Add to folder: <ns1:g example="Games" id="name">%1$s</ns1:g></string>
+    <string name="add_to_folder_with_app">Add to folder with <ns1:g example="Messenger" id="name">%1$s</ns1:g></string>
+    <string name="add_to_home_screen">Add to home screen</string>
+    <string name="added_to_folder">Item added to folder</string>
+    <string name="added_to_home_screen_accessibility_text"><ns1:g example="Calendar month view" id="widget_name">%1$s</ns1:g> widget added to home screen</string>
+    <string name="all_apps_button_label">Apps list</string>
+    <string name="all_apps_button_personal_label">Personal apps list</string>
+    <string name="all_apps_button_work_label">Work apps list</string>
+    <string name="all_apps_label">All apps</string>
+    <string name="all_apps_loading_message">Loading apps…</string>
+    <string name="all_apps_no_search_results">No apps found matching \"<ns1:g example="Android" id="query">%1$s</ns1:g>\"</string>
+    <string name="all_apps_personal_tab">Personal</string>
+    <string name="all_apps_search_bar_hint">Search apps</string>
+    <string name="all_apps_search_results">Search results</string>
+    <string name="all_apps_work_tab">Work</string>
+    <string name="allow_rotation_desc">When phone is rotated</string>
+    <string name="allow_rotation_title">Allow home screen rotation</string>
+    <string name="app_archived_title"><ns1:g example="Messenger" id="name">%1$s</ns1:g> is archived. Tap to download.</string>
+    <string name="app_downloading_title"><ns1:g example="Messenger" id="name">%1$s</ns1:g> downloading, <ns1:g example="30%" id="progress">%2$s</ns1:g> complete</string>
+    <string name="app_info_drop_target_label">App info</string>
+    <string name="app_installing_title"><ns1:g example="Messenger" id="name">%1$s</ns1:g> installing, <ns1:g example="30%" id="progress">%2$s</ns1:g> complete</string>
+    <string name="app_launch_tracker_class" translatable="false"/>
+    <string name="app_name">Launcher3</string>
+    <string name="app_pair_default_title"><ns1:g example="Chrome" id="app1">%1$s</ns1:g> | <ns1:g example="YouTube" id="app2">%2$s</ns1:g></string>
+    <string name="app_pair_name_format">App pair: <ns1:g example="Chrome" id="app1">%1$s</ns1:g> and <ns1:g example="YouTube" id="app2">%2$s</ns1:g></string>
+    <string name="app_pair_needs_unfold">Unfold device to use this app pair</string>
+    <string name="app_pair_unlaunchable_at_screen_size">This app pair isn\'t supported on this device</string>
+    <string name="app_waiting_download_title"><ns1:g example="Messenger" id="name">%1$s</ns1:g> waiting to install</string>
+    <string name="auto_add_shortcuts_description">For new apps</string>
+    <string name="auto_add_shortcuts_label">Add app icons to home screen</string>
+    <string name="bubble_bar_overflow_description">Overflow</string>
+    <string name="color_generator_class" translatable="false"/>
+    <string name="create_folder_with">Create folder with: <ns1:g example="Game" id="name">%1$s</ns1:g></string>
+    <string name="default_scroll_format">Page %1$d of %2$d</string>
+    <string name="delete_package_intent" translatable="false">#Intent;action=android.intent.action.DELETE;launchFlags=0x10800000;end</string>
+    <string name="derived_app_name" translatable="false">@string/app_name</string>
+    <string name="developer_options_filter_hint">Filter</string>
+    <string name="developer_options_title">Developer Options</string>
+    <string name="dialog_remove">Remove</string>
+    <string name="dialog_update">Update</string>
+    <string name="dialog_update_message">The app for this icon isn\'t updated. You can update manually to re-enable this shortcut, or remove the icon.</string>
+    <string name="dialog_update_title">App update required</string>
+    <string name="disabled_app_label">Disabled <ns1:g example="Messenger" id="app_name">%1$s</ns1:g></string>
+    <string name="dismiss_prediction_label">Don\'t suggest app</string>
+    <string name="dotted_app_label">
+        {count, plural,
+            =1      {{app_name} has # notification}
+            other   {{app_name} has # notifications}
+        }
+    </string>
+    <string name="edit_home_screen">Edit Home Screen</string>
+    <string name="fitness_widget_recommendation_category_label">Reach Your Fitness Goals</string>
+    <string name="folder_closed">Folder closed</string>
+    <string name="folder_created">Folder created</string>
+    <string name="folder_hint_text">Edit Name</string>
+    <string name="folder_name_format_exact">Folder: <ns1:g example="Games" id="name">%1$s</ns1:g>, <ns1:g example="2" id="size">%2$d</ns1:g> items</string>
+    <string name="folder_name_format_overflow">Folder: <ns1:g example="Games" id="name">%1$s</ns1:g>, <ns1:g example="2" id="size">%2$d</ns1:g> or more items</string>
+    <string name="folder_name_provider_class" translatable="false"/>
+    <string name="folder_opened">Folder opened, <ns1:g example="5" id="width">%1$d</ns1:g> by <ns1:g example="3" id="height">%2$d</ns1:g></string>
+    <string name="folder_renamed">Folder renamed to <ns1:g example="Games" id="name">%1$s</ns1:g></string>
+    <string name="folder_tap_to_close">Tap to close folder</string>
+    <string name="folder_tap_to_rename">Tap to save rename</string>
+    <string name="gadget_complete_setup_text">Tap to finish setup</string>
+    <string name="gadget_error_text">Can\'t load widget</string>
+    <string name="gadget_setup_text">Widget settings</string>
+    <string name="home_screen">Home</string>
+    <string name="hotseat_out_of_space">No more room in the Favorites tray</string>
+    <string name="install_drop_target_label">Install</string>
+    <string name="install_private_system_shortcut_label">Install in private</string>
+    <string name="instant_app_resolver_class" translatable="false"/>
+    <string name="item_added_to_workspace">Item added to home screen</string>
+    <string name="item_moved">Item moved</string>
+    <string name="item_removed">Item removed</string>
+    <string name="label_application">App</string>
+    <string name="launcher_activity_logic_class" translatable="false"/>
+    <string name="launcher_restore_event_logger_class" translatable="false"/>
+    <string name="local_colors_extraction_class" translatable="false"/>
+    <string name="long_accessible_way_to_add">Double-tap &amp; hold to move a widget or use custom actions.</string>
+    <string name="long_accessible_way_to_add_shortcut">Double-tap &amp; hold to move a shortcut or use custom actions.</string>
+    <string name="long_press_shortcut_to_add">Touch &amp; hold to move a shortcut.</string>
+    <string name="long_press_widget_to_add">Touch &amp; hold to move a widget.</string>
+    <string name="main_process_initializer_class" translatable="false"/>
+    <string name="market_search_intent" translatable="false">market://search?c=apps</string>
+    <string name="model_delegate_class" translatable="false"/>
+    <string name="move_to_empty_cell_description">Move to row <ns1:g example="1" id="number">%1$s</ns1:g> column <ns1:g example="1" id="number">%2$s</ns1:g> in <ns1:g example="Home screen 2 of 4" id="string">%3$s</ns1:g></string>
+    <string name="move_to_hotseat_position">Move to favorites position <ns1:g example="1" id="number">%1$s</ns1:g></string>
+    <string name="move_to_position">Move to position <ns1:g example="1" id="number">%1$s</ns1:g></string>
+    <string name="msg_disabled_by_admin">Disabled by your admin</string>
+    <string name="msg_missing_notification_access">To show Notification Dots, turn on app notifications for <ns1:g example="My App" id="name">%1$s</ns1:g></string>
+    <string name="news_widget_recommendation_category_label">News For You</string>
+    <string name="no_search_results">No widgets or shortcuts found</string>
+    <string name="no_widgets_available">Widgets and shortcuts aren\'t available</string>
+    <string name="notification_dots_desc_off">Off</string>
+    <string name="notification_dots_desc_on">On</string>
+    <string name="notification_dots_service_title">Show notification dots</string>
+    <string name="notification_dots_title">Notification dots</string>
+    <string name="notifications_header">Notifications</string>
+    <string name="others_widget_recommendation_category_label">You Might Also Like</string>
+    <string name="out_of_space">No room on this home screen</string>
+    <string name="package_state_unknown">Unknown</string>
+    <string name="permdesc_install_shortcut">Allows an app to add
+        shortcuts without user intervention.</string>
+    <string name="permdesc_read_settings">Allows the app to read the settings and
+        shortcuts in home.</string>
+    <string name="permdesc_write_settings">Allows the app to change the settings and
+        shortcuts in home.</string>
+    <string name="permlab_install_shortcut">install shortcuts</string>
+    <string name="permlab_read_settings">read home settings and shortcuts</string>
+    <string name="permlab_write_settings">write home settings and shortcuts</string>
+    <string name="pin_prediction">Pin Prediction</string>
+    <string name="popup_container_iterate_children" translatable="false">popup_container_iterate_children</string>
+    <string name="private_space_label">Private space</string>
+    <string name="private_space_secondary_label">Keep private apps locked and hidden</string>
+    <string name="productivity_widget_recommendation_category_label">Your Daily Essentials</string>
+    <string name="ps_add_button_content_description">Install apps to Private Space</string>
+    <string name="ps_add_button_label">Install apps</string>
+    <string name="ps_container_lock_title">Lock</string>
+    <string name="ps_container_lock_unlock_button">Lock/Unlock Private Space</string>
+    <string name="ps_container_settings">Private Space Settings</string>
+    <string name="ps_container_title">Private</string>
+    <string name="ps_container_transition">Private Space Transitioning</string>
+    <string name="recent_task_option_split_screen">Split screen</string>
+    <string name="reconfigurable_widget_education_tip">Tap to change widget settings</string>
+    <string name="remote_action_failed">Failed: <ns1:g example="Pause" id="what">%1$s</ns1:g></string>
+    <string name="remove_drop_target_label">Remove</string>
+    <string name="safemode_shortcut_error">Downloaded app disabled in Safe mode</string>
+    <string name="safemode_widget_error">Widgets disabled in Safe mode</string>
+    <string name="save_app_pair">Save app pair</string>
+    <string name="search_session_manager_class" translatable="false"/>
+    <string name="secondary_display_predictions_class" translatable="false"/>
+    <string name="settings_button_text">Home settings</string>
+    <string name="settings_fragment_name" translatable="false">com.android.launcher3.settings.SettingsActivity$LauncherSettingsFragment</string>
+    <string name="shortcut_not_available">Shortcut isn\'t available</string>
+    <string name="shortcuts_count">
+        {count, plural, =1{# shortcut} other{# shortcuts}}
+    </string>
+    <string name="social_and_entertainment_widget_recommendation_category_label">Your Chill Zone</string>
+    <string name="split_app_info_accessibility">App info for %1$s</string>
+    <string name="stats_log_manager_class" translatable="false"/>
+    <string name="styles_wallpaper_button_text">Wallpaper &amp; style</string>
+    <string name="suggested_widgets_header_title">Suggestions</string>
+    <string name="taskbar_model_callbacks_factory_class" translatable="false"/>
+    <string name="taskbar_search_session_controller_class" translatable="false"/>
+    <string name="taskbar_view_callbacks_factory_class" translatable="false"/>
+    <string name="test_information_handler_class" translatable="false"/>
+    <string name="title_change_settings">Change settings</string>
+    <string name="title_missing_notification_access">Notification access needed</string>
+    <string name="undo">Undo</string>
+    <string name="uninstall_drop_target_label">Uninstall</string>
+    <string name="uninstall_system_app_text">This is a system app and can\'t be uninstalled.</string>
+    <string name="wallpaper_picker_package" translatable="false"/>
+    <string name="weather_widget_recommendation_category_label">Stay Ahead of the Weather</string>
+    <string name="widget_accessible_dims_format">%1$d wide by %2$d high</string>
+    <string name="widget_button_text">Widgets</string>
+    <string name="widget_category_conversations">Conversations</string>
+    <string name="widget_category_note_taking">Note-taking</string>
+    <string name="widget_dims_format">%1$d \u00d7 %2$d</string>
+    <string name="widget_education_close_button">Got it</string>
+    <string name="widget_education_content">To get info without opening apps, you can add widgets to your home screen</string>
+    <string name="widget_education_header">Useful info at your fingertips</string>
+    <string name="widget_holder_factory_class" translatable="false"/>
+    <string name="widget_picker_right_pane_accessibility_title"><ns1:g example="Calendar" id="selected_header">%1$s</ns1:g> widgets on right, search and options on left</string>
+    <string name="widget_preview_context_description"><ns1:g example="Calendar month view" id="widget_name">%1$s</ns1:g> widget</string>
+    <string name="widget_recommendation_category_provider_class" translatable="false"/>
+    <string name="widget_reconfigure_button_content_description">Change widget settings</string>
+    <string name="widget_resized">Widget resized to width <ns1:g example="2" id="number">%1$s</ns1:g> height <ns1:g example="1" id="number">%2$s</ns1:g></string>
+    <string name="widgets_and_shortcuts_count"><ns1:g example="5 widgets" id="widgets_count">%1$s</ns1:g>, <ns1:g example="1 shortcut" id="shortcuts_count">%2$s</ns1:g></string>
+    <string name="widgets_count">
+        {count, plural, =1{# widget} other{# widgets}}
+    </string>
+    <string name="widgets_full_sheet_cancel_button_description">Clear text from search box</string>
+    <string name="widgets_full_sheet_personal_tab">Personal</string>
+    <string name="widgets_full_sheet_search_bar_hint">Search</string>
+    <string name="widgets_full_sheet_work_tab">Work</string>
+    <string name="widgets_list">Widgets list</string>
+    <string name="widgets_list_closed">Widgets list closed</string>
+    <string name="window_manager_proxy_class" translatable="false"/>
+    <string name="work_apps_enable_btn_text">Unpause</string>
+    <string name="work_apps_pause_btn_text">Pause work apps</string>
+    <string name="work_apps_paused_body">Your work apps can’t send you notifications, use your battery, or access your location</string>
+    <string name="work_apps_paused_edu_accept">Got it</string>
+    <string name="work_apps_paused_edu_banner">Work apps are badged and visible to your IT admin</string>
+    <string name="work_apps_paused_info_body">You won’t receive notifications from your work apps</string>
+    <string name="work_apps_paused_telephony_unavailable_body">You won’t receive phone calls, text messages, or notifications from your work apps</string>
+    <string name="work_apps_paused_title">Work apps are paused</string>
+    <string name="work_folder_name">Work</string>
+    <string name="work_profile_edu_accept">Got it</string>
+    <string name="work_profile_edu_work_apps">Work apps are badged and visible to your IT admin</string>
+    <string name="work_profile_toggle_label">Work profile</string>
+    <string name="workspace_new_page">New home screen page</string>
+    <string name="workspace_scroll_format">Home screen %1$d of %2$d</string>
+    <style name="AddItemActivityTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="widgetsTheme">@style/WidgetContainerTheme</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+    <style name="AllAppsStyleDefault">
+        <item name="horizontalPadding">16dp</item>
+    </style>
+    <style name="AppTheme" parent="@style/LauncherTheme"/>
+    <style name="AppTheme.Dark" parent="@style/LauncherTheme.Dark"/>
+    <style name="AppTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark.DarkMainColor"/>
+    <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText"/>
+    <style name="AppTheme.DarkMainColor" parent="@style/LauncherTheme.DarkMainColor"/>
+    <style name="AppTheme.DarkText" parent="@style/LauncherTheme.DarkText"/>
+    <style name="ArrowTipStyle">
+        <item name="arrowTipBackground">@color/arrow_tip_view_bg</item>
+        <item name="arrowTipTextColor">@color/arrow_tip_view_content</item>
+    </style>
+    <style name="BaseIcon" parent="BaseIconUnBounded">
+        <item name="android:lines">1</item>
+    </style>
+    <style name="BaseIcon.AllApps" parent="BaseIcon">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:stateListAnimator">@animator/all_apps_fastscroll_icon_anim</item>
+        <item name="android:paddingLeft">@dimen/dynamic_grid_cell_padding_x</item>
+        <item name="android:paddingRight">@dimen/dynamic_grid_cell_padding_x</item>
+    </style>
+    <style name="BaseIcon.Workspace" parent="BaseIcon.Workspace.Shadows">
+    </style>
+    <style name="BaseIcon.Workspace.Shadows" parent="BaseIcon">
+        <item name="android:shadowRadius">2.0</item>
+        <item name="android:shadowColor">?attr/workspaceShadowColor</item>
+        <item name="ambientShadowColor">?attr/workspaceAmbientShadowColor</item>
+        <item name="ambientShadowBlur">1.5dp</item>
+        <item name="keyShadowColor">?attr/workspaceKeyShadowColor</item>
+        <item name="keyShadowBlur">.5dp</item>
+        <item name="keyShadowOffsetX">.5dp</item>
+        <item name="keyShadowOffsetY">.5dp</item>
+    </style>
+    <style name="BaseIconRoot" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle"/>
+    <style name="BaseIconUnBounded" parent="BaseIconRoot">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_gravity">center</item>
+        <item name="android:focusable">true</item>
+        <item name="android:gravity">center_horizontal</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:defaultFocusHighlightEnabled">false</item>
+        
+        <item name="android:shadowRadius">0</item>
+    </style>
+    <style name="BaseLauncherTheme" parent="@android:style/Theme.DeviceDefault.Light">
+        <item name="disabledIconAlpha">.54</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:colorEdgeEffect">#FF757575</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowShowWallpaper">true</item>
+    </style>
+    <style name="Button.BottomRounded.Colored" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/button_bottom_rounded_colored_ripple</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+    <style name="Button.FullRounded.Colored" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/full_rounded_colored_ripple</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+    <style name="Button.Rounded.Colored" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/button_rounded_colored_ripple</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+    <style name="Button.TopRounded.Bordered" parent="@android:style/Widget.Material.Button">
+        <item name="android:background">@drawable/button_top_rounded_bordered_ripple</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+    <style name="CellStyleDefault">
+        <item name="iconDrawablePadding">7dp</item>
+    </style>
+    <style name="DropTargetButton" parent="DropTargetButtonBase"/>
+    <style name="DropTargetButtonBase" parent="@android:style/TextAppearance.DeviceDefault.Medium">
+        <item name="android:drawablePadding">@dimen/drop_target_button_drawable_padding</item>
+        <item name="android:padding">14dp</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/drop_target_text</item>
+        <item name="android:textSize">@dimen/drop_target_text_size</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:background">@drawable/drop_target_background</item>
+    </style>
+    <style name="FastScrollerPopup" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:minWidth">@dimen/fastscroll_popup_width</item>
+        <item name="android:layout_height">@dimen/fastscroll_popup_height</item>
+        <item name="android:textSize">@dimen/fastscroll_popup_text_size</item>
+        <item name="android:paddingEnd">@dimen/fastscroll_popup_padding</item>
+        <item name="android:gravity">center</item>
+        <item name="android:alpha">0</item>
+        <item name="android:elevation">3dp</item>
+        <item name="android:saveEnabled">false</item>
+        <item name="android:textColor">?android:attr/textColorPrimaryInverse</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+    <style name="FolderStyleDefault">
+        <item name="folderTopPadding">24dp</item>
+        <item name="folderCellHeight">94dp</item>
+        <item name="folderCellWidth">80dp</item>
+        <item name="folderBorderSpace">16dp</item>
+        <item name="folderFooterHeight">56dp</item>
+    </style>
+    <style name="HomeScreenElementTheme">
+        <item name="android:colorEdgeEffect">?attr/workspaceTextColor</item>
+        <item name="android:textColorPrimary">?attr/workspaceTextColor</item>
+        <item name="android:textColorSecondary">?attr/workspaceTextColor</item>
+    </style>
+    <style name="HomeSettings.FragmentCompatStyle" parent="@style/PreferenceFragment.Material">
+        <item name="android:layout">@layout/home_settings</item>
+    </style>
+    <style name="HomeSettings.PreferenceTheme" parent="@style/PreferenceThemeOverlay.v14.Material">
+        <item name="preferenceFragmentCompatStyle">@style/HomeSettings.FragmentCompatStyle</item>
+    </style>
+    <style name="HomeSettings.Theme" parent="@android:style/Theme.DeviceDefault.Settings">
+        <item name="android:navigationBarColor">?android:colorPrimaryDark</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="preferenceTheme">@style/HomeSettings.PreferenceTheme</item>
+    </style>
+    <style name="LauncherTheme" parent="@style/BaseLauncherTheme">
+        <item name="android:textColorSecondary">#DE000000</item>
+        <item name="allAppsScrimColor">?attr/materialColorSurfaceDim</item>
+        <item name="allappsHeaderProtectionColor">
+            @color/material_color_surface_container_highest</item>
+        <item name="allAppsNavBarScrimColor">#66FFFFFF</item>
+        <item name="popupColorPrimary">@color/popup_color_primary_light</item>
+        <item name="popupColorSecondary">@color/popup_color_secondary_light</item>
+        <item name="popupColorTertiary">@color/popup_color_tertiary_light</item>
+        <item name="popupColorBackground">#EFEDED</item>
+        <item name="popupTextColor">@color/popup_text_color_light</item>
+        <item name="popupShadeFirst">@color/popup_shade_first_light</item>
+        <item name="popupShadeSecond">@color/popup_shade_second_light</item>
+        <item name="popupShadeThird">@color/popup_shade_third_light</item>
+        <item name="popupNotificationDotColor">@color/popup_notification_dot_light</item>
+        <item name="notificationDotColor">@color/notification_dot_color_light</item>
+        <item name="isMainColorDark">false</item>
+        <item name="isWorkspaceDarkText">false</item>
+        <item name="workspaceTextColor">@color/workspace_text_color_light</item>
+        <item name="workspaceShadowColor">#B0000000</item>
+        <item name="workspaceAmbientShadowColor">#40000000</item>
+        <item name="workspaceKeyShadowColor">#89000000</item>
+        <item name="widgetsTheme">@style/WidgetContainerTheme</item>
+        <item name="focusOutlineColor">@color/material_color_on_secondary_container</item>
+        <item name="folderPaginationColor">@color/folder_pagination_color_light</item>
+        <item name="folderPreviewColor">@color/folder_preview_light</item>
+        <item name="folderBackgroundColor">@color/folder_background_light</item>
+        <item name="folderIconBorderColor">?android:attr/colorPrimary</item>
+        <item name="isFolderDarkText">true</item>
+        <item name="folderTextColor">@color/folder_text_color_light</item>
+        <item name="folderHintTextColor">@color/folder_hint_text_color_light</item>
+        <item name="loadingIconColor">#CCFFFFFF</item>
+        <item name="iconOnlyShortcutColor">?android:attr/textColorSecondary</item>
+        <item name="eduHalfSheetBGColor">?android:attr/colorAccent</item>
+        <item name="workspaceAccentColor">@color/workspace_accent_color_light</item>
+        <item name="workspaceSurfaceColor">@color/workspace_surface_color</item>
+        <item name="dropTargetHoverTextColor">@color/drop_target_hover_text_color_light</item>
+        <item name="dropTargetHoverButtonColor">@color/drop_target_hover_button_color_light</item>
+        <item name="overviewScrimColor">@color/overview_scrim</item>
+        <item name="preloadIconAccentColor">@color/preload_icon_accent_color_light</item>
+        <item name="preloadIconBackgroundColor">@color/preload_icon_background_color_light</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:windowTranslucentNavigation">false</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">#00000000</item>
+        <item name="android:navigationBarColor">#00000000</item>
+        <item name="android:switchStyle">@style/SwitchStyle</item>
+
+        <item name="materialColorOnSecondaryFixedVariant">@color/material_color_on_secondary_fixed_variant</item>
+        <item name="materialColorOnTertiaryFixedVariant">@color/material_color_on_tertiary_fixed_variant</item>
+        <item name="materialColorSurfaceContainerLowest">@color/material_color_surface_container_lowest</item>
+        <item name="materialColorOnPrimaryFixedVariant">@color/material_color_on_primary_fixed_variant</item>
+        <item name="materialColorOnSecondaryContainer">@color/material_color_on_secondary_container</item>
+        <item name="materialColorOnTertiaryContainer">@color/material_color_on_tertiary_container</item>
+        <item name="materialColorSurfaceContainerLow">@color/material_color_surface_container_low</item>
+        <item name="materialColorOnPrimaryContainer">@color/material_color_on_primary_container</item>
+        <item name="materialColorSecondaryFixedDim">@color/material_color_secondary_fixed_dim</item>
+        <item name="materialColorOnErrorContainer">@color/material_color_on_error_container</item>
+        <item name="materialColorOnSecondaryFixed">@color/material_color_on_secondary_fixed</item>
+        <item name="materialColorOnSurfaceInverse">@color/material_color_on_surface_inverse</item>
+        <item name="materialColorTertiaryFixedDim">@color/material_color_tertiary_fixed_dim</item>
+        <item name="materialColorOnTertiaryFixed">@color/material_color_on_tertiary_fixed</item>
+        <item name="materialColorPrimaryFixedDim">@color/material_color_primary_fixed_dim</item>
+        <item name="materialColorSecondaryContainer">@color/material_color_secondary_container</item>
+        <item name="materialColorErrorContainer">@color/material_color_error_container</item>
+        <item name="materialColorOnPrimaryFixed">@color/material_color_on_primary_fixed</item>
+        <item name="materialColorPrimaryInverse">@color/material_color_primary_inverse</item>
+        <item name="materialColorSecondaryFixed">@color/material_color_secondary_fixed</item>
+        <item name="materialColorSurfaceInverse">@color/material_color_surface_inverse</item>
+        <item name="materialColorSurfaceVariant">@color/material_color_surface_variant</item>
+        <item name="materialColorTertiaryContainer">@color/material_color_tertiary_container</item>
+        <item name="materialColorTertiaryFixed">@color/material_color_tertiary_fixed</item>
+        <item name="materialColorPrimaryContainer">@color/material_color_primary_container</item>
+        <item name="materialColorOnBackground">@color/material_color_on_background</item>
+        <item name="materialColorPrimaryFixed">@color/material_color_primary_fixed</item>
+        <item name="materialColorOnSecondary">@color/material_color_on_secondary</item>
+        <item name="materialColorOnTertiary">@color/material_color_on_tertiary</item>
+        <item name="materialColorSurfaceDim">@color/material_color_surface_dim</item>
+        <item name="materialColorSurfaceBright">@color/material_color_surface_bright</item>
+        <item name="materialColorOnError">@color/material_color_on_error</item>
+        <item name="materialColorSurface">@color/material_color_surface</item>
+        <item name="materialColorSurfaceContainerHigh">@color/material_color_surface_container_high</item>
+        <item name="materialColorSurfaceContainerHighest">@color/material_color_surface_container_highest</item>
+        <item name="materialColorOnSurfaceVariant">@color/material_color_on_surface_variant</item>
+        <item name="materialColorOutline">@color/material_color_outline</item>
+        <item name="materialColorOutlineVariant">@color/material_color_outline_variant</item>
+        <item name="materialColorOnPrimary">@color/material_color_on_primary</item>
+        <item name="materialColorOnSurface">@color/material_color_on_surface</item>
+        <item name="materialColorSurfaceContainer">@color/material_color_surface_container</item>
+        <item name="materialColorPrimary">@color/material_color_primary</item>
+        <item name="materialColorSecondary">@color/material_color_secondary</item>
+        <item name="materialColorTertiary">@color/material_color_tertiary</item>
+    </style>
+    <style name="LauncherTheme.Dark" parent="@style/LauncherTheme">
+        <item name="android:textColorPrimary">@color/text_color_primary_dark</item>
+        <item name="android:textColorSecondary">@color/text_color_secondary_dark</item>
+        <item name="android:textColorTertiary">@color/text_color_tertiary_dark</item>
+        <item name="android:textColorHint">#A0FFFFFF</item>
+        <item name="android:colorControlHighlight">#19FFFFFF</item>
+        <item name="android:colorPrimary">#FF212121</item>
+        <item name="allAppsScrimColor">?attr/materialColorSurfaceDim</item>
+        <item name="allappsHeaderProtectionColor">@color/material_color_surface_container_low</item>
+        <item name="allAppsNavBarScrimColor">#80000000</item>
+        <item name="popupColorPrimary">@color/popup_color_primary_dark</item>
+        <item name="popupColorSecondary">@color/popup_color_secondary_dark</item>
+        <item name="popupColorTertiary">@color/popup_color_tertiary_dark</item>
+        <item name="popupColorBackground">#1F2020</item>
+        <item name="popupTextColor">@color/popup_text_color_dark</item>
+        <item name="popupNotificationDotColor">@color/popup_notification_dot_dark</item>
+        <item name="popupShadeFirst">@color/popup_shade_first_dark</item>
+        <item name="popupShadeSecond">@color/popup_shade_second_dark</item>
+        <item name="popupShadeThird">@color/popup_shade_third_dark</item>
+        <item name="notificationDotColor">@color/notification_dot_color_dark</item>
+        <item name="widgetsTheme">@style/WidgetContainerTheme.Dark</item>
+        <item name="folderPaginationColor">@color/folder_pagination_color_dark</item>
+        <item name="folderPreviewColor">@color/folder_preview_dark</item>
+        <item name="folderBackgroundColor">@color/folder_background_dark</item>
+        <item name="folderIconBorderColor">?android:attr/colorPrimary</item>
+        <item name="isFolderDarkText">false</item>
+        <item name="folderTextColor">@color/folder_text_color_dark</item>
+        <item name="folderHintTextColor">@color/folder_hint_text_color_dark</item>
+        <item name="isMainColorDark">true</item>
+        <item name="loadingIconColor">#99FFFFFF</item>
+        <item name="iconOnlyShortcutColor">#B3FFFFFF</item>
+        <item name="eduHalfSheetBGColor">#DD000000</item>
+        <item name="overviewScrimColor">@color/overview_scrim_dark</item>
+        <item name="preloadIconAccentColor">@color/preload_icon_accent_color_dark</item>
+        <item name="preloadIconBackgroundColor">@color/preload_icon_background_color_dark</item>
+    </style>
+    <style name="LauncherTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark"/>
+    <style name="LauncherTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark">
+        <item name="android:colorControlHighlight">#19212121</item>
+        <item name="workspaceTextColor">@color/workspace_text_color_dark</item>
+        <item name="workspaceShadowColor">@android:color/transparent</item>
+        <item name="workspaceAmbientShadowColor">@android:color/transparent</item>
+        <item name="workspaceKeyShadowColor">@android:color/transparent</item>
+        <item name="isWorkspaceDarkText">true</item>
+        <item name="workspaceAccentColor">@color/workspace_accent_color_dark</item>
+        <item name="dropTargetHoverTextColor">@color/drop_target_hover_text_color_dark</item>
+        <item name="dropTargetHoverButtonColor">@color/drop_target_hover_button_color_dark</item>
+    </style>
+    <style name="LauncherTheme.DarkMainColor" parent="@style/LauncherTheme"/>
+    <style name="LauncherTheme.DarkText" parent="@style/LauncherTheme">
+        <item name="workspaceTextColor">@color/workspace_text_color_dark</item>
+        <item name="workspaceShadowColor">@android:color/transparent</item>
+        <item name="workspaceAmbientShadowColor">@android:color/transparent</item>
+        <item name="workspaceKeyShadowColor">@android:color/transparent</item>
+        <item name="isWorkspaceDarkText">true</item>
+        <item name="workspaceAccentColor">@color/workspace_accent_color_dark</item>
+        <item name="dropTargetHoverTextColor">@color/drop_target_hover_text_color_dark</item>
+        <item name="dropTargetHoverButtonColor">@color/drop_target_hover_button_color_dark</item>
+    </style>
+    <style name="PopupItem">
+        <item name="android:colorControlHighlight">?attr/popupColorTertiary</item>
+    </style>
+    <style name="PopupItemIconOnly">
+        <item name="android:colorControlHighlight">?attr/popupColorTertiary</item>
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+    </style>
+    <style name="PrimaryHeadline" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle"/>
+    <style name="PrivateSpaceHeaderTextStyle">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">@color/material_color_on_surface</item>
+        <item name="android:fontFamily">google-sans-text-medium</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+    <style name="ProxyActivityStarterTheme" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+    <style name="SwitchStyle" parent="@android:style/Widget.Material.CompoundButton.Switch">
+        <item name="android:switchMinWidth">52dp</item>
+        <item name="android:thumb">@drawable/home_settings_switch_thumb</item>
+        <item name="android:track">@drawable/home_settings_switch_track</item>
+    </style>
+    <style name="TextHeadline" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle"/>
+    <style name="TextTitle" parent="@android:style/TextAppearance.DeviceDefault"/>
+    <style name="WidgetContainerTheme" parent="@android:style/Theme.DeviceDefault.Settings">
+        <item name="android:colorPrimaryDark">#E8EAED</item>
+        <item name="android:textColorSecondary">?android:attr/textColorPrimary</item>
+        <item name="android:colorEdgeEffect">?android:attr/textColorSecondary</item>
+        <item name="widgetPickerPrimarySurfaceColor">
+            @color/widget_picker_primary_surface_color_light</item>
+        <item name="widgetPickerSecondarySurfaceColor">
+            @color/widget_picker_secondary_surface_color_light</item>
+        <item name="widgetPickerTitleColor">@color/widget_picker_title_color_light</item>
+        <item name="widgetPickerHeaderAppTitleColor">
+            @color/widget_picker_header_app_title_color_light</item>
+        <item name="widgetPickerHeaderAppSubtitleColor">
+            @color/widget_picker_header_app_subtitle_color_light</item>
+        <item name="widgetPickerHeaderBackgroundColor">
+            @color/widget_picker_header_background_color_light</item>
+        <item name="widgetPickerSuggestionsIconBackgroundColor">
+            @color/widget_picker_suggestions_icon_background_color_light</item>
+        <item name="widgetPickerSuggestionsIconColor">
+            @color/widget_picker_suggestions_icon_color_light</item>
+        <item name="widgetPickerSearchTextColor">@color/widget_picker_search_text_color_light</item>
+        <item name="widgetPickerTabBackgroundSelected">
+            @color/widget_picker_tab_background_selected_light</item>
+        <item name="widgetPickerTabBackgroundUnselected">
+            @color/widget_picker_tab_background_unselected_light</item>
+        <item name="widgetPickerSelectedTabTextColor">
+            @color/widget_picker_selected_tab_text_color_light</item>
+        <item name="widgetPickerUnselectedTabTextColor">
+            @color/widget_picker_unselected_tab_text_color_light</item>
+        <item name="widgetPickerCollapseHandleColor">
+            @color/widget_picker_collapse_handle_color_light</item>
+    </style>
+    <style name="WidgetContainerTheme.Dark" parent="AppTheme.Dark">
+        <item name="android:colorEdgeEffect">?android:attr/textColorSecondary</item>
+        <item name="android:colorPrimaryDark">#616161</item> 
+        <item name="widgetPickerPrimarySurfaceColor">
+            @color/widget_picker_primary_surface_color_dark</item>
+        <item name="widgetPickerSecondarySurfaceColor">
+            @color/widget_picker_secondary_surface_color_dark</item>
+        <item name="widgetPickerTitleColor">
+            @color/widget_picker_title_color_dark</item>
+        <item name="widgetPickerHeaderAppTitleColor">
+            @color/widget_picker_header_app_title_color_dark</item>
+        <item name="widgetPickerHeaderAppSubtitleColor">
+            @color/widget_picker_header_app_subtitle_color_dark</item>
+        <item name="widgetPickerHeaderBackgroundColor">
+            @color/widget_picker_header_background_color_dark</item>
+        <item name="widgetPickerSuggestionsIconBackgroundColor">
+            @color/widget_picker_suggestions_icon_background_color_dark</item>
+        <item name="widgetPickerSuggestionsIconColor">
+            @color/widget_picker_suggestions_icon_color_dark</item>
+        <item name="widgetPickerSearchTextColor">@color/widget_picker_search_text_color_dark</item>
+        <item name="widgetPickerTabBackgroundSelected">
+            @color/widget_picker_tab_background_selected_dark</item>
+        <item name="widgetPickerTabBackgroundUnselected">
+            @color/widget_picker_tab_background_unselected_dark</item>
+        <item name="widgetPickerSelectedTabTextColor">
+            @color/widget_picker_selected_tab_text_color_dark</item>
+        <item name="widgetPickerUnselectedTabTextColor">
+            @color/widget_picker_unselected_tab_text_color_dark</item>
+        <item name="widgetPickerCollapseHandleColor">
+            @color/widget_picker_collapse_handle_color_dark</item>
+    </style>
+    <declare-styleable name="AllAppsSpec">
+        <attr name="dimensionType"/>
+        <attr name="maxAvailableSize"/>
+    </declare-styleable>
+    <declare-styleable name="AllAppsStyle">
+        <attr format="dimension" name="horizontalPadding"/>
+    </declare-styleable>
+    <declare-styleable name="ArrowTipView">
+        <attr format="color" name="arrowTipBackground"/>
+        <attr format="color" name="arrowTipTextColor"/>
+    </declare-styleable>
+    <declare-styleable name="BubbleTextView">
+        <attr format="boolean" name="layoutHorizontal"/>
+        <attr format="dimension" name="iconSizeOverride"/>
+        <attr format="integer" name="iconDisplay">
+            <enum name="workspace" value="0"/>
+            <enum name="all_apps" value="1"/>
+            <enum name="folder" value="2"/>
+            <enum name="widget_section" value="3"/>
+            <enum name="shortcut_popup" value="4"/>
+            <enum name="taskbar" value="5"/>
+            <enum name="search_result_tall" value="6"/>
+            <enum name="search_result_small" value="7"/>
+            <enum name="prediction_row" value="8"/>
+            <enum name="search_result_app_row" value="9"/>
+        </attr>
+        <attr format="boolean" name="centerVertically"/>
+    </declare-styleable>
+    <declare-styleable name="CellLayout">
+        <attr format="integer" name="containerType">
+            <enum name="workspace" value="0"/>
+            <enum name="hotseat" value="1"/>
+            <enum name="folder" value="2"/>
+        </attr>
+    </declare-styleable>
+    <declare-styleable name="CellSpec">
+        <attr name="dimensionType"/>
+        <attr name="maxAvailableSize"/>
+    </declare-styleable>
+    <declare-styleable name="CellStyle">
+        <attr format="dimension" name="iconDrawablePadding"/>
+    </declare-styleable>
+    <declare-styleable name="DevicePadding">
+        <attr format="dimension" name="maxEmptySpace"/>
+    </declare-styleable>
+    <declare-styleable name="DevicePaddingFormula">
+        <attr format="float|dimension" name="a"/>
+        <attr format="float|dimension" name="b"/>
+        <attr format="float|dimension" name="c"/>
+    </declare-styleable>
+    <declare-styleable name="Extra">
+        <attr format="string" name="key"/>
+        <attr format="string" name="value"/>
+    </declare-styleable>
+    <declare-styleable name="Favorite">
+        <attr format="string" name="className"/>
+        <attr format="string" name="packageName"/>
+        <attr format="string" name="container"/>
+        <attr format="string" name="screen"/>
+        <attr format="string" name="x"/>
+        <attr format="string" name="y"/>
+        <attr format="string" name="spanX"/>
+        <attr format="string" name="spanY"/>
+        <attr format="reference" name="icon"/>
+        <attr format="string" name="title"/>
+        <attr format="string" name="uri"/>
+    </declare-styleable>
+    <declare-styleable name="FolderIconPreview">
+        <attr name="folderPreviewColor"/>
+        <attr name="folderIconBorderColor"/>
+    </declare-styleable>
+    <declare-styleable name="FolderSpec">
+        <attr name="dimensionType"/>
+        <attr name="maxAvailableSize"/>
+    </declare-styleable>
+    <declare-styleable name="FolderStyle">
+        
+        <attr format="dimension" name="folderCellHeight"/>
+        
+        <attr format="dimension" name="folderCellWidth"/>
+        
+        <attr format="dimension" name="folderBorderSpace"/>
+        
+        <attr format="dimension" name="folderFooterHeight"/>
+        
+        <attr format="dimension" name="folderTopPadding"/>
+    </declare-styleable>
+    <declare-styleable name="GridDisplayOption">
+        <attr format="string" name="name"/>
+
+        <attr format="integer" name="numRows"/>
+        <attr format="integer" name="numColumns"/>
+        
+        <attr format="integer" name="numSearchContainerColumns"/>
+
+        
+        <attr format="reference" name="cellStyle"/>
+
+        
+        <attr format="integer" name="numFolderRows"/>
+        
+        <attr format="integer" name="numFolderRowsLandscape"/>
+        
+        <attr format="integer" name="numFolderRowsTwoPanelLandscape"/>
+        
+        <attr format="integer" name="numFolderRowsTwoPanelPortrait"/>
+        <attr format="integer" name="numFolderColumns"/>
+        
+        <attr format="integer" name="numFolderColumnsLandscape"/>
+        
+        <attr format="integer" name="numFolderColumnsTwoPanelLandscape"/>
+        
+        <attr format="integer" name="numFolderColumnsTwoPanelPortrait"/>
+        
+        <attr format="reference" name="folderStyle"/>
+
+        
+        <attr format="reference" name="allAppsStyle"/>
+
+        
+        <attr format="integer" name="numAllAppsColumns"/>
+        
+        <attr format="integer" name="numExtendedAllAppsColumns"/>
+
+        
+        <attr format="integer" name="numAllAppsRowsForCellHeightCalculation"/>
+
+        
+        <attr format="integer" name="numHotseatIcons"/>
+        
+        <attr format="integer" name="numExtendedHotseatIcons"/>
+
+        
+        
+        <attr format="integer" name="hotseatColumnSpan"/>
+        
+        <attr format="integer" name="hotseatColumnSpanLandscape"/>
+        
+        <attr format="integer" name="hotseatColumnSpanTwoPanelLandscape"/>
+        
+        <attr format="integer" name="hotseatColumnSpanTwoPanelPortrait"/>
+
+        
+        <attr format="reference" name="inlineNavButtonsEndSpacing"/>
+
+        <attr format="string" name="dbFile"/>
+        <attr format="reference" name="defaultLayoutId"/>
+        <attr format="reference" name="demoModeLayoutId"/>
+        <attr format="boolean" name="isScalable"/>
+        <attr format="reference" name="devicePaddingId"/>
+
+        
+        <attr format="reference" name="workspaceSpecsId"/>
+        
+        <attr format="reference" name="workspaceSpecsTwoPanelId"/>
+        
+        <attr format="reference" name="allAppsSpecsId"/>
+        
+        <attr format="reference" name="allAppsSpecsTwoPanelId"/>
+        
+        <attr format="reference" name="folderSpecsId"/>
+        
+        <attr format="reference" name="folderSpecsTwoPanelId"/>
+        
+        <attr format="reference" name="hotseatSpecsId"/>
+        
+        <attr format="reference" name="hotseatSpecsTwoPanelId"/>
+        
+        <attr format="reference" name="workspaceCellSpecsId"/>
+        
+        <attr format="reference" name="workspaceCellSpecsTwoPanelId"/>
+        
+        <attr format="reference" name="allAppsCellSpecsId"/>
+        
+        <attr format="reference" name="allAppsCellSpecsTwoPanelId"/>
+
+        
+        <attr format="integer" name="deviceCategory">
+            <!-- Enable on phone only -->
+            <flag name="phone" value="1"/>
+            <!-- Enable on tablets only -->
+            <flag name="tablet" value="2"/>
+            <!-- Enable on multi display devices only -->
+            <flag name="multi_display" value="4"/>
+        </attr>
+
+        
+        <attr format="integer" name="inlineQsb">
+            <!-- Enable on landscape only -->
+            <flag name="portrait" value="1"/>
+            <!-- Enable on portrait only -->
+            <flag name="landscape" value="2"/>
+            <!-- Enable on two panel portrait only -->
+            <flag name="twoPanelPortrait" value="4"/>
+            <!-- Enable on two panel landscape only -->
+            <flag name="twoPanelLandscape" value="8"/>
+        </attr>
+
+    </declare-styleable>
+    <declare-styleable name="HotseatSpec">
+        <attr name="dimensionType"/>
+        <attr name="maxAvailableSize"/>
+    </declare-styleable>
+    <declare-styleable name="Include">
+        <attr format="reference" name="workspace"/>
+        <attr format="reference" name="folderItems"/>
+    </declare-styleable>
+    <declare-styleable name="InsettableFrameLayout_Layout">
+        <attr format="boolean" name="layout_ignoreInsets"/>
+    </declare-styleable>
+    <declare-styleable name="LoggablePref">
+        <attr name="android:key"/>
+        <attr name="android:defaultValue"/>
+        
+        <attr format="integer" name="logIdOn"/>
+        <attr format="integer" name="logIdOff"/>
+    </declare-styleable>
+    <declare-styleable name="PagedView">
+        
+        <attr format="reference" name="pageIndicator"/>
+    </declare-styleable>
+    <declare-styleable name="PersonalWorkSlidingTabStrip">
+        <attr format="boolean" name="alignOnIcon"/>
+    </declare-styleable>
+    <declare-styleable name="PreviewFragment">
+        <attr name="android:name"/>
+        <attr name="android:id"/>
+    </declare-styleable>
+    <declare-styleable name="ProfileDisplayOption">
+        <attr name="name"/>
+        <attr format="float" name="minWidthDps"/>
+        <attr format="float" name="minHeightDps"/>
+
+        
+        <attr format="float" name="minCellHeight"/>
+        <attr format="float" name="minCellWidth"/>
+        
+        <attr format="float" name="minCellHeightLandscape"/>
+        
+        <attr format="float" name="minCellWidthLandscape"/>
+        
+        <attr format="float" name="minCellHeightTwoPanelPortrait"/>
+        
+        <attr format="float" name="minCellWidthTwoPanelPortrait"/>
+        
+        <attr format="float" name="minCellHeightTwoPanelLandscape"/>
+        
+        <attr format="float" name="minCellWidthTwoPanelLandscape"/>
+
+        
+        
+        <attr format="float" name="borderSpace"/>
+        
+        <attr format="float" name="borderSpaceHorizontal"/>
+        
+        <attr format="float" name="borderSpaceVertical"/>
+        
+        <attr format="float" name="borderSpaceLandscape"/>
+        
+        <attr format="float" name="borderSpaceLandscapeHorizontal"/>
+        
+        <attr format="float" name="borderSpaceLandscapeVertical"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelPortrait"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelPortraitHorizontal"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelPortraitVertical"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelLandscape"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelLandscapeHorizontal"/>
+        
+        <attr format="float" name="borderSpaceTwoPanelLandscapeVertical"/>
+
+        
+        <attr format="float" name="allAppsCellHeight"/>
+        
+        
+        <attr format="float" name="allAppsCellWidth"/>
+        
+        <attr format="float" name="allAppsCellHeightLandscape"/>
+        
+        <attr format="float" name="allAppsCellWidthLandscape"/>
+        
+        <attr format="float" name="allAppsCellHeightTwoPanelPortrait"/>
+        
+        <attr format="float" name="allAppsCellWidthTwoPanelPortrait"/>
+        
+        <attr format="float" name="allAppsCellHeightTwoPanelLandscape"/>
+        
+        <attr format="float" name="allAppsCellWidthTwoPanelLandscape"/>
+        
+        
+        <attr format="float" name="allAppsIconSize"/>
+        
+        <attr format="float" name="allAppsIconSizeLandscape"/>
+        
+        <attr format="float" name="allAppsIconSizeTwoPanelPortrait"/>
+        
+        <attr format="float" name="allAppsIconSizeTwoPanelLandscape"/>
+        
+        <attr format="float" name="allAppsIconTextSize"/>
+        
+        <attr format="float" name="allAppsIconTextSizeTwoPanelPortrait"/>
+        
+        <attr format="float" name="allAppsIconTextSizeTwoPanelLandscape"/>
+
+        
+        
+        <attr format="float" name="allAppsBorderSpace"/>
+        
+        <attr format="float" name="allAppsBorderSpaceHorizontal"/>
+        
+        <attr format="float" name="allAppsBorderSpaceVertical"/>
+        
+        <attr format="float" name="allAppsBorderSpaceLandscape"/>
+        
+        <attr format="float" name="allAppsBorderSpaceLandscapeHorizontal"/>
+        
+        <attr format="float" name="allAppsBorderSpaceLandscapeVertical"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelPortrait"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelPortraitHorizontal"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelPortraitVertical"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelLandscape"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelLandscapeHorizontal"/>
+        
+        <attr format="float" name="allAppsBorderSpaceTwoPanelLandscapeVertical"/>
+
+        
+        <attr format="float" name="hotseatBarBottomSpace"/>
+        
+        <attr format="float" name="hotseatBarBottomSpaceLandscape"/>
+        
+        <attr format="float" name="hotseatBarBottomSpaceTwoPanelLandscape"/>
+        
+        <attr format="float" name="hotseatBarBottomSpaceTwoPanelPortrait"/>
+
+        
+        <attr format="float" name="hotseatQsbSpace"/>
+        
+        <attr format="float" name="hotseatQsbSpaceLandscape"/>
+        
+        <attr format="float" name="hotseatQsbSpaceTwoPanelLandscape"/>
+        
+        <attr format="float" name="hotseatQsbSpaceTwoPanelPortrait"/>
+
+        
+        <attr format="float" name="transientTaskbarIconSize"/>
+        
+        <attr format="float" name="transientTaskbarIconSizeLandscape"/>
+        
+        <attr format="float" name="transientTaskbarIconSizeTwoPanelLandscape"/>
+        
+        <attr format="float" name="transientTaskbarIconSizeTwoPanelPortrait"/>
+
+        <attr format="float" name="iconImageSize"/>
+        
+        <attr format="float" name="iconSizeLandscape"/>
+        
+        <attr format="float" name="iconSizeTwoPanelPortrait"/>
+        
+        <attr format="float" name="iconSizeTwoPanelLandscape"/>
+
+        <attr format="float" name="iconTextSize"/>
+        
+        <attr format="float" name="iconTextSizeLandscape"/>
+        
+        <attr format="float" name="iconTextSizeTwoPanelPortrait"/>
+        
+        <attr format="float" name="iconTextSizeTwoPanelLandscape"/>
+
+        
+        
+        <attr format="boolean" name="startAlignTaskbar"/>
+        
+        <attr format="boolean" name="startAlignTaskbarLandscape"/>
+        
+        <attr format="boolean" name="startAlignTaskbarTwoPanelLandscape"/>
+        
+        <attr format="boolean" name="startAlignTaskbarTwoPanelPortrait"/>
+
+        
+        <attr format="boolean" name="canBeDefault"/>
+
+        
+        <attr format="float" name="horizontalMargin"/>
+        
+        <attr format="float" name="horizontalMarginLandscape"/>
+        
+        <attr format="float" name="horizontalMarginTwoPanelLandscape"/>
+        
+        <attr format="float" name="horizontalMarginTwoPanelPortrait"/>
+
+    </declare-styleable>
+    <declare-styleable name="RecyclerViewFastScroller">
+        <attr format="boolean" name="canThumbDetach"/>
+    </declare-styleable>
+    <declare-styleable name="ResponsiveSpec">
+        <attr format="integer" name="dimensionType">
+            <enum name="height" value="0"/>
+            <enum name="width" value="1"/>
+        </attr>
+        <attr format="dimension" name="maxAvailableSize"/>
+    </declare-styleable>
+    <declare-styleable name="ResponsiveSpecGroup">
+        <attr format="float" name="maxAspectRatio"/>
+    </declare-styleable>
+    <declare-styleable name="SearchResultSuggestion">
+        <attr format="reference" name="customIcon"/>
+        <attr format="boolean" name="matchTextInsetWithQuery"/>
+    </declare-styleable>
+    <declare-styleable name="ShadowDrawable">
+        <attr name="android:src"/>
+        <attr name="android:shadowColor"/>
+        <attr name="android:elevation"/>
+        <attr format="color" name="darkTintColor"/>
+    </declare-styleable>
+    <declare-styleable name="ShadowInfo">
+        <attr format="color" name="ambientShadowColor"/>
+        <attr format="dimension" name="ambientShadowBlur"/>
+        <attr format="color" name="keyShadowColor"/>
+        <attr format="dimension" name="keyShadowBlur"/>
+        <attr format="dimension" name="keyShadowOffsetX"/>
+        <attr format="dimension" name="keyShadowOffsetY"/>
+    </declare-styleable>
+    <declare-styleable name="SizeSpec">
+        <attr format="dimension" name="fixedSize"/>
+        <attr format="float" name="ofAvailableSpace"/>
+        <attr format="float" name="ofRemainderSpace"/>
+        <attr format="boolean" name="matchWorkspace"/>
+        <attr format="dimension" name="maxSize"/>
+    </declare-styleable>
+    <declare-styleable name="StickyScroller_Layout">
+        <attr format="boolean" name="layout_sticky"/>
+    </declare-styleable>
+    <declare-styleable name="WidgetSections">
+        
+        <attr format="string" name="provider"/>
+        
+        <attr format="boolean" name="alsoKeepInApp"/>
+        
+        <attr format="integer" name="category"/>
+        
+        <attr format="reference" name="sectionTitle"/>
+        
+        <attr format="reference" name="sectionDrawable"/>
+    </declare-styleable>
+    <declare-styleable name="WidgetsListRowHeader">
+        <attr format="dimension" name="appIconSize"/>
+        <attr format="boolean" name="collapsable"/>
+    </declare-styleable>
+    <declare-styleable name="WorkspaceSpec">
+        <attr name="dimensionType"/>
+        <attr name="maxAvailableSize"/>
+    </declare-styleable>
+</resources>

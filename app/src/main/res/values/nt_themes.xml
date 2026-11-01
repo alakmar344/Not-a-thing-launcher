@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Launcher3 picks one of the AppTheme* styles (light/dark, wallpaper contrast); AOSP keeps them
+    empty for derivative launchers to extend. Colours come from the generated Nothing palette in
+    res-launcher3-theme.
+-->
+<resources>
+    <style name="AppTheme" parent="@style/LauncherTheme">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <style name="AppTheme.DarkMainColor" parent="@style/LauncherTheme.DarkMainColor">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <style name="AppTheme.DarkText" parent="@style/LauncherTheme.DarkText">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <style name="AppTheme.Dark" parent="@style/LauncherTheme.Dark">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <style name="AppTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark.DarkMainColor">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText">
+        <!-- Not a Thing design layer on top of the stock theme. -->
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="notificationDotColor">@color/nothing_red</item>
+        <item name="popupNotificationDotColor">@color/nothing_red</item>
+    </style>
+
+    <!-- Stock Launcher3 settings theme (same items as AOSP) with the Not a Thing font. -->
+    <style name="HomeSettings.Theme" parent="@android:style/Theme.DeviceDefault.Settings">
+        <item name="android:navigationBarColor">?android:colorPrimaryDark</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="preferenceTheme">@style/HomeSettings.PreferenceTheme</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+    </style>
+</resources>

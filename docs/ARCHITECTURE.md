@@ -1,4 +1,4 @@
-# Not-a-Thing Launcher Architecture & Internals (Version 10.0 GA)
+# Not-a-Thing Launcher Architecture & Internals (Version 10.1)
 
 Comprehensive technical documentation of the **Not-a-Thing Launcher** (v10.0 General Availability) architecture, zero-idle battery subsystem, in-memory icon caching engine, unified 2D grid workspace, and bespoke dot-matrix procedural graphics pipeline.
 
@@ -159,7 +159,7 @@ sequenceDiagram
     participant Gradle as ./gradlew
     participant Tests as Robolectric & Unit Tests
     participant R8 as R8 Optimizer / ProGuard
-    participant APK as dist/Not-a-Thing-Launcher-10.0-release.apk
+    participant APK as dist/Not-a-Thing-Launcher-10.1-release.apk
 
     Dev->>Gradle: ./gradlew compileDebugKotlin
     Gradle-->>Dev: Bytecode compiled cleanly

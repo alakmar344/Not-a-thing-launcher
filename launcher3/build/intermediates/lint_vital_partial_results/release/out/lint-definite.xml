@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.2.2" type="incidents">
+
+    <incident
+        id="ResAuto"
+        severity="fatal"
+        message="Suspicious namespace: Did you mean `http://schemas.android.com/apk/res-auto`?">
+        <location
+            file="${:launcher3*release*MAIN*sourceProvider*0*resDir*0}/xml/default_workspace_3x3.xml"
+            line="17"
+            column="28"
+            startOffset="698"
+            endLine="17"
+            endColumn="89"
+            endOffset="759"/>
+    </incident>
+
+    <incident
+        id="ResAuto"
+        severity="fatal"
+        message="Suspicious namespace: Did you mean `http://schemas.android.com/apk/res-auto`?">
+        <location
+            file="${:launcher3*release*MAIN*sourceProvider*0*resDir*0}/xml/default_workspace_4x4.xml"
+            line="17"
+            column="28"
+            startOffset="698"
+            endLine="17"
+            endColumn="89"
+            endOffset="759"/>
+    </incident>
+
+    <incident
+        id="ResAuto"
+        severity="fatal"
+        message="Suspicious namespace: Did you mean `http://schemas.android.com/apk/res-auto`?">
+        <location
+            file="${:launcher3*release*MAIN*sourceProvider*0*resDir*0}/xml/default_workspace_5x5.xml"
+            line="17"
+            column="28"
+            startOffset="698"
+            endLine="17"
+            endColumn="89"
+            endOffset="759"/>
+    </incident>
+
+    <incident
+        id="ResAuto"
+        severity="fatal"
+        message="Suspicious namespace: Did you mean `http://schemas.android.com/apk/res-auto`?">
+        <location
+            file="${:launcher3*release*MAIN*sourceProvider*0*resDir*0}/xml/default_workspace_6x5.xml"
+            line="17"
+            column="28"
+            startOffset="698"
+            endLine="17"
+            endColumn="89"
+            endOffset="759"/>
+    </incident>
+
+</incidents>

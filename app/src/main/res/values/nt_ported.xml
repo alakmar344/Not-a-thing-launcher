@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources of the Not a Thing elements (ported from the v10 launcher). -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="dot_off">#D8D8D2</color>
+    <color name="dot_on">#0C0C0E</color>
+    <color name="hairline">#DCDCD8</color>
+    <color name="hairline_strong">#BEBEB8</color>
+    <color name="ink">#0B0B0C</color>
+    <color name="ink_secondary">#6E6E72</color>
+    <color name="nothing_red">#D71921</color>
+    <color name="paper">#FFFFFF</color>
+    <color name="paper_dot_off">#D5D5D1</color>
+    <color name="pill_active_bg">#0C0C0E</color>
+    <color name="ripple_dark">#14000000</color>
+    <color name="ripple_light">#18000000</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="surface_dark">#0C0C0E</color>
+    <color name="text_primary">#0C0C0E</color>
+    <color name="text_secondary">#68686C</color>
+    <dimen name="clock_matrix_height">96dp</dimen>
+    <dimen name="text_label">11sp</dimen>
+    <dimen name="tile_padding">18dp</dimen>
+    <dimen name="tile_radius">28dp</dimen>
+    <string name="battery">Battery</string>
+    <string name="battery_low">Low</string>
+    <string name="battery_widget">Battery level</string>
+    <string name="calendar_widget">Calendar. Opens your calendar.</string>
+    <string name="charging">Charging</string>
+    <string name="clock_widget">Clock. Opens alarms.</string>
+    <string name="element_media">Media Controller</string>
+    <string name="element_weather">Weather</string>
+    <string name="format_24h" translatable="false">24H</string>
+    <string name="local_time">Local time</string>
+    <string name="media_artist_default">GLYPH AUDIO SYSTEM</string>
+    <string name="media_label">NOW PLAYING</string>
+    <string name="media_title_default">NOTHING SOUNDS</string>
+    <string name="weather_loading">LOADING</string>
+    <string name="weather_local">LOCAL</string>
+    <string name="weather_tap_refresh">TAP TO REFRESH</string>
+    <string name="weather_unavailable">OFFLINE</string>
+    <style name="Text.Body" parent="">
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="Text.Body.Secondary">
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">@color/text_secondary</item>
+    </style>
+    <style name="Text.Label" parent="">
+        <item name="android:fontFamily">@font/space_mono</item>
+        <item name="android:textSize">@dimen/text_label</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+</resources>

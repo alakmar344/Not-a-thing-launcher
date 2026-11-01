@@ -1,4 +1,4 @@
-# Not-a-Thing Launcher: Complete Feature Catalog (Version 10.0 GA)
+# Not-a-Thing Launcher: Complete Feature Catalog (Version 10.1)
 
 A comprehensive breakdown of all capabilities, widgets, gesture systems, customisation tools, and visual components in **Not-a-Thing Launcher** (Version 10.0 General Availability).
 

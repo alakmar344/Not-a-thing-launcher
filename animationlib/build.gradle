@@ -1,0 +1,35 @@
+// AOSP frameworks/libs/systemui/animationlib (Interpolators, spring animations).
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def src = rootProject.file('third_party/aosp/systemui/animationlib')
+
+android {
+    namespace 'com.android.app.animation'
+    compileSdk 35
+    defaultConfig { minSdk 26 }
+    sourceSets {
+        main {
+            java.srcDirs = ["$src/src"]
+            res.srcDirs = ["$src/res"]
+            manifest.srcFile 'AndroidManifest.xml'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+        freeCompilerArgs += ["-Xjvm-default=all"]
+    }
+    lint { abortOnError false }
+}
+
+dependencies {
+    implementation 'androidx.core:core-animation:1.0.0'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.annotation:annotation:1.7.1'
+}

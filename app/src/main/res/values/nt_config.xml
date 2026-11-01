@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Not a Thing elements, offered in the stock widget picker. Launcher3 derives each custom
+        widget's id from its POSITION in this list and stores it in the home screen database:
+        only ever append new entries, never reorder or remove existing ones.
+    -->
+    <string-array name="custom_widget_providers" translatable="false">
+        <item>com.nothinglauncher.widgets.ClockWidget</item>
+        <item>com.nothinglauncher.widgets.BatteryCalendarWidget</item>
+        <item>com.nothinglauncher.widgets.WeatherWidget</item>
+        <item>com.nothinglauncher.widgets.MediaWidget</item>
+    </string-array>
+
+    <dimen name="nt_tile_gap">12dp</dimen>
+</resources>

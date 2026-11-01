@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Resources of the Not a Thing elements (ported from the v10 launcher). -->
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <color name="dot_off">#1D1D21</color>
+    <color name="dot_on">#F4F4F2</color>
+    <color name="hairline">#232327</color>
+    <color name="hairline_strong">#34343A</color>
+    <color name="ink">#0B0B0C</color>
+    <color name="ink_secondary">#6E6E72</color>
+    <color name="nothing_red">#D71921</color>
+    <color name="paper">#EFEFEC</color>
+    <color name="paper_dot_off">#D5D5D1</color>
+    <color name="pill_active_bg">#FFFFFF</color>
+    <color name="ripple_dark">#14000000</color>
+    <color name="ripple_light">#1FFFFFFF</color>
+    <color name="surface">#0E0E10</color>
+    <color name="surface_dark">#0C0C0E</color>
+    <color name="text_primary">#F4F4F2</color>
+    <color name="text_secondary">#9C9CA1</color>
+</resources>

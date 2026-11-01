@@ -1,0 +1,2 @@
+D com/android/launcher3/icons/BaseIconFactory$BitmapGenerationMode
+D com/android/launcher3/icons/BitmapInfo$BitmapInfoFlags

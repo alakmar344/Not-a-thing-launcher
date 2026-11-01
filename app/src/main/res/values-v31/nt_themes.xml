@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Stock Launcher3 settings theme (same items as AOSP) with the Not a Thing font. -->
+    <style name="HomeSettings.Theme" parent="@android:style/Theme.DeviceDefault.Settings">
+        <item name="android:listPreferredItemPaddingEnd">16dp</item>
+        <item name="android:listPreferredItemPaddingStart">24dp</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:switchStyle">@style/SwitchStyle</item>
+        <item name="android:textAppearanceListItem">@style/HomeSettings.PreferenceTitle</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="preferenceTheme">@style/HomeSettings.PreferenceTheme</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+    </style>
+</resources>

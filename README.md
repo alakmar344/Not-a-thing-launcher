@@ -5,51 +5,34 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
-**Version 10.0** is the official General Availability (GA) public release — transitioning from beta to a fully optimized, daily-driver-ready launcher. The mandate for v10.0: *we are not adding, we are making it better*. It brings zero-idle battery consumption via lifecycle-gated hardware sensors and view tickers, instantaneous cold-start via in-memory icon bitmap caching, true OLED dark mode and bone-white contrast consistency, and non-destructive schema migrations (`SCHEMA_VERSION = 3`).
+**Version 11.0** is built on **stock Android**: the home screen is AOSP **Launcher3** (the open-source launcher behind Pixel's), and Not a Thing is a design layer on top of it. Home screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly like stock Android.
 
-![Home, drawer, long-press menu and customize sheet](docs/showcase_1.png)
+What the design layer adds:
 
-![Settings, search, colour icons and the empty / low-battery state](docs/showcase_2.png)
+- **Not a Thing palette** – Launcher3's wallpaper-derived Material You colours are replaced by a fixed monochrome palette with Nothing red (all apps, folders, popups, widget picker, settings).
+- **Space Grotesk** typography and red notification dots.
+- **Glance** – dot-matrix clock, date and battery at the top of the first home screen (where stock shows the search bar; search stays at the top of All apps).
+- **Dot-matrix elements** in the stock widget picker (long-press home → Widgets → *Not a Thing*): LED clock, battery & date, weather, media player.
+- **Monochrome icons** on by default (Home settings → *Monochrome icons*).
 
-> All images above are real renders of the app's layouts and views, produced by the screenshot test suite in `app/src/test` (Cash App Paparazzi / Android Layoutlib) — not mock-ups.
+![Elements, light and dark](app/src/test/snapshots/images/com.nothinglauncher_ElementsDarkTest_elements.png)
 
----
+> Screenshot rendered by the Paparazzi tests in `app/src/test` (CI publishes fresh ones with every release).
 
-## 📚 Documentation Index
+### Project layout
 
-Comprehensive documentation has been prepared across dedicated architecture, feature, and visual guides:
+| Path | What it is |
+|---|---|
+| `third_party/aosp/` | Unmodified AOSP Launcher3 + SystemUI libraries (`android-14.0.0_r75`), see its README |
+| `launcher3/`, `iconloader/`, `animationlib/` | Gradle modules that build the AOSP sources; `launcher3/src` holds the platform stand-ins and the override layer |
+| `app/` | The Not a Thing app (`com.nothinglauncher`): theme, glance, elements |
+| `tools/` | Generators for Launcher3's flags and the Not a Thing palette |
 
-- **[Release v10.1 Notes](docs/RELEASE_V10_1.md)** — App icon in your app list, one-tap "set as home", in-place updates.
-- **[Release v10.0 Notes](docs/RELEASE_V10.md)** — General Availability changelog, zero battery architecture, icon caching, and surface polish.
-- **[Release v9.0 Notes](docs/RELEASE_V9.md)** — Native rebuild changelog, permissions, upgrade and signing details.
-- **[Release v8.0 Notes](docs/RELEASE_V8.md)** — Detailed overview of Release v8, bug fixes, changelog, and APK binaries.
-- **[Feature Catalog](docs/FEATURES.md)** — Deep-dive into multi-page workspaces, bespoke Nothing elements, Max Icons (2×2), dynamic folders, gesture navigation, and theming.
-- **[System Architecture](docs/ARCHITECTURE.md)** — Core components (`MainActivity`, `WorkspacePageAdapter`, `AppDrawerFragment`), data model, DotFont rendering engine, and state management.
-- **[Visual Showcase & Screenshots](docs/SCREENSHOTS.md)** — High-resolution Paparazzi screenshot renders for every launcher screen, element, and dialog.
+### Building
 
----
+GitHub Actions builds the debug and release APKs on every push (`.github/workflows/build.yml`) and attaches them to the release. Locally: `./gradlew assembleDebug` (JDK 17, Android SDK 35).
 
-## ⬇️ Download Latest APK (v10.1)
-
-- **[Download Latest APK (v10.1)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)**
-
-Each release contains:
-- `NothingLauncher-release.apk` (ProGuard-optimized production build)
-- `NothingLauncher-debug.apk` (Debug build with verbose instrumentation)
-- `app-release.aab` (Android App Bundle for Google Play / bundletool; not directly installable)
-- `NothingLauncher-screenshots.zip` (Automated Paparazzi layoutlib test captures)
-
-Install it like any APK, then tap **Open** (or the new **Not a Thing Launcher** icon in your app list). It walks you through making it your home app, with no trip to Settings needed. **To update, just install the new APK over the old one — no uninstall needed.** Every build is signed with the same key and gets a higher `versionCode`. On first launch the **onboarding tour** explains the core gestures, offers a theme choice, and triggers the native *set as default launcher* (HOME role) prompt. Upgrading an existing install keeps everything: pages, folders, widgets, dock, recents, and every setting (`LauncherPrefs` uses versioned schema migrations and never wipes data on compile-time upgrades).
-
-### Local signed artifact
-
-The repository build produces a production-signed APK at:
-
-```text
-dist/Not-a-Thing-Launcher-10.1-release.apk
-```
-
-`dist/` is the canonical hand-off location. The release APK is signed with the project key, not the Android debug key, so it can be installed over earlier 9.x builds made from this workspace.
+> **Upgrading from 10.x:** the APK installs over the old version (same package and signing key), but the home screen layout starts fresh, because stock Launcher3 keeps its own layout database. Older docs in `docs/` describe the 10.x launcher.
 
 ---
 
@@ -138,7 +121,7 @@ The release build enables R8 shrinking. Verify the signer before distributing:
 - **Heading Compass** — Procedural dot-matrix compass rose with accent North indicator and degrees heading.
 - **Screen Time & Wellbeing** — Daily active time in dot-matrix typography with a 7-segment dot usage bar.
 - **Storage & RAM Meter** — Device capacity meter with DotFont free GB readout and circular dot fullness ring.
-- **World Clock Tile** — Dual time-zone dot clock showing local and UTC/London times.
+- **World Clock Tile** — Dual time-zone dot clock showing local and UTC times.
 - **Third-Party AppWidgets** — Host any standard Android widget on any workspace page.
 
 ### Theming, Icons & Gestures

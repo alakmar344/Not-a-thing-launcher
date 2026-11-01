@@ -36,10 +36,15 @@ class SecondsTickerView @JvmOverloads constructor(
         set(value) { nowPaint.color = value; invalidate() }
 
     var previewSecond: Int? = null
-        set(value) { field = value; invalidate() }
+        set(value) { field = value; updateRunning(); invalidate() }
 
     private var second = Calendar.getInstance().get(Calendar.SECOND)
     private var running = false
+
+    init {
+        // Purely decorative: the clock tile next to it already announces the time.
+        importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -60,6 +65,7 @@ class SecondsTickerView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val count = 60
+        if (width <= 0 || height <= 0) return
         val pitch = width / count.toFloat()
         val r = min(pitch * 0.3f, height / 2f)
         val cy = height / 2f
