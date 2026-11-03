@@ -27,7 +27,15 @@ class HotseatSearchPill @JvmOverloads constructor(
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val dp = Launcher.getLauncher(context).deviceProfile
+        val dp = try {
+            Launcher.getLauncher(context).deviceProfile
+        } catch (_: RuntimeException) {
+            null // not hosted by the launcher (preview): use the offered size
+        }
+        if (dp == null) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            return
+        }
         val inset = dp.workspacePadding.left + dp.cellLayoutPaddingPx.left
         val width = (dp.widthPx - 2 * inset).coerceAtLeast(0)
         super.onMeasure(

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v10 drawer header (included into Launcher3's all_apps_content.xml). -->
+<com.nothinglauncher.drawer.DrawerHeader xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="24dp"
+    android:paddingEnd="20dp">
+
+    <com.nothinglauncher.DotMatrixView
+        android:layout_width="wrap_content"
+        android:layout_height="22dp"
+        app:dmDotColor="@color/dot_on"
+        app:dmDotScale="0.42"
+        app:dmText="APPS" />
+
+    <TextView
+        android:id="@+id/drawerCount"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:layout_weight="1"
+        android:fontFamily="@font/space_mono_regular"
+        android:letterSpacing="0.1"
+        android:textColor="@color/text_tertiary"
+        android:textSize="11sp" />
+
+    <ImageView
+        android:id="@+id/drawerSettings"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:background="@drawable/bg_icon_button"
+        android:contentDescription="@string/nt_tile_settings"
+        android:padding="12dp"
+        android:src="@drawable/ic_tune"
+        android:tint="@color/text_primary" />
+</com.nothinglauncher.drawer.DrawerHeader>

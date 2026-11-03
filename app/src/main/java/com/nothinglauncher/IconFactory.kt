@@ -157,7 +157,12 @@ object IconFactory {
                 drawLayer(canvas, monochrome, size, tint)
             }
             foreground != null && isSparse(foreground, size) -> {
-                drawLayer(canvas, foreground, size, monochromeGlyphPaint(isLight))
+                // Sparse foreground = the app's glyph: draw its shape in the glyph colour, exactly
+                // like a real monochrome layer (crisp ink on light discs, bone on dark ones).
+                val tint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
+                    colorFilter = PorterDuffColorFilter(glyphColor, PorterDuff.Mode.SRC_IN)
+                }
+                drawLayer(canvas, foreground, size, tint)
             }
             layers != null -> {
                 val tmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -237,22 +242,6 @@ object IconFactory {
         // Restore bounds for the real render.
         d.setBounds(-size / 4, -size / 4, size + size / 4, size + size / 4)
         return inside > 0 && opaque.toFloat() / inside < 0.55f
-    }
-
-    private fun monochromeGlyphPaint(isLight: Boolean): Paint {
-        val m = ColorMatrix().apply { setSaturation(0f) }
-        val liftVal = if (isLight) -50f else 140f
-        val factor = if (isLight) 0.85f else 0.45f
-        val lift = ColorMatrix(
-            floatArrayOf(
-                factor, 0f, 0f, 0f, liftVal,
-                0f, factor, 0f, 0f, liftVal,
-                0f, 0f, factor, 0f, liftVal,
-                0f, 0f, 0f, 1f, 0f
-            )
-        )
-        m.postConcat(lift)
-        return Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply { colorFilter = ColorMatrixColorFilter(m) }
     }
 
     private fun greyPaint(contrast: Float, lift: Float): Paint {
