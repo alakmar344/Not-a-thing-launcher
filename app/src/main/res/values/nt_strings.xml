@@ -5,18 +5,50 @@
     <string name="nt_cannot_open">Couldn’t open that</string>
     <string name="media_play">Play</string>
     <string name="media_pause">Pause</string>
-    <string name="element_clock">LED Clock</string>
-    <string name="element_clock_sub">Dot-matrix panel with seconds ticker</string>
-    <string name="element_battery_cal">Battery &amp; Date</string>
-    <string name="element_battery_cal_sub">40-dot battery ring &amp; calendar day</string>
-    <string name="element_weather_sub">Dot-matrix temperature &amp; conditions</string>
-    <string name="element_media_sub">Playback controls &amp; live waveform visualizer</string>
-    <string name="media_label_empty">MEDIA</string>
-    <string name="media_permission_needed">NOTIFICATION ACCESS NEEDED</string>
-    <string name="media_no_session">NO ACTIVE PLAYBACK</string>
-    <string name="media_connect_hint">CONNECT A PLAYER</string>
-    <string name="nt_glance_battery">%1$d%%</string>
-    <string name="nt_glance_battery_charging">%1$d%% · CHARGING</string>
     <string name="nt_pref_themed_icons_title">Monochrome icons</string>
     <string name="nt_pref_themed_icons_summary">Show app icons in the Not a Thing monochrome style when the app supports it</string>
+
+    <!-- v10 settings & sheets -->
+    <string name="about_body">Version %1$s · Type set in Space Mono &amp; Space Grotesk (SIL OFL)</string>
+    <string name="bg_black">Black</string>
+    <string name="bg_dots">Dots</string>
+    <string name="bg_wallpaper">Wallpaper</string>
+    <string name="icons_color">Color</string>
+    <string name="icons_mono">Mono</string>
+    <string name="section_home">Home</string>
+    <string name="section_look">Look</string>
+    <string name="section_system">System</string>
+    <string name="setting_about">About</string>
+    <string name="setting_background">Background</string>
+    <string name="setting_background_sub">Dot grid, pure black or your wallpaper</string>
+    <string name="setting_capabilities">Permissions &amp; capabilities</string>
+    <string name="setting_default">Default home app</string>
+    <string name="setting_default_off">Tap to make Not a Thing your home screen</string>
+    <string name="setting_default_on">Not a Thing is your home screen</string>
+    <string name="setting_icons">Icon style</string>
+    <string name="setting_icons_sub">Monochrome uses themed icons when apps provide them</string>
+    <string name="setting_notification_access">Notification access</string>
+    <string name="setting_notification_off">Tap to control media playback</string>
+    <string name="setting_notification_on">Media session controls are connected</string>
+    <string name="setting_seconds">Seconds ticker</string>
+    <string name="setting_seconds_sub">A live row of 60 dots under the clock</string>
+    <string name="setting_weather_auto">Automatic (network location)</string>
+    <string name="setting_weather_city">Weather location</string>
+    <string name="setting_weather_manual">Custom city: %1$s</string>
+    <string name="weather_city_hint">City name (empty for auto)</string>
+    <string name="weather_city_title">WEATHER CITY</string>
+
+    <!-- Not a Thing on Launcher3 -->
+    <string name="nt_all_apps">All apps</string>
+    <string name="nt_search_hint">Search apps &amp; web</string>
+    <string name="nt_choose_wallpaper">Choose wallpaper</string>
+    <string name="nt_tile_wallpaper">Wallpaper</string>
+    <string name="nt_tile_widgets">Widgets</string>
+    <string name="nt_tile_settings">Settings</string>
+    <string name="nt_setting_grid">Grid</string>
+    <string name="nt_setting_grid_sub">Icons per row and column on home</string>
+    <string name="nt_setting_add_new">New apps on home</string>
+    <string name="nt_setting_add_new_sub">Add icons for newly installed apps to home</string>
+    <string name="nt_setting_rotation">Home rotation</string>
+    <string name="nt_setting_rotation_sub">Allow home to rotate with the phone</string>
 </resources>

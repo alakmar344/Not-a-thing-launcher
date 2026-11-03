@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingTop="30dp"
+    android:paddingBottom="12dp">
+
+    <View
+        android:id="@+id/sectionDot"
+        android:layout_width="5dp"
+        android:layout_height="5dp"
+        android:background="@drawable/dot_red" />
+
+    <TextView
+        android:id="@+id/sectionTitle"
+        style="@style/Text.Label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp" />
+</LinearLayout>

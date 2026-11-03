@@ -10,7 +10,6 @@ import android.widget.LinearLayout
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.NightMode
-import com.nothinglauncher.home.GlanceView
 import com.nothinglauncher.widgets.BatteryCalendarWidget
 import com.nothinglauncher.widgets.ClockWidget
 import com.nothinglauncher.widgets.MediaWidget
@@ -20,7 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Renders the Not a Thing layer (first-screen glance + dot-matrix elements) the way Launcher3
+ * Renders the Not a Thing layer (v10 dot-matrix elements) the way Launcher3
  * hosts it. CI publishes these images with every release (./gradlew recordPaparazziDebug).
  */
 abstract class ElementsScreenshotTest(night: Boolean) {
@@ -47,7 +46,6 @@ abstract class ElementsScreenshotTest(night: Boolean) {
             val pad = (16 * density).toInt()
             setPadding(pad, (24 * density).toInt(), pad, pad)
         }
-        column.addView(GlanceView(ctx), LinearLayout.LayoutParams(MATCH, (96 * density).toInt()))
         listOf<NothingWidget>(
             ClockWidget(ctx), BatteryCalendarWidget(ctx), WeatherWidget(ctx), MediaWidget(ctx)
         ).forEach { widget ->

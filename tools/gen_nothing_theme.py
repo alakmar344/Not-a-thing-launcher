@@ -30,8 +30,8 @@ OUT = os.path.join(ROOT, "app/src/main/res-launcher3-theme")
 TONES = [0, 10, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
 
 # Bone-white to black greys (very slightly warm, like Nothing OS) and Nothing red.
-GREY = ["#FFFFFF", "#FBFBF9", "#F4F4F2", "#E8E8E5", "#CDCDCA", "#B1B1AE", "#959593",
-        "#7A7A78", "#5F5F5E", "#474746", "#2E2E2E", "#1A1A1A", "#000000"]
+GREY = ["#FFFFFF", "#F8F8F6", "#F4F4F2", "#ECECE8", "#CDCDCA", "#B1B1AE", "#959593",
+        "#7A7A78", "#5F5F5E", "#3A3A3E", "#1C1C1F", "#111113", "#000000"]
 COOL_GREY = ["#FFFFFF", "#FAFAFA", "#F2F2F3", "#E5E5E7", "#C9C9CC", "#ADADB1", "#929296",
              "#77777B", "#5D5D61", "#454548", "#2D2D30", "#19191B", "#000000"]
 RED = ["#FFFFFF", "#FFFBFA", "#FFEDEC", "#FFDAD7", "#FFB3AE", "#FF8982", "#F2554D",
@@ -45,6 +45,30 @@ PALETTE = {
     "accent3": RED,
     "neutral1": GREY,
     "neutral2": COOL_GREY,
+}
+
+# Launcher3 colours forced to a fixed Not a Thing v10 colour (any form: <color> entry or colour
+# state list file), in every resource qualifier where Launcher3 defines them. Java re-applies
+# some of these at show time (e.g. popup containers), so theme attributes alone are not enough.
+FORCE = {
+    "popup_shade_first": "@color/surface_sheet",
+    "popup_shade_second": "@color/surface_sheet",
+    "popup_shade_third": "@color/surface_sheet",
+    "popup_color_background": "@color/surface_sheet",
+    "notification_dot_color_light": "@color/nothing_red",
+    "notification_dot_color_dark": "@color/nothing_red",
+    "popup_notification_dot_light": "@color/nothing_red",
+    "popup_notification_dot_dark": "@color/nothing_red",
+    "folder_background_light": "@color/surface_sheet",
+    "folder_background_dark": "@color/surface_sheet",
+    "folder_preview_light": "@color/surface_raised",
+    "folder_preview_dark": "@color/surface_raised",
+    "workspace_accent_color_light": "@color/nothing_white",
+    "workspace_accent_color_dark": "@color/ink",
+    "drop_target_hover_button_color_light": "@color/nothing_red",
+    "drop_target_hover_button_color_dark": "@color/nothing_red",
+    "drop_target_hover_text_color_light": "@color/nothing_white",
+    "drop_target_hover_text_color_dark": "@color/nothing_white",
 }
 
 SYSTEM_REF = re.compile(r"@android:color/system_(accent1|accent2|accent3|neutral1|neutral2)_(\d+)")
@@ -112,7 +136,9 @@ def main():
                     continue
                 overrides = []
                 for name, value in COLOR_ENTRY.findall(text):
-                    if SYSTEM_REF.search(value):
+                    if name in FORCE:
+                        overrides.append((name, FORCE[name]))
+                    elif SYSTEM_REF.search(value):
                         overrides.append((name, SYSTEM_REF.sub(nt_ref, value)))
                     elif qualifier in ("values", "values-night") and HEXCOL.match(value):
                         mapped = to_nothing(value, name)
@@ -124,6 +150,11 @@ def main():
                     write(os.path.join(OUT, qualifier, "nt_" + fname),
                           HEADER + "<resources>\n" + body + "</resources>\n")
                     counts["colors"] += len(overrides)
+            elif fname[:-4] in FORCE and qualifier.startswith("color"):
+                write(os.path.join(OUT, qualifier, fname), HEADER +
+                      '<selector xmlns:android="http://schemas.android.com/apk/res/android">\n'
+                      f'    <item android:color="{FORCE[fname[:-4]]}" />\n</selector>\n')
+                counts["files"] += 1
             elif SYSTEM_REF.search(text):
                 # Colour state lists, drawables and layouts: same file, Nothing palette.
                 body = SYSTEM_REF.sub(nt_ref, text)

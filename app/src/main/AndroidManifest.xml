@@ -16,7 +16,7 @@
         tools:replace="android:name,android:icon,android:label">
 
         <activity
-            android:name="com.android.launcher3.Launcher"
+            android:name="com.nothinglauncher.home.NothingLauncher"
             android:clearTaskOnLaunch="true"
             android:configChanges="keyboard|keyboardHidden|mcc|mnc|navigation|orientation|screenSize|screenLayout|smallestScreenSize"
             android:enabled="true"
@@ -40,5 +40,26 @@
                 android:name="com.android.launcher3.grid.control"
                 android:value="${applicationId}.grid_control" />
         </activity>
+
+        <!-- v10 settings screen; opened from the customize sheet, the drawer and Home settings. -->
+        <activity
+            android:name="com.nothinglauncher.settings.NothingSettingsActivity"
+            android:exported="true"
+            android:label="@string/settings_button_text"
+            android:theme="@style/Theme.NothingLauncher.Settings">
+            <intent-filter>
+                <action android:name="android.intent.action.APPLICATION_PREFERENCES" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
+        <!-- Stock settings stay available to Launcher3 internals but no longer claim
+             APPLICATION_PREFERENCES, so "Home settings" opens the v10 screen. -->
+        <activity
+            android:name="com.android.launcher3.settings.SettingsActivity"
+            tools:node="replace"
+            android:exported="false"
+            android:label="@string/settings_button_text"
+            android:theme="@style/HomeSettings.Theme" />
     </application>
 </manifest>
