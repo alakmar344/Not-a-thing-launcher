@@ -7,7 +7,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import com.nothinglauncher.DotMatrixClockView
+import androidx.core.view.isVisible
 import com.nothinglauncher.Intents
+import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.SecondsTickerView
 import java.util.Calendar
@@ -31,7 +33,17 @@ class ClockWidget(context: Context) : NothingWidget(context) {
         val meridiem = root.findViewById<TextView>(R.id.clockMeridiem)
         root.findViewById<View>(R.id.liveDot).background.mutate().setTint(accent)
         clock.accentColor = accent
-        root.findViewById<SecondsTickerView>(R.id.secondsTicker).accentColor = accent
+        root.findViewById<SecondsTickerView>(R.id.secondsTicker).apply {
+            accentColor = accent
+            // Settings › Seconds ticker; re-checked whenever the tile is shown again.
+            isVisible = NothingPrefs.get(ctx).showSeconds
+            root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    isVisible = NothingPrefs.get(ctx).showSeconds
+                }
+                override fun onViewDetachedFromWindow(v: View) = Unit
+            })
+        }
         fun bindDate(cal: Calendar) {
             date.text = DateFormat.format(
                 DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal

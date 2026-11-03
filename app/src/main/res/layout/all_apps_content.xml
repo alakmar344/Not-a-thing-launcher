@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copy of Launcher3's all_apps_content.xml (all ids kept) plus the v10 drawer header. -->
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Not a Thing: v10 "APPS 026" header above the stock search box. -->
+    <include
+        android:id="@+id/nt_drawer_header"
+        layout="@layout/nt_drawer_header"
+        android:layout_width="match_parent"
+        android:layout_height="64dp" />
+
+
+    <include
+        layout="@layout/all_apps_bottom_sheet_background"
+        android:visibility="gone" />
+
+    <include
+        layout="@layout/search_results_rv_layout"
+        android:visibility="gone" />
+
+    <include
+        layout="@layout/all_apps_rv_layout"
+        android:visibility="gone" />
+
+    <com.android.launcher3.allapps.FloatingHeaderView
+        android:id="@+id/all_apps_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:clipToPadding="false"
+        android:layout_below="@id/search_container_all_apps"
+        android:paddingTop="@dimen/all_apps_header_top_padding"
+        android:paddingBottom="@dimen/all_apps_header_bottom_padding"
+        android:orientation="vertical" >
+
+        <include layout="@layout/floating_header_content" />
+
+        <include layout="@layout/all_apps_personal_work_tabs" />
+
+    </com.android.launcher3.allapps.FloatingHeaderView>
+
+    <include layout="@layout/all_apps_fast_scroller" />
+</merge>

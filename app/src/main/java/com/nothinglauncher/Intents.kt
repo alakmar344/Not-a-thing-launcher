@@ -58,6 +58,11 @@ object Intents {
         Intent(Settings.ACTION_SETTINGS)
     )
 
+    fun openWallpaperPicker(context: Context) = startOrToast(
+        context, null,
+        Intent.createChooser(Intent(Intent.ACTION_SET_WALLPAPER), null)
+    )
+
     fun openApp(context: Context, packageName: String, source: View? = null) {
         val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return
         startOrToast(context, source, launch)

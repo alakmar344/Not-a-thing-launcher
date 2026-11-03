@@ -6,45 +6,168 @@
 -->
 <resources>
     <style name="AppTheme" parent="@style/LauncherTheme">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
     </style>
 
     <style name="AppTheme.DarkMainColor" parent="@style/LauncherTheme.DarkMainColor">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
     </style>
 
     <style name="AppTheme.DarkText" parent="@style/LauncherTheme.DarkText">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
     </style>
 
     <style name="AppTheme.Dark" parent="@style/LauncherTheme.Dark">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
     </style>
 
     <style name="AppTheme.Dark.DarkMainColor" parent="@style/LauncherTheme.Dark.DarkMainColor">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
     </style>
 
     <style name="AppTheme.Dark.DarkText" parent="@style/LauncherTheme.Dark.DarkText">
-        <!-- Not a Thing design layer on top of the stock theme. -->
+        <!-- Not a Thing v10 surface on top of the stock theme. -->
         <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:colorAccent">@color/text_secondary</item>
         <item name="notificationDotColor">@color/nothing_red</item>
         <item name="popupNotificationDotColor">@color/nothing_red</item>
+        <item name="allAppsScrimColor">@color/nothing_bg</item>
+        <item name="allappsHeaderProtectionColor">@color/nothing_bg</item>
+        <item name="popupColorPrimary">@color/surface_raised</item>
+        <item name="popupColorSecondary">@color/surface_raised</item>
+        <item name="popupColorTertiary">@color/hairline_strong</item>
+        <item name="popupColorBackground">@color/surface_sheet</item>
+        <item name="popupTextColor">@color/text_primary</item>
+        <item name="folderBackgroundColor">@color/surface_sheet</item>
+        <item name="folderPreviewColor">@color/surface_raised</item>
+        <item name="folderIconBorderColor">@color/hairline_strong</item>
+        <item name="folderTextColor">@color/text_primary</item>
+        <item name="folderHintTextColor">@color/text_tertiary</item>
+        <item name="folderPaginationColor">@color/text_primary</item>
+    </style>
+
+    <!--
+        Used by NothingLauncher whenever the backdrop is our own (dot grid or black) instead of
+        the wallpaper: text colours follow the backdrop, not the hidden wallpaper.
+    -->
+    <style name="NtTheme.Backdrop.Light" parent="@style/AppTheme.DarkText">
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
+        <item name="workspaceTextColor">@color/text_primary</item>
+    </style>
+
+    <style name="NtTheme.Backdrop.Dark" parent="@style/AppTheme.Dark">
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
+        <item name="workspaceTextColor">@color/text_primary</item>
+        <item name="workspaceShadowColor">@android:color/transparent</item>
+        <item name="workspaceAmbientShadowColor">@android:color/transparent</item>
+        <item name="workspaceKeyShadowColor">@android:color/transparent</item>
+    </style>
+
+    <!-- v10 settings screen. -->
+    <style name="Theme.NothingLauncher.Settings">
+        <item name="android:windowShowWallpaper">false</item>
+    </style>
+
+    <!-- Icon labels, folder titles and headlines use the v10 typeface. -->
+    <style name="BaseIconRoot" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:fontFamily">@font/space_grotesk</item>
+    </style>
+
+    <style name="TextHeadline" parent="@android:style/TextAppearance.DeviceDefault.DialogWindowTitle">
+        <item name="android:fontFamily">@font/space_grotesk</item>
+    </style>
+
+    <style name="DropTargetButton" parent="DropTargetButtonBase">
+        <item name="android:fontFamily">@font/space_mono_bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.08</item>
     </style>
 
     <!-- Stock Launcher3 settings theme (same items as AOSP) with the Not a Thing font. -->

@@ -24,6 +24,30 @@ class NothingPrefs private constructor(context: Context) {
             if (value == null) remove(K_WEATHER_CACHE) else putString(K_WEATHER_CACHE, value)
         }.apply()
 
+    /** Home and drawer backdrop (the v10 "Background" setting). */
+    var background: Background
+        get() = Background.entries.getOrElse(sp.getInt(K_BACKGROUND, 0)) { Background.DOTS }
+        set(value) = sp.edit().putInt(K_BACKGROUND, value.ordinal).apply()
+
+    /** Live row of 60 dots under the LED clock. */
+    var showSeconds: Boolean
+        get() = sp.getBoolean(K_SECONDS, true)
+        set(value) = sp.edit().putBoolean(K_SECONDS, value).apply()
+
+    /** Night mode the cached app icons were rendered for (-1 = unknown). */
+    var iconsRenderedNight: Int
+        get() = sp.getInt(K_ICONS_NIGHT, -1)
+        set(value) = sp.edit().putInt(K_ICONS_NIGHT, value).apply()
+
+    /** Whether the default v10 home tiles were placed on the first screen. */
+    var defaultTilesPlaced: Boolean
+        get() = sp.getBoolean(K_TILES_PLACED, false)
+        set(value) = sp.edit().putBoolean(K_TILES_PLACED, value).apply()
+
+    enum class Background { DOTS, BLACK, WALLPAPER }
+
+    enum class IconStyle { MONO, COLOR }
+
     /** Whether the one-time defaults of this layer (e.g. monochrome icons) were applied. */
     var defaultsApplied: Boolean
         get() = sp.getBoolean(K_DEFAULTS_APPLIED, false)
@@ -33,6 +57,10 @@ class NothingPrefs private constructor(context: Context) {
         private const val FILE = "not_a_thing"
         private const val K_WEATHER_CITY = "weather_city"
         private const val K_WEATHER_CACHE = "weather_cache"
+        private const val K_BACKGROUND = "background"
+        private const val K_SECONDS = "show_seconds"
+        private const val K_ICONS_NIGHT = "icons_rendered_night"
+        private const val K_TILES_PLACED = "default_tiles_placed"
         private const val K_DEFAULTS_APPLIED = "defaults_applied_v11"
 
         @Volatile private var instance: NothingPrefs? = null

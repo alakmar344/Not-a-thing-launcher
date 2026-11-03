@@ -7,15 +7,23 @@ A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — w
 
 **Version 11.0** is built on **stock Android**: the home screen is AOSP **Launcher3** (the open-source launcher behind Pixel's), and Not a Thing is a design layer on top of it. Home screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly like stock Android.
 
-What the design layer adds:
+Everything you see is the Not a Thing v10 design; Launcher3 does the work behind it:
 
 - **Not a Thing palette** – Launcher3's wallpaper-derived Material You colours are replaced by a fixed monochrome palette with Nothing red (all apps, folders, popups, widget picker, settings).
 - **Space Grotesk** typography and red notification dots.
-- **Glance** – dot-matrix clock, date and battery at the top of the first home screen (where stock shows the search bar; search stays at the top of All apps).
+- **Home** – black (or bone) dot-grid backdrop, the LED clock and battery & date tiles on first run, and the "Search apps & web" pill under the dock.
+- **Icons** – every app as a glyph in a disc (or colour artwork in a circle), on home, dock, folders and in the drawer.
+- **Drawer** – dot-matrix "APPS" header with app count and settings, v10 search pill.
+- **Customize sheet** on long-press (wallpaper & style, widgets, settings) and the v10 settings screen.
 - **Dot-matrix elements** in the stock widget picker (long-press home → Widgets → *Not a Thing*): LED clock, battery & date, weather, media player.
-- **Monochrome icons** on by default (Home settings → *Monochrome icons*).
+- **Monochrome or colour icons**, backdrop, grid and more in the v10 settings (long-press home → Settings).
 
-![Elements, light and dark](app/src/test/snapshots/images/com.nothinglauncher_ElementsDarkTest_elements.png)
+<p>
+  <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png" width="24%" alt="Home" />
+  <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_drawer.png" width="24%" alt="App drawer" />
+  <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_customizeSheet.png" width="24%" alt="Customize" />
+  <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeMono.png" width="24%" alt="Light mode" />
+</p>
 
 > Screenshot rendered by the Paparazzi tests in `app/src/test` (CI publishes fresh ones with every release).
 

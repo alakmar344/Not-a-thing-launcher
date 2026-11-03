@@ -7,37 +7,65 @@
     <color name="hairline_strong">#BEBEB8</color>
     <color name="ink">#0B0B0C</color>
     <color name="ink_secondary">#6E6E72</color>
+    <color name="nothing_bg">#F6F6F4</color>
+    <color name="nothing_black">#000000</color>
     <color name="nothing_red">#D71921</color>
+    <color name="nothing_white">#FFFFFF</color>
     <color name="paper">#FFFFFF</color>
     <color name="paper_dot_off">#D5D5D1</color>
     <color name="pill_active_bg">#0C0C0E</color>
+    <color name="pill_active_text">#FFFFFF</color>
     <color name="ripple_dark">#14000000</color>
     <color name="ripple_light">#18000000</color>
     <color name="surface">#FFFFFF</color>
     <color name="surface_dark">#0C0C0E</color>
+    <color name="surface_raised">#ECECE8</color>
+    <color name="surface_sheet">#F8F8F6</color>
+    <color name="text_highlight">#40D71921</color>
     <color name="text_primary">#0C0C0E</color>
     <color name="text_secondary">#68686C</color>
+    <color name="text_tertiary">#94949A</color>
+    <dimen name="card_radius">24dp</dimen>
     <dimen name="clock_matrix_height">96dp</dimen>
+    <dimen name="page_margin">16dp</dimen>
     <dimen name="text_label">11sp</dimen>
     <dimen name="tile_padding">18dp</dimen>
     <dimen name="tile_radius">28dp</dimen>
+    <string name="back">Back</string>
     <string name="battery">Battery</string>
     <string name="battery_low">Low</string>
     <string name="battery_widget">Battery level</string>
     <string name="calendar_widget">Calendar. Opens your calendar.</string>
+    <string name="cancel">Cancel</string>
     <string name="charging">Charging</string>
     <string name="clock_widget">Clock. Opens alarms.</string>
+    <string name="element_battery_cal">Battery &amp; Date</string>
+    <string name="element_battery_cal_sub">40-dot battery ring &amp; calendar day</string>
+    <string name="element_clock">LED Clock</string>
+    <string name="element_clock_sub">Dot-matrix panel with seconds ticker</string>
     <string name="element_media">Media Controller</string>
+    <string name="element_media_sub">Playback controls &amp; live waveform visualizer</string>
     <string name="element_weather">Weather</string>
+    <string name="element_weather_sub">Dot-matrix temperature &amp; conditions</string>
     <string name="format_24h" translatable="false">24H</string>
     <string name="local_time">Local time</string>
     <string name="media_artist_default">GLYPH AUDIO SYSTEM</string>
+    <string name="media_connect_hint">CONNECT A PLAYER</string>
     <string name="media_label">NOW PLAYING</string>
+    <string name="media_label_empty">MEDIA</string>
+    <string name="media_no_session">NO ACTIVE PLAYBACK</string>
+    <string name="media_permission_needed">NOTIFICATION ACCESS NEEDED</string>
     <string name="media_title_default">NOTHING SOUNDS</string>
+    <string name="quick_note_hint">Enter note or quote…</string>
+    <string name="quick_note_save">Save</string>
     <string name="weather_loading">LOADING</string>
     <string name="weather_local">LOCAL</string>
     <string name="weather_tap_refresh">TAP TO REFRESH</string>
     <string name="weather_unavailable">OFFLINE</string>
+    <style name="Animation.NothingLauncher.Sheet" parent="">
+        <item name="android:windowEnterAnimation">@anim/sheet_enter</item>
+        <item name="android:windowExitAnimation">@anim/sheet_exit</item>
+    </style>
     <style name="Text.Body" parent="">
         <item name="android:fontFamily">@font/space_grotesk</item>
         <item name="android:textSize">15sp</item>
@@ -55,5 +83,70 @@
         <item name="android:letterSpacing">0.08</item>
         <item name="android:textAllCaps">true</item>
         <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="Text.Title" parent="">
+        <item name="android:fontFamily">@font/space_grotesk_medium</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="Theme.NothingLauncher" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/pill_active_bg</item>
+        <item name="colorPrimaryVariant">@color/text_secondary</item>
+        <item name="colorOnPrimary">@color/pill_active_text</item>
+        <item name="colorSecondary">@color/nothing_red</item>
+        <item name="colorSecondaryVariant">@color/nothing_red</item>
+        <item name="colorOnSecondary">@color/nothing_white</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorControlNormal">@color/text_secondary</item>
+        <item name="colorControlActivated">@color/text_primary</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
+        <item name="android:colorBackground">@color/nothing_bg</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_tertiary</item>
+        <item name="android:textColorHighlight">@color/text_highlight</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="fontFamily">@font/space_grotesk</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar" tools:targetApi="27">true</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="27">shortEdges</item>
+        <!-- Lets the window composite over the system wallpaper; MainActivity turns this
+             off (and makes the surface opaque) for the dot-grid and black backgrounds. -->
+        <item name="android:windowShowWallpaper">true</item>
+    </style>
+    <style name="Theme.NothingLauncher.Sheet" parent="Theme.MaterialComponents.Light.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.62</item>
+        <item name="android:windowAnimationStyle">@style/Animation.NothingLauncher.Sheet</item>
+        <item name="android:windowMinWidthMajor">0dp</item>
+        <item name="android:windowMinWidthMinor">0dp</item>
+        <item name="android:fontFamily">@font/space_grotesk</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_tertiary</item>
+        <item name="android:textColorHighlight">@color/text_highlight</item>
+        <!-- text_primary rather than white: a white cursor/handle is invisible on light sheets. -->
+        <item name="colorControlActivated">@color/text_primary</item>
+        <item name="colorControlHighlight">@color/ripple_light</item>
+    </style>
+    <style name="Widget.Nothing.IconButton" parent="">
+        <item name="android:layout_width">44dp</item>
+        <item name="android:layout_height">44dp</item>
+        <item name="android:padding">10dp</item>
+        <item name="android:background">@drawable/bg_icon_button</item>
+        <item name="android:scaleType">fitCenter</item>
+        <item name="android:tint">@color/text_primary</item>
     </style>
 </resources>

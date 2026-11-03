@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v10 search pill under the dock (Launcher3's hotseat search slot). -->
+<com.nothinglauncher.home.HotseatSearchPill xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="@dimen/qsb_widget_height"
+    android:background="@drawable/bg_search_pill"
+    android:contentDescription="@string/nt_search_hint"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="20dp"
+    android:paddingEnd="6dp">
+
+    <ImageView
+        android:layout_width="18dp"
+        android:layout_height="18dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_search"
+        android:tint="@color/text_secondary" />
+
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="14dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:fontFamily="@font/space_grotesk"
+        android:importantForAccessibility="no"
+        android:maxLines="1"
+        android:text="@string/nt_search_hint"
+        android:textColor="@color/text_secondary"
+        android:textSize="15sp" />
+
+    <ImageView
+        android:id="@+id/pillApps"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/fg_ripple_oval"
+        android:contentDescription="@string/nt_all_apps"
+        android:padding="10dp"
+        android:src="@drawable/nt_ic_apps"
+        android:tint="@color/text_primary" />
+</com.nothinglauncher.home.HotseatSearchPill>

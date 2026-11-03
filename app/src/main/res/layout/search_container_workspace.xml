@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
-    Replaces Launcher3's first-screen search bar slot (same name and id, so the stock Workspace
-    pins it to the top row) with the Not a Thing glance. Search stays at the top of All apps.
--->
-<com.nothinglauncher.home.GlanceView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@id/search_container_workspace"
-    android:layout_width="match_parent"
-    android:layout_height="0dp" />

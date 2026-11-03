@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Reserve the v10 search pill under the dock (Launcher3 hotseat search slot). -->
+    <dimen name="qsb_widget_height">52dp</dimen>
+    <!-- Gap (dp, unitless as in Launcher3) between the dock icons and the search pill. -->
+    <dimen name="hotseat_qsb_space_default">16</dimen>
+</resources>

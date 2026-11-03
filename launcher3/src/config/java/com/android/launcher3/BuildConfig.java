@@ -9,8 +9,12 @@ public final class BuildConfig {
 
     public static final boolean IS_STUDIO_BUILD = false;
 
-    /** The first home page reserves its top row for the Not a Thing clock/search block. */
-    public static final boolean QSB_ON_FIRST_SCREEN = true;
+    /**
+     * No pinned search bar on the first page: like the v10 launcher, its top rows hold the
+     * movable LED clock and battery tiles (placed on first run), and search lives in the pill
+     * under the dock and at the top of the drawer.
+     */
+    public static final boolean QSB_ON_FIRST_SCREEN = false;
 
     public static final boolean WIDGET_ON_FIRST_SCREEN = false;
 

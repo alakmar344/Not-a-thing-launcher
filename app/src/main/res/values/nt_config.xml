@@ -12,5 +12,8 @@
         <item>com.nothinglauncher.widgets.MediaWidget</item>
     </string-array>
 
+    <!-- Every app icon is rendered by the v10 icon factory (glyph in a disc). -->
+    <string name="launcher_activity_logic_class" translatable="false">com.nothinglauncher.icons.NothingIconLogic</string>
+
     <dimen name="nt_tile_gap">12dp</dimen>
 </resources>
