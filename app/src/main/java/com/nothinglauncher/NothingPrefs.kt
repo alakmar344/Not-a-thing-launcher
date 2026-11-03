@@ -9,40 +9,73 @@ import android.content.SharedPreferences
  */
 class NothingPrefs private constructor(context: Context) {
 
-    private val sp: SharedPreferences =
-        context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    private val sp: SharedPreferences? = try {
+        (context.applicationContext ?: context).getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    } catch (_: Exception) {
+        null
+    }
+
+    private val memFallback = mutableMapOf<String, Any?>()
+
+    private fun put(key: String, value: Any?, write: SharedPreferences.Editor.() -> Unit) {
+        memFallback[key] = value
+        sp?.edit()?.apply {
+            write()
+            apply()
+        }
+    }
 
     /** Manual weather city; blank means "locate automatically". */
     var weatherCity: String
-        get() = sp.getString(K_WEATHER_CITY, "").orEmpty()
-        set(value) = sp.edit().putString(K_WEATHER_CITY, value.trim()).apply()
+        get() {
+            if (K_WEATHER_CITY in memFallback) return (memFallback[K_WEATHER_CITY] as? String).orEmpty()
+            return sp?.getString(K_WEATHER_CITY, "").orEmpty()
+        }
+        set(value) = put(K_WEATHER_CITY, value.trim()) { putString(K_WEATHER_CITY, value.trim()) }
 
     /** Last successful weather response (serialized by [WeatherRepository]). */
     var weatherCache: String?
-        get() = sp.getString(K_WEATHER_CACHE, null)
-        set(value) = sp.edit().apply {
+        get() {
+            if (K_WEATHER_CACHE in memFallback) return memFallback[K_WEATHER_CACHE] as? String
+            return sp?.getString(K_WEATHER_CACHE, null)
+        }
+        set(value) = put(K_WEATHER_CACHE, value) {
             if (value == null) remove(K_WEATHER_CACHE) else putString(K_WEATHER_CACHE, value)
-        }.apply()
+        }
 
     /** Home and drawer backdrop (the v10 "Background" setting). */
     var background: Background
-        get() = Background.entries.getOrElse(sp.getInt(K_BACKGROUND, 0)) { Background.DOTS }
-        set(value) = sp.edit().putInt(K_BACKGROUND, value.ordinal).apply()
+        get() {
+            if (K_BACKGROUND in memFallback) {
+                return Background.entries.getOrElse(memFallback[K_BACKGROUND] as? Int ?: 0) { Background.DOTS }
+            }
+            return Background.entries.getOrElse(sp?.getInt(K_BACKGROUND, 0) ?: 0) { Background.DOTS }
+        }
+        set(value) = put(K_BACKGROUND, value.ordinal) { putInt(K_BACKGROUND, value.ordinal) }
 
     /** Live row of 60 dots under the LED clock. */
     var showSeconds: Boolean
-        get() = sp.getBoolean(K_SECONDS, true)
-        set(value) = sp.edit().putBoolean(K_SECONDS, value).apply()
+        get() {
+            if (K_SECONDS in memFallback) return memFallback[K_SECONDS] as? Boolean ?: true
+            return sp?.getBoolean(K_SECONDS, true) ?: true
+        }
+        set(value) = put(K_SECONDS, value) { putBoolean(K_SECONDS, value) }
 
     /** Night mode the cached app icons were rendered for (-1 = unknown). */
     var iconsRenderedNight: Int
-        get() = sp.getInt(K_ICONS_NIGHT, -1)
-        set(value) = sp.edit().putInt(K_ICONS_NIGHT, value).apply()
+        get() {
+            if (K_ICONS_NIGHT in memFallback) return memFallback[K_ICONS_NIGHT] as? Int ?: -1
+            return sp?.getInt(K_ICONS_NIGHT, -1) ?: -1
+        }
+        set(value) = put(K_ICONS_NIGHT, value) { putInt(K_ICONS_NIGHT, value) }
 
     /** Whether the default v10 home tiles were placed on the first screen. */
     var defaultTilesPlaced: Boolean
-        get() = sp.getBoolean(K_TILES_PLACED, false)
-        set(value) = sp.edit().putBoolean(K_TILES_PLACED, value).apply()
+        get() {
+            if (K_TILES_PLACED in memFallback) return memFallback[K_TILES_PLACED] as? Boolean ?: false
+            return sp?.getBoolean(K_TILES_PLACED, false) ?: false
+        }
+        set(value) = put(K_TILES_PLACED, value) { putBoolean(K_TILES_PLACED, value) }
 
     enum class Background { DOTS, BLACK, WALLPAPER }
 
@@ -50,8 +83,11 @@ class NothingPrefs private constructor(context: Context) {
 
     /** Whether the one-time defaults of this layer (e.g. monochrome icons) were applied. */
     var defaultsApplied: Boolean
-        get() = sp.getBoolean(K_DEFAULTS_APPLIED, false)
-        set(value) = sp.edit().putBoolean(K_DEFAULTS_APPLIED, value).apply()
+        get() {
+            if (K_DEFAULTS_APPLIED in memFallback) return memFallback[K_DEFAULTS_APPLIED] as? Boolean ?: false
+            return sp?.getBoolean(K_DEFAULTS_APPLIED, false) ?: false
+        }
+        set(value) = put(K_DEFAULTS_APPLIED, value) { putBoolean(K_DEFAULTS_APPLIED, value) }
 
     companion object {
         private const val FILE = "not_a_thing"
