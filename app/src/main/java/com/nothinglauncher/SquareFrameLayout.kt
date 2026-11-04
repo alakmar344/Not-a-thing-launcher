@@ -10,8 +10,11 @@ class SquareFrameLayout @JvmOverloads constructor(
     attrs: AttributeSet? = null
 ) : FrameLayout(context, attrs) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        // Square, but never taller than the space offered (wide widget cells would crop it).
         val w = MeasureSpec.getSize(widthMeasureSpec)
-        val square = MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY)
+        val side = if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED) w
+        else minOf(w, MeasureSpec.getSize(heightMeasureSpec))
+        val square = MeasureSpec.makeMeasureSpec(side, MeasureSpec.EXACTLY)
         super.onMeasure(square, square)
     }
 }

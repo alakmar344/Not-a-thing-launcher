@@ -77,6 +77,12 @@ class NothingPrefs private constructor(context: Context) {
         }
         set(value) = put(K_TILES_PLACED, value) { putBoolean(K_TILES_PLACED, value) }
 
+    fun addListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
+        sp.registerOnSharedPreferenceChangeListener(listener)
+
+    fun removeListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
+        sp.unregisterOnSharedPreferenceChangeListener(listener)
+
     enum class Background { DOTS, BLACK, WALLPAPER }
 
     enum class IconStyle { MONO, COLOR }

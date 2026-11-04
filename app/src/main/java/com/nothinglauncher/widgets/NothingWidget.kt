@@ -33,6 +33,10 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
     /** Builds the element's view for a newly bound widget host. */
     abstract fun createView(host: AppWidgetHostView): View
 
+    private companion object {
+        const val MAX_SPAN = 12
+    }
+
     final override fun onViewCreated(parent: AppWidgetHostView) {
         parent.removeAllViews()
         // The host already applies the widget cell padding; the element fills it.
@@ -53,6 +57,24 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
         info.label = context.getString(labelRes)
         info.icon = com.nothinglauncher.R.mipmap.ic_launcher
         info.initialLayout = 0
+        // Everything else was inherited from that other app's widget: a configure screen would
+        // make Launcher3 try to configure our (negative, in-process) widget id and crash, and
+        // its size limits would clamp ours.
+        info.configure = null
+        info.widgetFeatures = 0
+        info.minWidth = 0
+        info.minHeight = 0
+        info.minResizeWidth = 0
+        info.minResizeHeight = 0
+        info.updatePeriodMillis = 0
+        info.autoAdvanceViewId = View.NO_ID
+        info.initialKeyguardLayout = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            info.targetCellWidth = spanX
+            info.targetCellHeight = spanY
+            info.maxResizeWidth = 0
+            info.maxResizeHeight = 0
+        }
         // The info is cloned from another app's provider (CustomWidgetManager), and the framework
         // resolves preview/description resources through that clone's package. Clear them so the
         // picker draws Launcher3's own preview tile (grid + this app's icon) instead.
@@ -68,8 +90,9 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
             info.spanY = spanY
             info.minSpanX = minSpanX
             info.minSpanY = minSpanY
-            info.maxSpanX = 4.coerceAtLeast(spanX)
-            info.maxSpanY = 4.coerceAtLeast(spanY)
+            // Launcher3 clamps these to the grid, so any grid size can be filled.
+            info.maxSpanX = MAX_SPAN
+            info.maxSpanY = MAX_SPAN
         }
     }
 

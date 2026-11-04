@@ -2,6 +2,7 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
+import android.content.SharedPreferences
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
@@ -36,12 +37,19 @@ class ClockWidget(context: Context) : NothingWidget(context) {
         root.findViewById<SecondsTickerView>(R.id.secondsTicker).apply {
             accentColor = accent
             // Settings › Seconds ticker; re-checked whenever the tile is shown again.
-            isVisible = NothingPrefs.get(ctx).showSeconds
+            val prefs = NothingPrefs.get(ctx)
+            isVisible = prefs.showSeconds
+            // Follow Settings › Seconds ticker live (home stays attached in the background).
+            // The listener is held by this closure while attached (prefs keep weak references).
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+                isVisible = prefs.showSeconds
+            }
             root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                 override fun onViewAttachedToWindow(v: View) {
-                    isVisible = NothingPrefs.get(ctx).showSeconds
+                    isVisible = prefs.showSeconds
+                    prefs.addListener(listener)
                 }
-                override fun onViewDetachedFromWindow(v: View) = Unit
+                override fun onViewDetachedFromWindow(v: View) = prefs.removeListener(listener)
             })
         }
         fun bindDate(cal: Calendar) {
