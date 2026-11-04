@@ -49,7 +49,7 @@ class ClockWidget(context: Context) : NothingWidget(context) {
                     isVisible = prefs.showSeconds
                     prefs.addListener(listener)
                 }
-                override fun onViewDetachedFromWindow(v: View) = prefs.removeListener(listener)
+                override fun onViewDetachedFromWindow(v: View) { prefs.removeListener(listener) }
             })
         }
         fun bindDate(cal: Calendar) {
