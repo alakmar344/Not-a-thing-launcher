@@ -7,6 +7,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Weather element (Open-Meteo, no key) and its automatic city lookup. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:name="com.nothinglauncher.NothingApplication"
         android:icon="@mipmap/ic_launcher"
@@ -41,6 +45,20 @@
                 android:value="${applicationId}.grid_control" />
         </activity>
 
+        <!-- Plain date & time widget; also keeps the widget provider list non-empty, which
+             Launcher3 needs to register the in-process Not a Thing elements. -->
+        <receiver
+            android:name="com.nothinglauncher.widgets.DateTimeWidgetProvider"
+            android:exported="false"
+            android:label="@string/nt_widget_date_time">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/nt_date_time_widget" />
+        </receiver>
+
         <!-- v10 settings screen; opened from the customize sheet, the drawer and Home settings. -->
         <activity
             android:name="com.nothinglauncher.settings.NothingSettingsActivity"
@@ -53,8 +71,8 @@
             </intent-filter>
         </activity>
 
-        <!-- Stock settings stay available to Launcher3 internals but no longer claim
-             APPLICATION_PREFERENCES, so "Home settings" opens the v10 screen. -->
+        <!-- Stock settings (notification dots etc.) open from Settings › Advanced home settings;
+             they no longer claim APPLICATION_PREFERENCES, so "Home settings" opens the v10 screen. -->
         <activity
             android:name="com.android.launcher3.settings.SettingsActivity"
             tools:node="replace"

@@ -51,4 +51,7 @@
     <string name="nt_setting_add_new_sub">Add icons for newly installed apps to home</string>
     <string name="nt_setting_rotation">Home rotation</string>
     <string name="nt_setting_rotation_sub">Allow home to rotate with the phone</string>
+    <string name="nt_setting_advanced">Advanced home settings</string>
+    <string name="nt_setting_advanced_sub">Notification dots and other stock options</string>
+    <string name="nt_widget_date_time">Date &amp; time</string>
 </resources>

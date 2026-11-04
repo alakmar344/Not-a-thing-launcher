@@ -5,6 +5,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
+import com.android.launcher3.AbstractFloatingView
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherSettings
 import com.android.launcher3.util.IntSet
@@ -12,6 +13,8 @@ import com.android.launcher3.widget.LauncherAppWidgetProviderInfo
 import com.android.launcher3.widget.PendingAddWidgetInfo
 import com.android.launcher3.widget.custom.CustomWidgetManager
 import com.nothinglauncher.DotGridDrawable
+import com.nothinglauncher.MediaSessionRepository
+import com.nothinglauncher.WeatherRepository
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.icons.NothingIconLogic
@@ -58,7 +61,22 @@ class NothingLauncher : Launcher() {
     override fun onResume() {
         super.onResume()
         // The backdrop picks the theme, so a change from settings needs a fresh activity.
-        if (appliedBackground != null && appliedBackground != prefs.background) recreate()
+        if (appliedBackground != null && appliedBackground != prefs.background) {
+            recreate()
+            return
+        }
+        // Workspace views stay attached while home is in the background, so live elements are
+        // refreshed here: media after notification access was granted, weather when stale.
+        MediaSessionRepository.refresh()
+        WeatherRepository.refresh(this, prefs) { }
+    }
+
+    /**
+     * Wallpaper colours only matter when the wallpaper is visible; otherwise a new wallpaper
+     * would needlessly rebuild home (closing the drawer and folders).
+     */
+    override fun onColorHintsChanged(colorHints: Int) {
+        if (prefs.background == NothingPrefs.Background.WALLPAPER) super.onColorHintsChanged(colorHints)
     }
 
     private fun applyBackdrop() {
@@ -119,5 +137,7 @@ class NothingLauncher : Launcher() {
         }
         place(ClockWidget::class.java, cols, 2)
         place(BatteryCalendarWidget::class.java, minOf(cols, 4), 2)
+        // Adding goes through the drag & drop path, which opens a resize frame on the last tile.
+        AbstractFloatingView.closeOpenViews(this, false, AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME)
     }
 }

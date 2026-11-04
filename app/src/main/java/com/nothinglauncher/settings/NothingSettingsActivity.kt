@@ -85,11 +85,14 @@ class NothingSettingsActivity : AppCompatActivity() {
         SettingsUi.section(list, getString(R.string.section_home), accent)
         SettingsUi.card(list).also { card ->
             val grids = listOf("3_by_3", "4_by_4", "5_by_5")
-            val current = InvariantDeviceProfile.getCurrentGridName(this)
-            SettingsUi.choiceRow(
-                card, getString(R.string.nt_setting_grid), getString(R.string.nt_setting_grid_sub),
-                listOf("3 × 3", "4 × 4", "5 × 5"), grids.indexOf(current).coerceAtLeast(0)
-            ) { InvariantDeviceProfile.INSTANCE.get(this).setCurrentGrid(this, grids[it]) }
+            val current = grids.indexOf(InvariantDeviceProfile.getCurrentGridName(this))
+            // Phone grids only; tablets use their own (e.g. 6×5) grid, which is left alone.
+            if (current >= 0) {
+                SettingsUi.choiceRow(
+                    card, getString(R.string.nt_setting_grid), getString(R.string.nt_setting_grid_sub),
+                    listOf("3 × 3", "4 × 4", "5 × 5"), current
+                ) { InvariantDeviceProfile.INSTANCE.get(this).setCurrentGrid(this, grids[it]) }
+            }
             SettingsUi.switchRow(
                 card, getString(R.string.setting_seconds), getString(R.string.setting_seconds_sub),
                 prefs.showSeconds
@@ -100,8 +103,8 @@ class NothingSettingsActivity : AppCompatActivity() {
             ) { launcherPrefs.edit().putBoolean(KEY_ADD_ICON, it).apply() }
             SettingsUi.switchRow(
                 card, getString(R.string.nt_setting_rotation), getString(R.string.nt_setting_rotation_sub),
-                launcherPrefs.getBoolean(KEY_ROTATION, false)
-            ) { launcherPrefs.edit().putBoolean(KEY_ROTATION, it).apply() }
+                LauncherPrefs.get(this).get(LauncherPrefs.ALLOW_ROTATION)
+            ) { LauncherPrefs.get(this).put(LauncherPrefs.ALLOW_ROTATION.to(it)) }
         }
 
         SettingsUi.section(list, getString(R.string.section_look), accent)
@@ -149,6 +152,11 @@ class NothingSettingsActivity : AppCompatActivity() {
                 card, getString(R.string.setting_default), null, trailingIcon = R.drawable.ic_home
             ) { requestDefaultHome() } to {
                 getString(if (isDefaultHome()) R.string.setting_default_on else R.string.setting_default_off)
+            }
+            SettingsUi.actionRow(
+                card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)
+            ) {
+                Intents.start(this, Intent(this, com.android.launcher3.settings.SettingsActivity::class.java))
             }
             SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName()))
         }
@@ -216,6 +224,5 @@ class NothingSettingsActivity : AppCompatActivity() {
     private companion object {
         const val REQUEST_HOME = 41
         const val KEY_ADD_ICON = "pref_add_icon_to_home"
-        const val KEY_ROTATION = "pref_allowRotation"
     }
 }
