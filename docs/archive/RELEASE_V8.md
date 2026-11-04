@@ -1,3 +1,7 @@
+> **Archived.** Historical release notes for the pre-v11 bespoke launcher (predates the v11.0
+> rebuild on stock AOSP Launcher3). See [`../../CHANGELOG.md`](../../CHANGELOG.md) for the
+> current changelog.
+
 # Not-a-Thing Launcher: Release v8.0 Notes
 
 **Release Name:** Release v8 (`Version 8.0`, `versionCode 8`)  

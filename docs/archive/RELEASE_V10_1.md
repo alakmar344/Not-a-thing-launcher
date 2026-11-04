@@ -1,3 +1,7 @@
+> **Archived.** Historical release notes for the pre-v11 bespoke launcher (predates the v11.0
+> rebuild on stock AOSP Launcher3). See [`../../CHANGELOG.md`](../../CHANGELOG.md) for the
+> current changelog.
+
 # Release v10.1: App Icon, Painless Updates & Polish
 
 **Package:** `com.nothinglauncher`  

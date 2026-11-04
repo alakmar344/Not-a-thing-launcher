@@ -1,138 +1,79 @@
-# Not-a-Thing Launcher: Complete Feature Catalog (Version 10.1)
+# Features
 
-A comprehensive breakdown of all capabilities, widgets, gesture systems, customisation tools, and visual components in **Not-a-Thing Launcher** (Version 10.0 General Availability).
+Not a Thing is **stock Android Launcher3** with the Not a Thing visual design on top. Home
+screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly
+like stock Android/Launcher3 — this page only lists what the Not a Thing layer (`app/`) adds or
+changes. For what "stock Launcher3 behaviour" means in practice, see the
+[AOSP Launcher3 docs](https://android.googlesource.com/platform/packages/apps/Launcher3/) or
+just use it like any Pixel-style launcher.
 
----
+## Visuals
 
-## 1. Multi-Page Workspace & Native 2D Grid
+- **Fixed monochrome palette** (black/bone + Nothing red `#D71921`) replacing Launcher3's
+  wallpaper-derived Material You colours, applied everywhere: home, all-apps, folders, popups,
+  the widget picker and settings.
+- **Space Grotesk** typography and red notification dots.
+- **Icons** rendered as the app's glyph in a flat disc (monochrome) or the original artwork in a
+  circle (colour) — toggle in Settings → Look (follows Launcher3's themed-icons setting).
+- **Backdrop**: dot-grid, solid black/bone, or the system wallpaper (Settings → Look →
+  Background).
 
-### 1.1 Unified Native 2D Grid (`CellLayout`)
-- **Discrete Coordinate Matrix**: Items are positioned precisely on a `(cellX, cellY, spanX, spanY)` 2D coordinate system.
-- **Unrestricted Interleaving**: Standard 1×1 app icons, 1×1 circular folders, 2×2 interactive enlarged folders, 2×2 Max Icons, bespoke dot elements, and hosted third-party AppWidgets coexist seamlessly on the same workspace canvas.
-- **Scrollable Pages**: `CellLayout` integrates inside `NestedScrollView`, providing clean grid alignment with fluid vertical expansion when large widgets are placed.
+## Home screen
 
-### 1.2 Fluid Drag-and-Drop & Drop Zones
-- **Spring-Loaded Paging**: Dragging an item to the left or right screen boundary automatically flips to adjacent workspace pages.
-- **Dynamic Folder Merging**: Dragging an app over another app displays a pulsing accent outline; releasing merges them into a Nothing dot folder.
-- **Folder Expansion**: Dragging an app over an existing folder adds the app to that folder.
-- **Top Drop-Zone Bar**: Persistent action zones dynamically respond to dragging:
-  - **Remove**: Clears item from home screen without uninstalling.
-  - **Uninstall**: Invokes system uninstallation dialog.
-  - **App Info**: Opens system application settings.
-- **Persistent Dock Integration**: Drag items into and out of the bottom dock with automatic slot reordering.
+- First run places two Not a Thing widgets automatically: the LED clock across the top and a
+  battery/calendar tile below it (if the grid has room).
+- Long-press empty space opens the Not a Thing **Customize sheet** (Wallpaper & style, Widgets,
+  Settings) instead of Launcher3's stock long-press menu.
+- Everything else on the home screen (pages, folders, Max/enlarged icons, drag & drop,
+  resizing, the dock) is stock Launcher3.
 
-### 1.3 Horizontal Pagination & Dot Indicator
-- **Smooth Paging Physics**: Pages snap cleanly using Android's `PagerSnapHelper`.
-- **Morphing Dot Indicator (`PageIndicatorView`)**: Circular dots at the screen bottom dynamically stretch and morph with scroll offset. Tapping any dot jumps directly to that page.
-- **Page Management**: Long-press empty space to access the *Home Customisation* sheet to add blank canvases or remove unwanted pages safely.
+## Dot-matrix widgets
 
----
+Found in the stock widget picker under *Not a Thing* (long-press home → Widgets, or Customize
+sheet → Widgets). Added, moved, resized and removed exactly like any other Android widget:
 
-## 2. Bespoke Nothing Elements Suite
+| Widget | What it shows |
+|---|---|
+| **LED Clock** | Dot-matrix time + date, optional live seconds ticker (Settings → Home) |
+| **Battery & Calendar** | Battery dot gauge next to day/weekday and the next system alarm |
+| **Weather** | Live conditions from Open-Meteo (no API key); manual city or automatic lookup (Settings → Permissions & capabilities → Weather location) |
+| **Media** | Now-playing track/artist with play/pause/next/previous, once notification access is granted |
 
-All elements are rendered procedurally using hardware-accelerated 2D canvas drawing and the custom `DotFont` engine, fully visibility-gated to ensure zero idle battery consumption:
+A plain system "Date & time" widget is also available — it exists mainly so the device always
+has at least one installed widget provider (Launcher3 needs that to register the in-process
+widgets above).
 
-| Element | Description | Interactive Behavior | Battery Optimization |
-|---|---|---|---|
-| **Dot-Matrix LED Clock** | LED-panel clock with pulsating red accent colon, local/system time formatting, and live 60-dot seconds ticker. | Tap opens default Clock / Alarms app. | Ticker runnable stops when screen off or obscured (`onVisibilityAggregated`). |
-| **Circular Battery Meter** | Compact paper/dark circular ring of 40 dots. Changes to red at ≤15%, dot breathes while charging. | Tap opens Battery Settings. | Animator stops and battery intent unregisters when hidden. |
-| **Battery Gauge Hero Tile** | Full-width hero tile displaying DotFont percentage, charging state, and 28-dot circular capacity meter with charging bolt. | Tap opens Battery Settings; Long-press opens element menu. | Pauses battery polling when off-screen. |
-| **Procedural Compass Rose** | True heading dial with accent North indicator dot and live degrees numerical readout. | Rotates dynamically with device geomagnetic sensors. | Sensor unregisters when screen is off, drawer is open, or on a page without compass. |
-| **Pedometer / Step Counter** | 36-dot radial activity ring with live step count rendered in dot-matrix typography. | Tap opens health / fitness app. | Step listener unregisters on lifecycle pause. |
-| **Media Controller Element** | Authentic Nothing music player tile with live track/artist info and real-time playback transport controls (Play/Pause, Next, Previous). | Controls background media playback via `MediaSessionManager`. | Equalizer animation freezes when hidden. |
-| **Voice Memo / Recorder** | Integrated dot-matrix voice recorder with live recording waveform, elapsed timer, and audio memo playback. | Tap to record memo; tap again to save and play back. | Recording audio buffers release safely. |
-| **Quick Note / Daily Quote** | Dot-matrix scratchpad displaying user-defined quotes or reminders with live accent dot indicator. | Tap opens quick note editor dialog; Long-press opens element menu. | Static rendering; zero background cycles. |
-| **Date & Calendar Tile** | Minimalist tile showing month, dot-matrix day number, weekday, and the next active system alarm. | Tap opens System Calendar. | Alarms query updates on system alarm broadcast only. |
-| **Procedural Weather Tile** | Live dot-matrix temperature readout, procedural sun, cloud, and rain glyphs, and condition subtitles. | Tap launches Weather / Search. | Network lookup throttled with local cache. |
-| **Quick Toggles Element** | 4 quick control discs: Wi-Fi, Bluetooth, Flashlight/Torch (camera hardware level), and Sound Mode. | Single tap toggles system state with haptic feedback. | Event-driven status listeners. |
-| **Stopwatch Tile** | Clean dot-matrix precision stopwatch with start, lap, and reset controls. | Interactive lap recording. | Animator pauses when obscured. |
-| **Analog Clock Tile** | Minimalist dot-matrix analog clock face with discrete hour, minute, and second hands. | Tap opens Clock app. | Ticks only while visible. |
-| **Screen Time / Wellbeing** | Displays daily active screen hours and minutes with a 7-segment dot usage bar. | Tap opens Digital Wellbeing. | Queries system usage stats only on resume. |
-| **Storage & RAM Meter** | Real-time storage capacity meter with free GB readout and circular dot ring fullness meter. | Tap opens Storage Settings. | Queried via `StatFs` on resume. |
-| **World Clock** | Dual time-zone dot-matrix clock comparing local time with selected international cities. | Tap opens World Clock. | Ticks only while visible. |
+## App drawer & search
 
----
+Stock Launcher3: search, alphabetical scrubber, hidden apps, app shortcuts via long-press — all
+unmodified, just restyled in the Not a Thing palette.
 
-## 3. App Icons, Max Icons & Nothing Folders
+## Settings
 
-### 3.1 Nothing Monochrome Icon Engine & In-Memory LRU Cache
-- Automatically extracts Android 13+ themed adaptive monochrome vector icons.
-- Applies high-contrast monochrome disc filters for apps without themed icons.
-- **$O(1)$ In-Memory LRU Cache**: 300-entry memory cache eliminates canvas rasterization stalls on cold start and scrolling.
-- Option in Settings to toggle between **Mono** (Nothing style) and **Color** (original app icons in clean circular badges).
+Not a Thing's own settings screen (long-press home → Settings, or the app icon's shortcut)
+groups:
 
-### 3.2 Authentic Nothing Folders
-- **1×1 Circular Folder Discs**: Translucent circular dark disc with a subtle outline holding a 2×2 mini-icon preview grid with NDot typography caption below.
-- **2×2 Enlarged Folder Tiles**: Square hero tiles (`bg_tile_dark`) featuring 4 interactive app icons that can be directly tapped to launch, overflow indicator, folder title, and red accent dot.
-- **Folder Management Sheet**: Tap any 1×1 folder or the folder header to open the folder sheet. Enlarge/shrink between 1×1 and 2×2, rename, add apps, ungroup/dissolve, and drag apps out of the folder directly onto the workspace.
+- **Home** — grid size (3×3/4×4/5×5 on phones), seconds ticker, "add icon to home screen on
+  install", auto-rotate.
+- **Look** — icon style (mono/colour), background (dots/black/wallpaper), wallpaper picker.
+- **Permissions & capabilities** — notification access (needed for the media widget and
+  notification dots), weather location.
+- **System** — default-launcher status/shortcut, **Advanced home settings** (opens Launcher3's
+  own stock settings screen, e.g. notification dots), and About.
 
-### 3.3 Max Icons (2×2 Hero Enlargement)
-- Expand any pinned app icon into an authentic 2×2 rounded square hero tile (`bg_tile_dark`).
-- Large centered monochrome app icon (60dp), bold uppercase label, and Nothing signature red dot accent.
+Grid size, icon style and rotation are read from and written straight to Launcher3's own
+`LauncherPrefs`/`InvariantDeviceProfile`, so they always match what Launcher3's stock settings
+screen (reachable via "Advanced home settings") shows.
 
----
+## App icon & onboarding
 
-## 4. App Drawer & Search
+Unlike a raw home-only activity, Not a Thing has a real app icon (an invisible trampoline
+activity). Tapping it shows a first-run welcome screen with "Set as default home", or opens the
+system's home-app chooser / straight to the home screen if it's already default. Long-pressing
+the icon offers "Launcher settings" and "Set as default home app" shortcuts.
 
-### 4.1 Finger-Tracking Elevation Physics
-- Swiping up from anywhere on the home screen pulls up the app drawer.
-- Drawer follows finger dragging with deceleration curves.
-- Background applies real-time GPU blur (`RenderEffect`) on Android 12+ devices.
+## Updates
 
-### 4.2 Multi-Tier Ranked Search
-Search bar ranks installed applications in order of relevance:
-1. **Prefix matches** ("sp" → Spotify).
-2. **Word boundary matches** ("notes" → Keep Notes).
-3. **Substring matches** ("gram" → Telegram).
-4. **Initials / Acronym matches** ("yt" → YouTube, "ps" → Play Store).
-5. **Web Search Fallback**: If no application matches, displays a one-tap button: *"Search the web for '[query]'"*.
-
-### 4.3 A–Z Alphabet Dot Scroller
-- Scrubbing along the right margin jumps directly to letter sections.
-- Displays an enlarged dot-matrix letter bubble with tactile haptic ticks.
-
-### 4.4 Recent & Hidden Apps
-- **Recent Apps**: Shows the 4 most recently launched apps at the top of the drawer.
-- **Hidden Apps**: Any app can be hidden via long-press → *Hide app*. Hidden packages can be viewed and unhidden in *Settings → Hidden apps*.
-
----
-
-## 5. Long-Press Menus & Sheets
-
-### 5.1 Empty Space Long-Press (`Home Customisation`)
-Long-pressing empty space on any workspace page triggers haptic feedback and displays the bottom customisation sheet:
-- **Wallpaper & Style**: Select background styling (Nothing Dot Matrix grid, Solid Minimalist OLED black/white, or System Wallpaper) and Theme Mode (System, Dark, Light).
-- **Widgets**: Opens the categorized Bespoke Elements and Android AppWidgets picker.
-- **Add / Remove Page**: Instant workspace page management.
-- **Settings**: Quick shortcut to full launcher settings.
-
-### 5.2 App Long-Press Popup (`AppPopup`)
-Long-pressing any app displays:
-- **App Shortcuts**: Dynamic shortcuts provided by the app (e.g. "New tab", "Scan QR").
-- **Pin to Home / Remove from Home**.
-- **Add to Dock / Remove from Dock**.
-- **Enlarge (2×2) / Shrink (1×1)**.
-- **Add to Folder / Create Folder**.
-- **App Info** (direct intent to system package settings).
-- **Hide App**.
-- **Uninstall** (triggers system confirmation).
-
----
-
-## 6. Zero-Idle Battery & System Optimization
-
-- **Lifecycle Sensor Unregistration**: `CompassRepository` and `StepRepository` unregister completely when the launcher is backgrounded or screen locks (`onStop`).
-- **Drawer Scrubbing Throttling**: Pauses compass sensor updates when pulling down the app drawer (`drawerProgress > 0.05f`).
-- **Page-Aware Sensor Throttling**: Pauses compass hardware updates when on a workspace page without a compass element.
-- **Custom View Visibility Overrides**: All 9 animated dot views implement `onVisibilityAggregated(isVisible)` and `isShown` checks, terminating runnable loops and animators when offscreen.
-- **In-Memory LRU Icon Cache**: 300 pre-rendered bitmaps eliminate frame drops during scrolling and navigation.
-
----
-
-## 7. Theming & Personalization
-
-- **Pure OLED Dark Mode**: `#000000` deep black canvas for maximum battery savings on OLED displays.
-- **Minimalist Light Mode**: `#F6F6F4` bone-white canvas with dark ink typography.
-- **Surface Contrast Fixes**: Added `border_subtle` (`#232327`) and `surface_dark` (`#0C0C0E`) to night mode resources.
-- **Edge-to-Edge System Insets**: Proper padding for camera cutouts, navigation gesture bars, and status bars.
-- **Non-Destructive Schema v3**: Clean upgrades preserving 100% of user data and layouts.
+Every release is signed with one stable key and uses a monotonically increasing `versionCode`,
+so installing a new APK over an old one updates in place instead of requiring an uninstall. See
+the root [README](../README.md#release-signing--update-compatibility) for details.
