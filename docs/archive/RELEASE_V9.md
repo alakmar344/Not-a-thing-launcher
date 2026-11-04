@@ -1,3 +1,7 @@
+> **Archived.** Historical release notes for the pre-v11 bespoke launcher (predates the v11.0
+> rebuild on stock AOSP Launcher3). See [`../../CHANGELOG.md`](../../CHANGELOG.md) for the
+> current changelog.
+
 # Release v9.0 — Native Launcher Rebuild & CellLayout Grid
 
 **Package:** `com.nothinglauncher`  
