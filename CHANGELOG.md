@@ -6,6 +6,20 @@ dates.
 
 ## [Unreleased]
 
+### Added
+- `tools/verify_release_reflection.py`, run in CI after `assembleRelease`: parses the real release
+  dex and the merged resources and fails the build if anything Launcher3 instantiates by name
+  (every `custom_widget_providers` entry, every non-empty `*_class` `ResourceBasedOverride`
+  string, and the no-arg constructor of every `Overrides.getObject(Base.class, …)` fallback,
+  whose failure is an uncaught crash) is missing or lost the constructor/supertype it needs.
+  18 targets today. Verified it fails on the broken 11.1 output and passes on the fixed one.
+
+### Changed
+- Measured the 11.1 R8 keep-rule change for the first time (same inputs, real `assembleRelease`):
+  APK 5,205,285 → 4,790,157 bytes (−8.0%); `classes.dex` 4,480,260 → 3,164,768 bytes (−29.4%);
+  dex methods 31,835 → 25,361, fields 33,579 → 11,749, strings 35,570 → 20,274. Startup/RAM
+  effects were not measured (no device available).
+
 ### Security
 - `protobuf-javalite`/`protoc` bumped from 3.25.3 to 3.25.9 (`launcher3/build.gradle`). 3.25.3 is
   affected by [CVE-2024-7254](https://github.com/advisories/GHSA-735f-pc8j-v9w8) (CVSS 7.5):
@@ -17,6 +31,15 @@ dates.
   unchanged for Launcher3's checked-in proto sources.
 
 ### Fixed
+- **Release builds of 11.1 shipped without any Not a Thing widgets** (LED clock, battery & date,
+  weather, media — gone from the widget picker, and no clock/battery tiles on first run). 11.1's
+  narrower R8 keep rules let R8 delete `WeatherWidget`/`MediaWidget`/`NothingWidget` outright and
+  strip the `(Context)` constructor and `CustomWidgetPlugin` supertype from `ClockWidget`/
+  `BatteryCalendarWidget`, because Launcher3 only references them by name from
+  `R.array.custom_widget_providers` (`Class.forName(...).getDeclaredConstructor(Context.class)`),
+  which R8 can't see. Debug builds aren't minified, so every test passed. Fixed with a precise
+  keep rule for `CustomWidgetPlugin` implementations in `launcher3/consumer-rules.pro`; found by
+  measuring the actual release dex rather than trusting the rule change.
 - `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
   sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
   Activity was destroyed and recreated while one was open — e.g. the system switching to dark

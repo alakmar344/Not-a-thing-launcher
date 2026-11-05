@@ -51,7 +51,16 @@ jobs:
       
       - name: Build Release APK
         run: ./gradlew assembleRelease
-      
+
+      # Debug builds aren't minified, so no test can see R8 stripping a class Launcher3 only loads
+      # by name from resources (custom widgets, ResourceBasedOverride). Check the real release dex.
+      - name: Verify release keeps reflectively-loaded classes
+        run: >
+          python3 tools/verify_release_reflection.py
+          --apk app/build/outputs/apk/release/app-release.apk
+          --values app/build/intermediates/incremental/release/mergeReleaseResources/merged.dir/values/values.xml
+          --sources third_party/aosp/launcher3/src launcher3/src app/src/main/java
+
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:

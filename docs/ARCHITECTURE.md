@@ -71,6 +71,13 @@ Each bespoke element is a small `CustomWidgetPlugin` implementation under
 | `WeatherWidget` | Live weather via `WeatherRepository` (Open-Meteo, no API key) |
 | `MediaWidget` | Now-playing + transport controls via `MediaSessionRepository` (needs notification access) |
 
+Launcher3 loads these purely by name from `R.array.custom_widget_providers`
+(`Class.forName(name).getDeclaredConstructor(Context.class)`), so each one needs a public
+`(Context)` constructor, and R8 only keeps them because of the `CustomWidgetPlugin` rule in
+`launcher3/consumer-rules.pro`. A new widget is covered automatically as long as it implements
+`CustomWidgetPlugin` (directly or via `NothingWidget`) and is appended to the array.
+`tools/verify_release_reflection.py` (run in CI) checks the release dex for exactly this.
+
 `DateTimeWidgetProvider` is a plain system `AppWidgetProvider` (not a Not a Thing element): its
 only job is to guarantee the device has at least one installed widget provider, because
 Launcher3's `CustomWidgetManager` only registers the in-process custom widgets above when the

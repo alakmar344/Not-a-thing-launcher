@@ -61,6 +61,36 @@ environment OOM (no compiler error, daemon just vanishes) before concluding anyt
 Lowering `-Xmx`/`-XX:MaxMetaspaceSize` and `--max-workers=1` via
 `-Dorg.gradle.jvmargs=...  --no-daemon` can get further in a memory-constrained sandbox.
 
+Measured in a 3 GB cgroup: R8 itself peaks at ~1.7 GB RSS over this app; the OOMs come from
+*other* JVMs sitting next to it — most often a leftover Kotlin compile daemon (~1.1 GB, check
+`pgrep -af KotlinCompileDaemon` and kill it). With nothing else resident, this completes a full
+release build in ~6 min:
+
+```bash
+./gradlew assembleRelease -x lintVitalRelease --no-daemon --max-workers=1 \
+  -Dorg.gradle.jvmargs="-Xmx2300m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC" \
+  -Dkotlin.compiler.execution.strategy=in-process
+```
+
+## Release builds must be checked, not assumed
+
+Debug builds are not minified, so **no unit/Robolectric/Paparazzi test can tell you whether R8
+broke the release build.** Launcher3 instantiates several classes purely by name from resources
+(`R.array.custom_widget_providers`, `ResourceBasedOverride` `*_class` strings), which R8 can't
+see. If you touch any keep rule, add a widget, or add a `*_class` override, build the release
+APK and run:
+
+```bash
+python3 tools/verify_release_reflection.py --apk app/build/outputs/apk/release/app-release.apk \
+  --values app/build/intermediates/incremental/release/mergeReleaseResources/merged.dir/values/values.xml \
+  --sources third_party/aosp/launcher3/src launcher3/src app/src/main/java
+```
+
+CI runs this too. It exists because 11.1 shipped a release build with every Not a Thing widget
+stripped out while all tests were green. When you claim a size/perf win from a build change,
+measure it on the release artifact (APK and `classes.dex` sizes, dex method/field counts) and say
+what you could *not* measure.
+
 Never commit anything under `*/build/` (Gradle output) even though some such directories are
 unfortunately already tracked in git history — `git status` before committing and leave build
 artifacts alone.
