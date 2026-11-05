@@ -61,9 +61,65 @@ environment OOM (no compiler error, daemon just vanishes) before concluding anyt
 Lowering `-Xmx`/`-XX:MaxMetaspaceSize` and `--max-workers=1` via
 `-Dorg.gradle.jvmargs=...  --no-daemon` can get further in a memory-constrained sandbox.
 
+Measured in a 3 GB cgroup: R8 itself peaks at ~1.7 GB RSS over this app; the OOMs come from
+*other* JVMs sitting next to it — most often a leftover Kotlin compile daemon (~1.1 GB, check
+`pgrep -af KotlinCompileDaemon` and kill it). With nothing else resident, this completes a full
+release build in ~6 min:
+
+```bash
+./gradlew assembleRelease -x lintVitalRelease --no-daemon --max-workers=1 \
+  -Dorg.gradle.jvmargs="-Xmx2300m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC" \
+  -Dkotlin.compiler.execution.strategy=in-process
+```
+
+## Release builds must be checked, not assumed
+
+Debug builds are not minified, so **no unit/Robolectric/Paparazzi test can tell you whether R8
+broke the release build.** Launcher3 instantiates several classes purely by name from resources
+(`R.array.custom_widget_providers`, `ResourceBasedOverride` `*_class` strings), which R8 can't
+see. If you touch any keep rule, add a widget, or add a `*_class` override, build the release
+APK and run:
+
+```bash
+python3 tools/verify_release_reflection.py --apk app/build/outputs/apk/release/app-release.apk \
+  --values app/build/intermediates/incremental/release/mergeReleaseResources/merged.dir/values/values.xml \
+  --sources third_party/aosp/launcher3/src launcher3/src app/src/main/java
+```
+
+You normally don't need to: it runs automatically at the end of every `assembleRelease`
+(`verifyReleaseReflection` in `app/build.gradle`), so CI's existing release step runs it too. It
+exists because 11.1 shipped a release build with every Not a Thing widget stripped out while all
+tests were green. When you claim a size/perf win from a build change,
+measure it on the release artifact (APK and `classes.dex` sizes, dex method/field counts) and say
+what you could *not* measure.
+
 Never commit anything under `*/build/` (Gradle output) even though some such directories are
 unfortunately already tracked in git history — `git status` before committing and leave build
 artifacts alone.
+
+## Hard rule: don't edit `.github/workflows/` from an agent session
+
+The credentials that push agent branches don't have GitHub's `workflow` permission, so GitHub
+**rejects the entire push** if it contains any change to a file under `.github/workflows/` —
+and because every later commit sits on top of that one, the branch can't be pushed (or turned
+into a PR) at all from then on. This has happened repeatedly.
+
+Put CI behaviour where the workflow already reaches it instead:
+
+- Hook it into a Gradle task CI already runs (`recordPaparazziDebug`, `assembleDebug`,
+  `assembleRelease`) — e.g. `finalizedBy`/`dependsOn`, the way `verifyReleaseReflection` is
+  attached to `assembleRelease` in `app/build.gradle`.
+- Logic that isn't Gradle-shaped goes in a script under `tools/` invoked from such a task.
+
+If a change genuinely can only be made in a workflow file, make it in **`ci/workflows/`**
+instead (same file name as the live one), which pushes normally. `ci/workflows/` is the source of
+truth: `ci/workflows/sync-workflows.yml` mirrors it into `.github/workflows/` after the change is
+merged to `main`, using the `WORKFLOW_SYNC_TOKEN` secret (README, "Staged workflows"). Until a
+human has done that one-time setup, staged changes are **not live** — check whether
+`.github/workflows/sync-workflows.yml` exists, and say plainly in your summary whether your
+change is live or only staged. Keep each staged file a superset of its live counterpart, and
+never add anything to `ci/workflows/` you wouldn't want running on `main` with the repo's
+secrets: once merged it executes with them.
 
 ## Docs policy
 
