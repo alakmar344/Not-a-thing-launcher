@@ -6,6 +6,16 @@ dates.
 
 ## [Unreleased]
 
+### Security
+- `protobuf-javalite`/`protoc` bumped from 3.25.3 to 3.25.9 (`launcher3/build.gradle`). 3.25.3 is
+  affected by [CVE-2024-7254](https://github.com/advisories/GHSA-735f-pc8j-v9w8) (CVSS 7.5):
+  unbounded recursion while parsing unknown fields lets a maliciously crafted protobuf message
+  crash the process with a `StackOverflowError`. This library is linked into the shipped app (it
+  decodes Launcher3's own `LauncherAtom`/`LauncherDumpProto` logging/dump messages), so it's part
+  of the installed APK's real attack surface, unlike the project's test-only dependencies. Stayed
+  on the 3.25.x patch line rather than jumping to the 4.x major to keep the generated-code ABI
+  unchanged for Launcher3's checked-in proto sources.
+
 ### Fixed
 - `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
   sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
