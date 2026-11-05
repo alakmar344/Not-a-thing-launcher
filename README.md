@@ -65,9 +65,9 @@ Android only installs an update if it is signed with the **same key** as the ins
 
 Optional: your own key can be supplied as the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`. Add them now or never, because changing keys later forces another uninstall.
 
-### Optional: `.aab` files and re-signed old releases
+### Optional: `.aab` files, correct release names and re-signed old releases
 
-The automation that pushes this repo is not allowed to edit `.github/workflows/`. If you want the `.aab` (Android App Bundle) attached to releases, and a one-click button that re-signs all old releases (v2 → v9.0) with the same key, paste the contents of `ci/workflows/build.yml` over `.github/workflows/build.yml` in the GitHub web editor. To re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
+The automation that pushes this repo is not allowed to edit `.github/workflows/`. The live workflow publishes every `main` build as **"Release v10.0"** (a hard-coded tag). If you want releases named after the real version (currently v11.1), the `.aab` (Android App Bundle) attached to releases, and a one-click button that re-signs all old releases (v2 → v9.0) with the same key, paste the contents of `ci/workflows/build.yml` over `.github/workflows/build.yml` in the GitHub web editor. To re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
 
 Build locally (Windows):
 

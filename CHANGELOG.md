@@ -16,6 +16,10 @@ dates.
   18 targets today. Verified it fails on the broken 11.1 output and passes on the fixed one.
 
 ### Changed
+- Staged workflow `ci/workflows/build.yml` now names `main`-branch releases after
+  `app/build.gradle`'s `versionName` (resolves to `v11.1`) instead of a hard-coded tag. Not live
+  yet: the live `.github/workflows/build.yml` still publishes as "Release v10.0" until someone
+  with GitHub `workflow` permission copies the staged file over it (see README).
 - Measured the 11.1 R8 keep-rule change for the first time (same inputs, real `assembleRelease`):
   APK 5,205,285 → 4,790,157 bytes (−8.0%); `classes.dex` 4,480,260 → 3,164,768 bytes (−29.4%);
   dex methods 31,835 → 25,361, fields 33,579 → 11,749, strings 35,570 → 20,274. Startup/RAM

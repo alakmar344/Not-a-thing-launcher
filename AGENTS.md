@@ -111,9 +111,11 @@ Put CI behaviour where the workflow already reaches it instead:
   attached to `assembleRelease` in `app/build.gradle`.
 - Logic that isn't Gradle-shaped goes in a script under `tools/` invoked from such a task.
 
-If a change genuinely can only be made in the workflow file (e.g. the `Create Release` step's
-hard-coded `v10.0` fallback tag), don't commit it — describe the exact edit in your summary so a
-human with `workflow` permission can make it.
+If a change genuinely can only be made in the workflow file, make it in
+**`ci/workflows/build.yml`** instead — the repo's staged copy of the next workflow (see README,
+"Optional: `.aab` files…"), which pushes normally. A human with `workflow` permission activates
+it by copying it over `.github/workflows/build.yml`. Keep the staged copy a superset of the live
+one, and say in your summary that the change is staged, not live.
 
 ## Docs policy
 
