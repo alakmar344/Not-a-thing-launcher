@@ -40,6 +40,8 @@ dates.
   which R8 can't see. Debug builds aren't minified, so every test passed. Fixed with a precise
   keep rule for `CustomWidgetPlugin` implementations in `launcher3/consumer-rules.pro`; found by
   measuring the actual release dex rather than trusting the rule change.
+- CI published every `main` build as "Release v10.0" (hard-coded tag); it now uses the
+  `versionName` from `app/build.gradle` (currently `v11.1`).
 - `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
   sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
   Activity was destroyed and recreated while one was open — e.g. the system switching to dark
