@@ -111,11 +111,15 @@ Put CI behaviour where the workflow already reaches it instead:
   attached to `assembleRelease` in `app/build.gradle`.
 - Logic that isn't Gradle-shaped goes in a script under `tools/` invoked from such a task.
 
-If a change genuinely can only be made in the workflow file, make it in
-**`ci/workflows/build.yml`** instead — the repo's staged copy of the next workflow (see README,
-"Optional: `.aab` files…"), which pushes normally. A human with `workflow` permission activates
-it by copying it over `.github/workflows/build.yml`. Keep the staged copy a superset of the live
-one, and say in your summary that the change is staged, not live.
+If a change genuinely can only be made in a workflow file, make it in **`ci/workflows/`**
+instead (same file name as the live one), which pushes normally. `ci/workflows/` is the source of
+truth: `ci/workflows/sync-workflows.yml` mirrors it into `.github/workflows/` after the change is
+merged to `main`, using the `WORKFLOW_SYNC_TOKEN` secret (README, "Staged workflows"). Until a
+human has done that one-time setup, staged changes are **not live** — check whether
+`.github/workflows/sync-workflows.yml` exists, and say plainly in your summary whether your
+change is live or only staged. Keep each staged file a superset of its live counterpart, and
+never add anything to `ci/workflows/` you wouldn't want running on `main` with the repo's
+secrets: once merged it executes with them.
 
 ## Docs policy
 

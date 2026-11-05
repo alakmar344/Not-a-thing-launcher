@@ -16,6 +16,10 @@ dates.
   18 targets today. Verified it fails on the broken 11.1 output and passes on the fixed one.
 
 ### Changed
+- `ci/workflows/sync-workflows.yml`: once set up (one-time, see README "Staged workflows"), it
+  mirrors `ci/workflows/*.yml` into `.github/workflows/` on every merge to `main`, so staged
+  workflow changes go live automatically instead of needing a manual copy. Needs a
+  `WORKFLOW_SYNC_TOKEN` secret, because the built-in `GITHUB_TOKEN` can't modify workflow files.
 - Staged workflow `ci/workflows/build.yml` now names `main`-branch releases after
   `app/build.gradle`'s `versionName` (resolves to `v11.1`) instead of a hard-coded tag. Not live
   yet: the live `.github/workflows/build.yml` still publishes as "Release v10.0" until someone

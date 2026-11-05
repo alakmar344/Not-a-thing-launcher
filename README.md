@@ -65,9 +65,19 @@ Android only installs an update if it is signed with the **same key** as the ins
 
 Optional: your own key can be supplied as the secrets `RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD`. Add them now or never, because changing keys later forces another uninstall.
 
-### Optional: `.aab` files, correct release names and re-signed old releases
+### Staged workflows (`ci/workflows/`) — one-time setup
 
-The automation that pushes this repo is not allowed to edit `.github/workflows/`. The live workflow publishes every `main` build as **"Release v10.0"** (a hard-coded tag). If you want releases named after the real version (currently v11.1), the `.aab` (Android App Bundle) attached to releases, and a one-click button that re-signs all old releases (v2 → v9.0) with the same key, paste the contents of `ci/workflows/build.yml` over `.github/workflows/build.yml` in the GitHub web editor. To re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
+The automation that pushes this repo is not allowed to edit `.github/workflows/`, so workflow changes are staged in `ci/workflows/`. Right now those staged changes are **not live**: the live workflow still publishes every `main` build as "Release v10.0", and the staged one adds correct release names (v11.1), `.aab` files on releases, and a button that re-signs old releases (v2 → v9.0) with the same key.
+
+Set this up once and every staged change goes live automatically after it's merged to `main` (the PR review is the check):
+
+1. Create a token that is allowed to change workflows: GitHub → Settings → Developer settings → **Fine-grained tokens** → *Generate new token*, repository access *Only this repository*, permissions **Contents: Read and write** and **Workflows: Read and write**. (The built-in `GITHUB_TOKEN` can never do this.)
+2. In this repo: Settings → Secrets and variables → Actions → *New repository secret*, name `WORKFLOW_SYNC_TOKEN`, value = the token.
+3. In the GitHub web editor, create `.github/workflows/sync-workflows.yml` with the contents of `ci/workflows/sync-workflows.yml` and commit it to `main`. It runs immediately and mirrors every file in `ci/workflows/` into `.github/workflows/`.
+
+From then on `ci/workflows/` is the source of truth. If `main` has branch protection that blocks direct pushes, allow the token's owner to bypass it, or the sync will fail with a clear error.
+
+Once the staged `build.yml` is live: to re-sign the old releases, open **Actions → Build and Release APK → Run workflow** and tick *rebuild old releases*.
 
 Build locally (Windows):
 
