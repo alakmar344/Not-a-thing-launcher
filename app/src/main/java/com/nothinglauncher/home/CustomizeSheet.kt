@@ -1,5 +1,6 @@
 package com.nothinglauncher.home
 
+import android.app.Dialog
 import android.content.Intent
 import android.view.LayoutInflater
 import android.widget.LinearLayout
@@ -17,9 +18,28 @@ import com.nothinglauncher.settings.NothingSettingsActivity
 /** The v10 "Customize" sheet: Wallpaper & style, Widgets, Settings. */
 object CustomizeSheet {
 
+    // Tracked so the Activity can dismiss it on teardown — a config change this Activity doesn't
+    // list (e.g. system dark/light switching while the sheet is open) destroys NothingLauncher
+    // without going through any of the dialog's own dismiss paths, which would otherwise leave
+    // the sheet's window attached to a dead Activity token (logged as "WindowLeaked").
+    private var currentDialog: Dialog? = null
+
+    /** Dismisses whichever sheet from this object is currently showing, if any. Call from the
+     * hosting Activity's onDestroy(). */
+    fun dismissActive() {
+        currentDialog?.dismiss()
+        currentDialog = null
+    }
+
+    private fun track(dialog: Dialog) {
+        currentDialog = dialog
+        dialog.setOnDismissListener { if (currentDialog === dialog) currentDialog = null }
+    }
+
     fun show(launcher: Launcher) {
         val b = SheetCustomizeBinding.inflate(LayoutInflater.from(launcher))
         val dialog = Sheets.create(launcher, b.root)
+        track(dialog)
         fun tile(t: ItemSheetTileBinding, icon: Int, label: Int, action: () -> Unit) {
             t.tileIcon.setImageResource(icon)
             t.tileLabel.setText(label)
@@ -44,6 +64,7 @@ object CustomizeSheet {
         val prefs = NothingPrefs.get(launcher)
         val root = LayoutInflater.from(launcher).inflate(R.layout.sheet_style, null)
         val dialog = Sheets.create(launcher, root)
+        track(dialog)
         val list = root.findViewById<LinearLayout>(R.id.styleList)
         SettingsUi.card(list).also { card ->
             SettingsUi.choiceRow(

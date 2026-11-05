@@ -6,6 +6,15 @@ dates.
 
 ## [Unreleased]
 
+### Fixed
+- `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
+  sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
+  Activity was destroyed and recreated while one was open — e.g. the system switching to dark
+  mode on its scheduled time, or a font-scale/display-size change, neither of which is in
+  `NothingLauncher`'s `android:configChanges` list, so Android tears the Activity down and
+  rebuilds it without going through any of the sheet's own dismiss paths. `CustomizeSheet` now
+  tracks whichever of its dialogs is showing and `NothingLauncher.onDestroy()` dismisses it.
+
 ## [11.1] — Release build optimization and Android 15 compatibility
 
 ### Changed
