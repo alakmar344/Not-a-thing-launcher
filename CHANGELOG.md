@@ -7,6 +7,46 @@ dates.
 ## [Unreleased]
 
 ### Fixed
+- `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
+  sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
+  Activity was destroyed and recreated while one was open — e.g. the system switching to dark
+  mode on its scheduled time, or a font-scale/display-size change, neither of which is in
+  `NothingLauncher`'s `android:configChanges` list, so Android tears the Activity down and
+  rebuilds it without going through any of the sheet's own dismiss paths. `CustomizeSheet` now
+  tracks whichever of its dialogs is showing and `NothingLauncher.onDestroy()` dismisses it.
+
+## [11.1] — Release build optimization and Android 15 compatibility
+
+### Changed
+- `targetSdk` raised from 34 to 35 (Android 15), matching `compileSdk`, so the shipped APK is no
+  longer two platform releases behind the compiler and stays eligible for Play Store submission.
+  Android 15 enforces edge-to-edge for apps targeting SDK 35, which Launcher3's own theme already
+  draws for (translucent status/nav bars — see `third_party/aosp/launcher3/res/values/styles.xml`),
+  so this is a compatibility bump rather than a layout change.
+- Fixed a ProGuard/R8 rule bug in `app/proguard-rules.pro` that was silently defeating most of
+  R8's work on release builds: it added a second, unscoped `-keep class com.nothinglauncher.** {
+  *; }` / `-keep class com.android.launcher3.** { *; }` on top of Launcher3's own
+  `-keep,allowshrinking,allowoptimization` rule (applied automatically via the `:launcher3`
+  module's `consumerProguardFiles`). A plain `-keep` is strictly stronger and wins, so neither
+  package was actually being shrunk, inlined, or dead-code-eliminated — R8 was only trimming
+  third-party libraries. The app's own rules now use the same `allowshrinking,allowoptimization`
+  scoping AOSP uses for Launcher3: class *names* stay intact (`ResourceBasedOverride`/
+  `CustomWidgetPlugin` still resolve implementations by name from resources/XML), but R8 can once
+  again strip unused methods/fields and optimize the method bodies of effectively the whole app,
+  which is where almost all code lives — smaller, faster-loading release APK for the same
+  behaviour.
+- `android.enableR8.fullMode=true` set explicitly in `gradle.properties` (already AGP 8's default,
+  but now can't silently regress to the slower/less-aggressive legacy R8 mode on a future AGP
+  bump) and `org.gradle.parallel`/`org.gradle.caching` enabled for faster local/CI builds
+  (build-time only — no effect on the shipped APK).
+- Resource shrinking (`shrinkResources`) was evaluated and deliberately left off: Launcher3
+  resolves several resources dynamically via `Resources.getIdentifier` (grid-size preview
+  thumbnails in `GridCustomizationsProvider`, OEM `Partner` overlays, `DeviceProfile` grid
+  option names), which the default resource shrinker cannot see are in use and would strip,
+  breaking the grid picker. Enabling it needs explicit `tools:keep` rules first; left as a
+  follow-up rather than shipping something unverified.
+
+### Fixed
 - Kotlin compile error in `NothingPrefs.addListener`/`removeListener` (missing `?.` safe calls
   on a nullable `SharedPreferences`) that broke `compileDebugKotlin` and failed every CI run at
   the Paparazzi screenshot test step.

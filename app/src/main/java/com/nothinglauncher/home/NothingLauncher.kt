@@ -72,6 +72,17 @@ class NothingLauncher : Launcher() {
     }
 
     /**
+     * A config change this Activity doesn't list in android:configChanges (e.g. system
+     * dark/light mode switching, display size/font scale) destroys and recreates it even while
+     * the Customize sheet is open. Dismiss any open sheet so its window doesn't outlive the
+     * Activity token it was shown on ("WindowLeaked").
+     */
+    override fun onDestroy() {
+        CustomizeSheet.dismissActive()
+        super.onDestroy()
+    }
+
+    /**
      * Wallpaper colours only matter when the wallpaper is visible; otherwise a new wallpaper
      * would needlessly rebuild home (closing the drawer and folders).
      */
