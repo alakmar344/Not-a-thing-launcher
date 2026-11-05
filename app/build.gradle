@@ -47,9 +47,14 @@ android {
     defaultConfig {
         applicationId "com.nothinglauncher"
         minSdk 26
-        targetSdk 34
+        // Android 15 (API 35): matches compileSdk, so the app is no longer re-targeted at an
+        // SDK two major releases behind the compiler — required for new Play Store submissions
+        // and lets the launcher pick up platform behaviour (e.g. enforced edge-to-edge) that
+        // Launcher3's own theme already draws for (translucent status/nav bars, see
+        // third_party/aosp/launcher3/res/values/styles.xml).
+        targetSdk 35
         versionCode resolvedVersionCode
-        versionName "11.0"
+        versionName "11.1"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

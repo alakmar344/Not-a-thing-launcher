@@ -5,7 +5,7 @@
 
 A Nothing OS–inspired Android home screen: monochrome, dot-matrix, quiet — with red used only where something needs your attention.
 
-**Version 11.0** is built on **stock Android**: the home screen is AOSP **Launcher3** (the open-source launcher behind Pixel's), and Not a Thing is a design layer on top of it. Home screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly like stock Android.
+**Version 11.1** is built on **stock Android**: the home screen is AOSP **Launcher3** (the open-source launcher behind Pixel's), and Not a Thing is a design layer on top of it. Home screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly like stock Android. Targets Android 15 (API 35, matching `compileSdk`), with a release build tuned for R8 to actually shrink/optimize the app (see `CHANGELOG.md`).
 
 Everything you see is the Not a Thing v10 design; Launcher3 does the work behind it:
 
