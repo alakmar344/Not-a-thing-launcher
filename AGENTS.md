@@ -86,14 +86,34 @@ python3 tools/verify_release_reflection.py --apk app/build/outputs/apk/release/a
   --sources third_party/aosp/launcher3/src launcher3/src app/src/main/java
 ```
 
-CI runs this too. It exists because 11.1 shipped a release build with every Not a Thing widget
-stripped out while all tests were green. When you claim a size/perf win from a build change,
+You normally don't need to: it runs automatically at the end of every `assembleRelease`
+(`verifyReleaseReflection` in `app/build.gradle`), so CI's existing release step runs it too. It
+exists because 11.1 shipped a release build with every Not a Thing widget stripped out while all
+tests were green. When you claim a size/perf win from a build change,
 measure it on the release artifact (APK and `classes.dex` sizes, dex method/field counts) and say
 what you could *not* measure.
 
 Never commit anything under `*/build/` (Gradle output) even though some such directories are
 unfortunately already tracked in git history — `git status` before committing and leave build
 artifacts alone.
+
+## Hard rule: don't edit `.github/workflows/` from an agent session
+
+The credentials that push agent branches don't have GitHub's `workflow` permission, so GitHub
+**rejects the entire push** if it contains any change to a file under `.github/workflows/` —
+and because every later commit sits on top of that one, the branch can't be pushed (or turned
+into a PR) at all from then on. This has happened repeatedly.
+
+Put CI behaviour where the workflow already reaches it instead:
+
+- Hook it into a Gradle task CI already runs (`recordPaparazziDebug`, `assembleDebug`,
+  `assembleRelease`) — e.g. `finalizedBy`/`dependsOn`, the way `verifyReleaseReflection` is
+  attached to `assembleRelease` in `app/build.gradle`.
+- Logic that isn't Gradle-shaped goes in a script under `tools/` invoked from such a task.
+
+If a change genuinely can only be made in the workflow file (e.g. the `Create Release` step's
+hard-coded `v10.0` fallback tag), don't commit it — describe the exact edit in your summary so a
+human with `workflow` permission can make it.
 
 ## Docs policy
 

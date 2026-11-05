@@ -51,16 +51,7 @@ jobs:
       
       - name: Build Release APK
         run: ./gradlew assembleRelease
-
-      # Debug builds aren't minified, so no test can see R8 stripping a class Launcher3 only loads
-      # by name from resources (custom widgets, ResourceBasedOverride). Check the real release dex.
-      - name: Verify release keeps reflectively-loaded classes
-        run: >
-          python3 tools/verify_release_reflection.py
-          --apk app/build/outputs/apk/release/app-release.apk
-          --values app/build/intermediates/incremental/release/mergeReleaseResources/merged.dir/values/values.xml
-          --sources third_party/aosp/launcher3/src launcher3/src app/src/main/java
-
+      
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
@@ -73,18 +64,12 @@ jobs:
           name: NothingLauncher-release
           path: app/build/outputs/apk/release/*.apk
       
-      # Main-branch builds publish to a rolling release named after app/build.gradle's versionName
-      # (this used to be hard-coded to v10.0, so v11.x builds were published as "Release v10.0").
-      - name: Read versionName
-        id: version
-        run: echo "name=v$(sed -n 's/^ *versionName "\(.*\)"/\1/p' app/build.gradle)" >> "$GITHUB_OUTPUT"
-
       - name: Create Release
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || steps.version.outputs.name }}
-          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || steps.version.outputs.name }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
+          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
           files: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk

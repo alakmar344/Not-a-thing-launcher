@@ -76,7 +76,8 @@ Launcher3 loads these purely by name from `R.array.custom_widget_providers`
 `(Context)` constructor, and R8 only keeps them because of the `CustomWidgetPlugin` rule in
 `launcher3/consumer-rules.pro`. A new widget is covered automatically as long as it implements
 `CustomWidgetPlugin` (directly or via `NothingWidget`) and is appended to the array.
-`tools/verify_release_reflection.py` (run in CI) checks the release dex for exactly this.
+`tools/verify_release_reflection.py` checks the release dex for exactly this; it runs at the
+end of every `assembleRelease` (and therefore in CI).
 
 `DateTimeWidgetProvider` is a plain system `AppWidgetProvider` (not a Not a Thing element): its
 only job is to guarantee the device has at least one installed widget provider, because

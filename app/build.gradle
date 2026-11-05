@@ -160,3 +160,58 @@ tasks.withType(Test).configureEach {
     environment 'ANDROID_HOME', sdkDir
     environment 'ANDROID_SDK_ROOT', sdkDir
 }
+
+// ---------------------------------------------------------------------------------------------
+// Release reflection check (tools/verify_release_reflection.py)
+//
+// Launcher3 instantiates custom widgets and ResourceBasedOverride classes purely by name from
+// resources, which R8 can't see; debug builds aren't minified, so no test notices if a keep rule
+// lets R8 strip one (11.1 shipped a release build with every Not a Thing widget missing). This
+// runs automatically at the end of every assembleRelease — locally and in CI, whose existing
+// "./gradlew assembleRelease" step picks it up without any change to .github/workflows (agent
+// sessions can't push workflow-file changes; see AGENTS.md).
+//
+// Needs Python 3. If none is found, CI (env CI=true) fails; a local build only warns.
+// ---------------------------------------------------------------------------------------------
+def findPython = {
+    for (cmd in ['python3', 'python', 'py']) {
+        try {
+            def p = [cmd, '-c', 'import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)'].execute()
+            p.waitFor()
+            if (p.exitValue() == 0) return cmd
+        } catch (IOException ignored) {
+        }
+    }
+    return null
+}
+
+def verifyReleaseReflection = tasks.register('verifyReleaseReflection') {
+    group = 'verification'
+    description = 'Fails if R8 stripped a class Launcher3 loads by name (custom widgets, ResourceBasedOverride).'
+    dependsOn 'packageRelease'
+    doLast {
+        def python = findPython()
+        if (python == null) {
+            def msg = 'verifyReleaseReflection: Python 3 not found, so the release build was NOT checked ' +
+                    'for classes R8 may have stripped (see tools/verify_release_reflection.py).'
+            if (System.getenv('CI') == 'true') throw new GradleException(msg)
+            logger.warn('WARNING: ' + msg)
+            return
+        }
+        def apkDir = layout.buildDirectory.dir('outputs/apk/release').get().asFile
+        def apks = (apkDir.listFiles() ?: []).findAll { it.name.endsWith('.apk') }
+        if (apks.size() != 1) throw new GradleException("verifyReleaseReflection: expected one release APK in $apkDir, found ${apks*.name}")
+        def root = rootProject.projectDir
+        project.exec {
+            commandLine python, new File(root, 'tools/verify_release_reflection.py').path,
+                    '--apk', apks[0].path,
+                    '--values', layout.buildDirectory.file('intermediates/incremental/release/mergeReleaseResources/merged.dir/values/values.xml').get().asFile.path,
+                    '--sources', new File(root, 'third_party/aosp/launcher3/src').path,
+                    new File(root, 'launcher3/src').path, file('src/main/java').path
+        }
+    }
+}
+
+tasks.matching { it.name == 'assembleRelease' }.configureEach {
+    finalizedBy verifyReleaseReflection
+}

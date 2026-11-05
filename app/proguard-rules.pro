@@ -16,8 +16,8 @@
 # can't see uses that only exist as strings in resources. Anything Launcher3 instantiates by name
 # needs its own precise rule — see launcher3/consumer-rules.pro (custom widgets) and AOSP's
 # ResourceBasedOverride rule — and tools/verify_release_reflection.py checks the real release dex
-# for this in CI. Without the widget rule, all four Not a Thing widgets vanished from release
-# builds while every (unminified) debug test still passed.
+# for this at the end of every assembleRelease. Without the widget rule, all four Not a Thing
+# widgets vanished from release builds while every (unminified) debug test still passed.
 -keep,allowshrinking,allowoptimization class com.nothinglauncher.** { *; }
 -keep,allowshrinking,allowoptimization class com.android.systemui.plugins.** { *; }
 
