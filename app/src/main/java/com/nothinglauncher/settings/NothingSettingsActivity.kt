@@ -56,11 +56,22 @@ class NothingSettingsActivity : AppCompatActivity() {
         )
         binding.backButton.setOnClickListener { finish() }
         val density = resources.displayMetrics.density
+        // Edge-to-edge is enforced from targetSdk 35 and can't be opted out of from 36, so the
+        // side insets matter too: in landscape the 3-button nav bar and a display cutout sit on
+        // the left/right edge, and without these the rows would run underneath them.
+        val column = binding.settingsColumn
+        val baseLeft = column.paddingLeft
+        val baseRight = column.paddingRight
         ViewCompat.setOnApplyWindowInsetsListener(binding.settingsRoot) { _, insets ->
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
             )
-            binding.settingsColumn.updatePadding(top = bars.top, bottom = bars.bottom + (32 * density).toInt())
+            column.updatePadding(
+                left = baseLeft + bars.left,
+                top = bars.top,
+                right = baseRight + bars.right,
+                bottom = bars.bottom + (32 * density).toInt()
+            )
             insets
         }
         build()

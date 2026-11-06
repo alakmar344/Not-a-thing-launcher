@@ -16,6 +16,13 @@ dates.
   18 targets today. Verified it fails on the broken 11.1 output and passes on the fixed one.
 
 ### Changed
+- **Targets Android 16 (API 36)**, up from 15, which Google Play has required for new apps and
+  updates since August 2026. Checked against every API 36 targeting change: predictive back
+  (Launcher3 already routes `OnBackInvokedCallback` to `onBackPressed()`), the removed
+  edge-to-edge opt-out (nothing opted out), and orientation/resizability being ignored on
+  large screens (home was already resizeable and unlocked). `compileSdk` stays 35 because the
+  vendored Launcher3 resources use `android:attr/materialColor*`, which is missing from the
+  API 36 SDK. The settings screen now also opts into predictive back on Android 14/15.
 - `ci/workflows/sync-workflows.yml`: once set up (one-time, see README "Staged workflows"), it
   mirrors `ci/workflows/*.yml` into `.github/workflows/` on every merge to `main`, so staged
   workflow changes go live automatically instead of needing a manual copy. Needs a
@@ -40,6 +47,9 @@ dates.
   unchanged for Launcher3's checked-in proto sources.
 
 ### Fixed
+- Settings rows ran under the navigation bar and display cutout in landscape: since edge-to-edge
+  became mandatory (target 35+), the screen only applied the top/bottom insets. It now pads
+  for the left/right system bars and cutout too.
 - **Release builds of 11.1 shipped without any Not a Thing widgets** (LED clock, battery & date,
   weather, media — gone from the widget picker, and no clock/battery tiles on first run). 11.1's
   narrower R8 keep rules let R8 delete `WeatherWidget`/`MediaWidget`/`NothingWidget` outright and

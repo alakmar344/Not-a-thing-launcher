@@ -33,7 +33,7 @@ The actual product code to work in is `app/src/main/java/com/nothinglauncher/**`
 
 ## Building and testing
 
-JDK 17 + Android SDK (compileSdk 35, minSdk 26, targetSdk 34) are required.
+JDK 17 + Android SDK (compileSdk 35, minSdk 26, targetSdk 36) are required.
 
 ```bash
 ./gradlew assembleDebug          # debug APK
