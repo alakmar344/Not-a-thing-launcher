@@ -6,56 +6,64 @@ dates.
 
 ## [Unreleased]
 
-### Added
-- `tools/verify_release_reflection.py`, run automatically at the end of every `assembleRelease`
-  (Gradle task `verifyReleaseReflection`, so CI runs it too): parses the real release
-  dex and the merged resources and fails the build if anything Launcher3 instantiates by name
-  (every `custom_widget_providers` entry, every non-empty `*_class` `ResourceBasedOverride`
-  string, and the no-arg constructor of every `Overrides.getObject(Base.class, …)` fallback,
-  whose failure is an uncaught crash) is missing or lost the constructor/supertype it needs.
-  18 targets today. Verified it fails on the broken 11.1 output and passes on the fixed one.
+## [11.2] — Android 16 target, reliability fixes and a cleaned-up repo
 
 ### Changed
-- `ci/workflows/sync-workflows.yml`: once set up (one-time, see README "Staged workflows"), it
-  mirrors `ci/workflows/*.yml` into `.github/workflows/` on every merge to `main`, so staged
-  workflow changes go live automatically instead of needing a manual copy. Needs a
-  `WORKFLOW_SYNC_TOKEN` secret, because the built-in `GITHUB_TOKEN` can't modify workflow files.
-- Staged workflow `ci/workflows/build.yml` now names `main`-branch releases after
-  `app/build.gradle`'s `versionName` (resolves to `v11.1`) instead of a hard-coded tag. Not live
-  yet: the live `.github/workflows/build.yml` still publishes as "Release v10.0" until someone
-  with GitHub `workflow` permission copies the staged file over it (see README).
-- Measured the 11.1 R8 keep-rule change for the first time (same inputs, real `assembleRelease`):
-  APK 5,205,285 → 4,790,157 bytes (−8.0%); `classes.dex` 4,480,260 → 3,164,768 bytes (−29.4%);
-  dex methods 31,835 → 25,361, fields 33,579 → 11,749, strings 35,570 → 20,274. Startup/RAM
-  effects were not measured (no device available).
-
-### Security
-- `protobuf-javalite`/`protoc` bumped from 3.25.3 to 3.25.9 (`launcher3/build.gradle`). 3.25.3 is
-  affected by [CVE-2024-7254](https://github.com/advisories/GHSA-735f-pc8j-v9w8) (CVSS 7.5):
-  unbounded recursion while parsing unknown fields lets a maliciously crafted protobuf message
-  crash the process with a `StackOverflowError`. This library is linked into the shipped app (it
-  decodes Launcher3's own `LauncherAtom`/`LauncherDumpProto` logging/dump messages), so it's part
-  of the installed APK's real attack surface, unlike the project's test-only dependencies. Stayed
-  on the 3.25.x patch line rather than jumping to the 4.x major to keep the generated-code ABI
-  unchanged for Launcher3's checked-in proto sources.
+- **Targets Android 16 (API 36)**, the level Google Play requires since August 2026. Builds and
+  passes every test at it, and was checked against each Android 16 targeting change: predictive back
+  (Launcher3 already handles it), mandatory edge-to-edge, and large screens ignoring orientation
+  locks (home was already resizeable). `compileSdk` stays 35 because the vendored Launcher3
+  resources use `android:attr/materialColor*`, which the API 36 SDK no longer has.
+- The settings screen uses predictive back on Android 14 and 15 too, matching Android 16+.
+- Smoother, cheaper home screen, with pixel-identical output (screenshot goldens unchanged):
+  - the media tile no longer redraws on every playback-position update (about once a second);
+  - the battery ring redraws only when the level or charging state changes;
+  - the LED clock rebuilds its digits once a minute instead of every second;
+  - icon rendering reads pixels in one bulk call instead of 2,304 calls per app.
+  Not profiled on a device.
+- Measured the 11.1 R8 keep-rule change on a real release build: APK 5,205,285 → 4,790,157 bytes
+  (−8.0%), `classes.dex` −29.4%, dex methods 31,835 → 25,361.
 
 ### Fixed
-- **Release builds of 11.1 shipped without any Not a Thing widgets** (LED clock, battery & date,
-  weather, media — gone from the widget picker, and no clock/battery tiles on first run). 11.1's
-  narrower R8 keep rules let R8 delete `WeatherWidget`/`MediaWidget`/`NothingWidget` outright and
-  strip the `(Context)` constructor and `CustomWidgetPlugin` supertype from `ClockWidget`/
-  `BatteryCalendarWidget`, because Launcher3 only references them by name from
-  `R.array.custom_widget_providers` (`Class.forName(...).getDeclaredConstructor(Context.class)`),
-  which R8 can't see. Debug builds aren't minified, so every test passed. Fixed with a precise
-  keep rule for `CustomWidgetPlugin` implementations in `launcher3/consumer-rules.pro`; found by
-  measuring the actual release dex rather than trusting the rule change.
-- `CustomizeSheet`'s dialogs (the long-press "Customize" sheet and its "Wallpaper & style"
-  sub-sheet) could outlive `NothingLauncher` and leak their window ("WindowLeaked") if the
-  Activity was destroyed and recreated while one was open — e.g. the system switching to dark
-  mode on its scheduled time, or a font-scale/display-size change, neither of which is in
-  `NothingLauncher`'s `android:configChanges` list, so Android tears the Activity down and
-  rebuilds it without going through any of the sheet's own dismiss paths. `CustomizeSheet` now
-  tracks whichever of its dialogs is showing and `NothingLauncher.onDestroy()` dismisses it.
+- **No more network traffic without a weather widget.** Home looked up the device's location from
+  its public IP and fetched a forecast about every half hour, even with no weather widget on
+  any screen. It now only does so while one is shown.
+- **Weather no longer falls back to London** when ipapi.co rate-limits the network (HTTP 429,
+  common on mobile carriers). ipwho.is is tried first.
+- **Release builds of 11.1 had no Not a Thing widgets** (clock, battery & date, weather, media
+  were missing from the picker and from first run). R8 stripped them because Launcher3 loads
+  them by name; a precise keep rule fixes it, and every release build is now checked for it
+  automatically (see Added).
+- The default clock and battery & date tiles could be skipped for good on first run if Launcher3
+  hadn't registered the widgets yet. Placement is now retried.
+- The battery & date tile could show yesterday's date after the clock was set back or the phone
+  came out of deep sleep. It now refreshes whenever home is shown.
+- Settings rows ran under the navigation bar and camera cutout in landscape.
+- The Customize sheet could leak its window when the system switched dark mode (or font/display
+  size) while it was open.
+- A possible crash from the weather thread and the UI writing the same settings map at once.
+- The weather service User-Agent reported version 10.1 instead of the real version.
+
+### Removed
+- **`ci/`** (staged workflow copies, a workflow-sync bot and a script to re-sign old releases).
+  None of it ever ran, and it hid fixes where nobody would apply them. How releases actually
+  work, plus the one optional manual workflow tweak, is now in
+  [`docs/RELEASING.md`](docs/RELEASING.md).
+- 9,073 Gradle build-output files that were committed by mistake, so a local build no longer
+  dirties the working tree.
+
+### Added
+- `docs/RELEASING.md`: how every push to `main` becomes an installable update, signing, and
+  publishing a numbered version.
+- `tools/verify_release_reflection.py`, run at the end of every `assembleRelease` (so CI runs
+  it too). It inspects the real release dex and fails the build if R8 removed anything Launcher3
+  creates by name: widgets, `*_class` overrides and `Overrides.getObject` fallbacks, 18 targets.
+
+### Security
+- `protobuf-javalite`/`protoc` 3.25.3 → 3.25.9, fixing
+  [CVE-2024-7254](https://github.com/advisories/GHSA-735f-pc8j-v9w8) (CVSS 7.5): a crafted
+  message could crash the launcher with a `StackOverflowError`. Stayed on 3.25.x to keep the
+  generated code compatible with Launcher3's protos.
 
 ## [11.1] — Release build optimization and Android 15 compatibility
 

@@ -44,16 +44,25 @@ class BatteryDotsView @JvmOverloads constructor(
 
     var level: Int = 0
         set(value) {
-            field = value.coerceIn(0, 100)
+            val v = value.coerceIn(0, 100)
+            // ACTION_BATTERY_CHANGED also fires for voltage/temperature changes, many times per
+            // level step; only a visible change is worth a redraw.
+            if (v == field && levelSet) return
+            levelSet = true
+            field = v
             levelText = field.toString()
             updateDescription()
             invalidate()
         }
 
     private var levelText = "0"
+    private var levelSet = false
 
     var charging: Boolean = false
-        set(value) { field = value; updateDescription(); updatePulse(); invalidate() }
+        set(value) {
+            if (value == field) return
+            field = value; updateDescription(); updatePulse(); invalidate()
+        }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -182,7 +191,12 @@ class BatteryDotsView @JvmOverloads constructor(
         updatePulse()
         if (!receiverRegistered) {
             try {
-                context.registerReceiver(batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                // A protected system broadcast, so it is delivered to a not-exported receiver;
+                // stating the flag keeps this correct under Android 14+'s registration rules.
+                ContextCompat.registerReceiver(
+                    context, batteryReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED),
+                    ContextCompat.RECEIVER_NOT_EXPORTED
+                )
                 receiverRegistered = true
             } catch (_: Throwable) {}
         }

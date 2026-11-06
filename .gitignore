@@ -1,22 +1,24 @@
-*.iml
-.gradle
-/local.properties
-/.idea/
-.DS_Store
+# Gradle / Android Studio
+.gradle/
 build/
-**/build/
+local.properties
+.idea/
+*.iml
 /captures
 .externalNativeBuild
 .cxx
-local.properties
-app/build/
+
+# OS
+.DS_Store
+
+# Signing secrets. keystore/stable-signing.p12 is the one key that is meant to be public: every
+# build is signed with it so each release installs over the previous one (see README).
 *.jks
 *.keystore
 keystore.properties
 keystore/password.txt
+!keystore/stable-signing.p12
+
+# Local logs / scratch output
 build_*.log
 dist/
-
-
-# Stable signing key used so every build can update the previous one
-!keystore/stable-signing.p12

@@ -33,7 +33,15 @@ class BatteryCalendarWidget(context: Context) : NothingWidget(context) {
         val inflater = LayoutInflater.from(ctx)
         val accent = ctx.getColor(R.color.nothing_red)
         val gap = ctx.resources.getDimensionPixelSize(R.dimen.nt_tile_gap)
-        val row = LinearLayout(ctx).apply {
+        var onShown: () -> Unit = {}
+        // Rebinds whenever home becomes visible again: DATE_CHANGED isn't sent when the clock
+        // is set backwards and can arrive late from doze, which left yesterday's date showing.
+        val row = object : LinearLayout(ctx) {
+            override fun onWindowVisibilityChanged(visibility: Int) {
+                super.onWindowVisibilityChanged(visibility)
+                if (visibility == VISIBLE && isAttachedToWindow) onShown()
+            }
+        }.apply {
             orientation = LinearLayout.HORIZONTAL
             isBaselineAligned = false
         }
@@ -68,6 +76,7 @@ class BatteryCalendarWidget(context: Context) : NothingWidget(context) {
             }
         }
 
+        onShown = ::bindCalendar
         // Day changes and alarm edits arrive as broadcasts; only listen while on screen.
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) = bindCalendar()

@@ -33,28 +33,36 @@ def stableKeyAlias = 'nothinglauncher'
 def envKeystorePath = System.getenv('RELEASE_KEYSTORE_FILE')
 def hasEnvKeystore = envKeystorePath != null && !envKeystorePath.trim().isEmpty() && file(envKeystorePath).exists()
 
-// versionCode must increase with every build so Android treats it as an update.
+// versionCode must increase with every build so Android treats it as an update:
 //   VERSION_CODE env (explicit override) > 2000 + GITHUB_RUN_NUMBER (set automatically by
-//   GitHub Actions) > 2000 for local builds. Rebuilt historical releases use 1001..1011
-//   (see ci/workflows/rebuild-old-releases.yml), so every current build is newer than them.
+//   GitHub Actions, so every CI build installs over the previous one) > 2000 for local builds.
+//   The 2000 offset keeps every build newer than all pre-11.0 releases. See docs/RELEASING.md.
 def envInt = { String name -> def v = System.getenv(name); (v != null && v.trim().isInteger()) ? v.trim().toInteger() : null }
 def resolvedVersionCode = envInt('VERSION_CODE') ?: (envInt('GITHUB_RUN_NUMBER') != null ? 2000 + envInt('GITHUB_RUN_NUMBER') : 2000)
 
 android {
     namespace 'com.nothinglauncher'
+    // compileSdk can't go to 36 yet: the vendored Launcher3 (android-14) resources reference
+    // android:attr/materialColor* (e.g. materialColorOnSurface), which the API 35 SDK exposes
+    // but the API 36 SDK no longer does, so aapt2 fails to link them. targetSdk is independent
+    // of that (it only selects runtime behaviour), see below.
     compileSdk 35
 
     defaultConfig {
         applicationId "com.nothinglauncher"
         minSdk 26
-        // Android 15 (API 35): matches compileSdk, so the app is no longer re-targeted at an
-        // SDK two major releases behind the compiler — required for new Play Store submissions
-        // and lets the launcher pick up platform behaviour (e.g. enforced edge-to-edge) that
-        // Launcher3's own theme already draws for (translucent status/nav bars, see
-        // third_party/aosp/launcher3/res/values/styles.xml).
-        targetSdk 35
+        // Android 16 (API 36), the level Google Play requires since Aug 2026. What changes for
+        // an app targeting 36, and why each is already handled here:
+        //  - predictive back on by default, onBackPressed()/KEYCODE_BACK no longer delivered:
+        //    Launcher3's BaseActivity registers an OnBackInvokedCallback that calls
+        //    Launcher.onBackPressed(); NothingSettingsActivity uses AndroidX's dispatcher.
+        //  - edge-to-edge opt-out removed: nothing opts out; NothingSettingsActivity applies
+        //    system-bar and cutout insets on all four sides.
+        //  - orientation/resizability ignored on sw600dp: the home activity is already
+        //    resizeable with screenOrientation="unspecified"; Launcher3 rotates on tablets.
+        targetSdk 36
         versionCode resolvedVersionCode
-        versionName "11.1"
+        versionName "11.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -156,7 +164,9 @@ configurations.configureEach { config ->
 }
 
 tasks.withType(Test).configureEach {
-    def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: 'C:/Users/proma/android-sdk'
+    // Paparazzi/layoutlib read the SDK location from the environment; fall back to the one AGP
+    // resolved (local.properties sdk.dir) when neither variable is set.
+    def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: android.sdkDirectory.path
     environment 'ANDROID_HOME', sdkDir
     environment 'ANDROID_SDK_ROOT', sdkDir
 }

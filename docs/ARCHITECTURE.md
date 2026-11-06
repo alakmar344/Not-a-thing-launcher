@@ -41,9 +41,13 @@ thin `Launcher` subclass:
   & style, Widgets, Settings).
 - **First run.** `finishBindingItems()` places the LED clock and battery/calendar widgets on the
   first home screen once, tracked by `NothingPrefs.defaultTilesPlaced`, going through
-  Launcher3's normal pending-widget add path.
-- **Resume refresh.** `onResume()` refreshes the media and weather elements, since Launcher3
-  keeps workspace views attached while home is backgrounded.
+  Launcher3's normal pending-widget add path. The flag is only set once Launcher3 has actually
+  registered the custom widgets (it skips them while the system widget list is empty), so an
+  early first bind is retried instead of losing the default tiles.
+- **Resume refresh.** `onResume()` refreshes the media element, and the weather element only
+  if one is attached (`WeatherRepository.hasListeners()`), since Launcher3 keeps workspace
+  views attached while home is backgrounded. Without a weather element no network request is
+  made.
 
 ## 3. Preferences (`NothingPrefs`)
 
@@ -112,5 +116,6 @@ third_party/aosp/launcher3/   ← vendored, unmodified AOSP sources
 
 `./gradlew assembleDebug` / `assembleRelease` build the APK; CI (`.github/workflows/build.yml`)
 additionally runs `recordPaparazziDebug` (layoutlib screenshot tests, no emulator) before
-assembling. See the root [README](../README.md#building) for signing details and local build
-commands.
+assembling, and publishes every `main` build as an installable update. Local build commands
+are in the root [README](../README.md#build); publishing and signing in
+[`RELEASING.md`](RELEASING.md).

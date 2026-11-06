@@ -67,8 +67,10 @@ class NothingLauncher : Launcher() {
         }
         // Workspace views stay attached while home is in the background, so live elements are
         // refreshed here: media after notification access was granted, weather when stale.
+        // Weather only if an element is on a home screen: otherwise this sent the user's IP to
+        // a geolocation service every half hour of home use without anything showing it.
         MediaSessionRepository.refresh()
-        WeatherRepository.refresh(this, prefs) { }
+        if (WeatherRepository.hasListeners()) WeatherRepository.refresh(this, prefs) { }
     }
 
     /**
@@ -122,24 +124,31 @@ class NothingLauncher : Launcher() {
 
     override fun finishBindingItems(pagesBoundFirst: IntSet?) {
         super.finishBindingItems(pagesBoundFirst)
-        if (!prefs.defaultTilesPlaced) {
-            prefs.defaultTilesPlaced = true
-            placeDefaultTiles()
-        }
+        if (!prefs.defaultTilesPlaced && placeDefaultTiles()) prefs.defaultTilesPlaced = true
     }
 
-    /** First run: the v10 home – LED clock on top, battery & date below (if the cells are free). */
-    private fun placeDefaultTiles() {
-        val screen = workspace.getScreenWithId(0) ?: return
+    /**
+     * First run: the v10 home – LED clock on top, battery & date below (if the cells are free).
+     *
+     * Returns false (so it is retried on the next bind) only when Launcher3 hasn't registered
+     * the Not a Thing elements: CustomWidgetManager skips them while the system's widget
+     * provider list is still empty, which can happen right after install. The flag used to be
+     * set before trying, so that case silently lost the default home for good. Occupied cells
+     * (e.g. a restored layout) still count as done.
+     */
+    private fun placeDefaultTiles(): Boolean {
+        val screen = workspace.getScreenWithId(0) ?: return false
+        val widgets = CustomWidgetManager.INSTANCE.get(this)
+        fun provider(widget: Class<*>) = widgets.getWidgetProvider(
+            ComponentName(packageName, LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX + widget.name)
+        )
+        if (provider(ClockWidget::class.java) == null) return false
         val cols = deviceProfile.inv.numColumns
         val rows = deviceProfile.inv.numRows
         var row = 0
         fun place(widget: Class<*>, spanX: Int, spanY: Int) {
             if (row + spanY > rows || !screen.isRegionVacant(0, row, spanX, spanY)) return
-            val cn = ComponentName(
-                packageName, LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX + widget.name
-            )
-            val info = CustomWidgetManager.INSTANCE.get(this).getWidgetProvider(cn) ?: return
+            val info = provider(widget) ?: return
             addPendingItem(
                 PendingAddWidgetInfo(info, LauncherSettings.Favorites.CONTAINER_DESKTOP),
                 LauncherSettings.Favorites.CONTAINER_DESKTOP, 0, intArrayOf(0, row), spanX, spanY
@@ -150,5 +159,6 @@ class NothingLauncher : Launcher() {
         place(BatteryCalendarWidget::class.java, minOf(cols, 4), 2)
         // Adding goes through the drag & drop path, which opens a resize frame on the last tile.
         AbstractFloatingView.closeOpenViews(this, false, AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME)
+        return true
     }
 }

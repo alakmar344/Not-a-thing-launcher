@@ -59,9 +59,14 @@
                 android:resource="@xml/nt_date_time_widget" />
         </receiver>
 
-        <!-- v10 settings screen; opened from the customize sheet, the drawer and Home settings. -->
+        <!-- v10 settings screen; opened from the customize sheet, the drawer and Home settings.
+             Predictive back is opted in explicitly so Android 14/15 get the same back-to-home
+             animation Android 16+ gives every app targeting API 36 (it only uses AndroidX's
+             OnBackPressedDispatcher, which supports it). -->
         <activity
             android:name="com.nothinglauncher.settings.NothingSettingsActivity"
+            android:enableOnBackInvokedCallback="true"
+            tools:targetApi="33"
             android:exported="true"
             android:label="@string/settings_button_text"
             android:theme="@style/Theme.NothingLauncher.Settings">

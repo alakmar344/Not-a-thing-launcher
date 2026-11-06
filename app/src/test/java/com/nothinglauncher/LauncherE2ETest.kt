@@ -119,6 +119,13 @@ class LauncherE2ETest {
         prefs.weatherCity = ""
         assertEquals("", prefs.weatherCity)
 
+        // weatherCache: a stored null must read back as null (ConcurrentHashMap sentinel),
+        // not as "unset" falling through to an older persisted value.
+        prefs.weatherCache = "{\"temp\":1}"
+        assertEquals("{\"temp\":1}", prefs.weatherCache)
+        prefs.weatherCache = null
+        assertEquals(null, prefs.weatherCache)
+
         // Test defaultTilesPlaced
         val originalPlaced = prefs.defaultTilesPlaced
         prefs.defaultTilesPlaced = true
