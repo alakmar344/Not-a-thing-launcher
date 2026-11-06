@@ -23,6 +23,13 @@ dates.
   large screens (home was already resizeable and unlocked). `compileSdk` stays 35 because the
   vendored Launcher3 resources use `android:attr/materialColor*`, which is missing from the
   API 36 SDK. The settings screen now also opts into predictive back on Android 14/15.
+- Less work on home's always-running paths (no visual change; screenshot goldens identical):
+  the media tile is no longer re-applied for identical playback states (players report position
+  about once a second, and each report used to re-inflate the play/pause drawable); the battery
+  ring only redraws when level or charging actually changes rather than on every
+  voltage/temperature broadcast; the LED clock rebuilds its digits once a minute instead of
+  `String.format` every second; and icon rendering reads the glyph-coverage probe with one
+  bulk `getPixels` instead of 2,304 `getPixel` JNI calls per app. Not profiled on a device.
 - `ci/workflows/sync-workflows.yml`: once set up (one-time, see README "Staged workflows"), it
   mirrors `ci/workflows/*.yml` into `.github/workflows/` on every merge to `main`, so staged
   workflow changes go live automatically instead of needing a manual copy. Needs a
@@ -60,6 +67,9 @@ dates.
 - The default LED clock and battery & date tiles could be lost for good on first run: the "done"
   flag was set before placement, so if Launcher3 hadn't registered the Not a Thing widgets yet
   (it skips them while the system widget list is empty), nothing was placed and it never retried.
+- The battery & date tile could keep showing yesterday's date: `ACTION_DATE_CHANGED` isn't sent
+  when the clock is set backwards and can arrive late out of doze. The tile now also rebinds
+  whenever home becomes visible.
 - Settings rows ran under the navigation bar and display cutout in landscape: since edge-to-edge
   became mandatory (target 35+), the screen only applied the top/bottom insets. It now pads
   for the left/right system bars and cutout too.

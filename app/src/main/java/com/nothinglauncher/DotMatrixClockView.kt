@@ -26,6 +26,7 @@ class DotMatrixClockView @JvmOverloads constructor(
         set(value) { field = value; tick(); updateRunning() }
 
     private var lastMinuteStamp = -1L
+    private var lastTextKey = -1
     private var lastColonIndex = -2
     private var running = false
 
@@ -51,14 +52,15 @@ class DotMatrixClockView @JvmOverloads constructor(
         val is24 = is24Hour()
         val hour = cal.get(Calendar.HOUR_OF_DAY)
         val minute = cal.get(Calendar.MINUTE)
-        val newText = if (is24) {
-            String.format(java.util.Locale.US, "%02d:%02d", hour, minute)
-        } else {
-            val h12 = if (hour % 12 == 0) 12 else hour % 12
-            String.format(java.util.Locale.US, "%d:%02d", h12, minute)
+        // This runs every second; the digits only change once a minute (or on a 12/24h switch).
+        val key = (hour * 60 + minute) * 2 + if (is24) 1 else 0
+        if (key != lastTextKey) {
+            lastTextKey = key
+            val h = if (is24) hour else if (hour % 12 == 0) 12 else hour % 12
+            val hh = if (is24 && h < 10) "0$h" else h.toString()
+            text = if (minute < 10) "$hh:0$minute" else "$hh:$minute"
         }
-        text = newText
-        val colon = newText.indexOf(':')
+        val colon = text.indexOf(':')
         if (colon != lastColonIndex) {
             lastColonIndex = colon
             accentIndices = setOf(colon)

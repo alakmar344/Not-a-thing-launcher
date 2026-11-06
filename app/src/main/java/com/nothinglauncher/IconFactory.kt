@@ -228,6 +228,10 @@ object IconFactory {
         val d = layer.mutate()
         d.setBounds(-extra, -extra, probe + extra, probe + extra)
         d.draw(Canvas(tmp))
+        // One bulk copy instead of a JNI getPixel() per pixel (2304 per icon, for every app
+        // each time the icon cache is rebuilt).
+        val pixels = IntArray(probe * probe)
+        tmp.getPixels(pixels, 0, probe, 0, 0, probe, probe)
         var inside = 0
         var opaque = 0
         val c = probe / 2f
@@ -236,7 +240,7 @@ object IconFactory {
             val dy = y + 0.5f - c
             if (dx * dx + dy * dy > c * c) continue
             inside++
-            if ((tmp.getPixel(x, y) ushr 24) > 0x80) opaque++
+            if ((pixels[y * probe + x] ushr 24) > 0x80) opaque++
         }
         tmp.recycle()
         // Restore bounds for the real render.

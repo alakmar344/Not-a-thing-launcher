@@ -211,6 +211,10 @@ object MediaSessionRepository {
     }
 
     private fun update(state: State) {
+        // Many players report playback position about once a second through
+        // onPlaybackStateChanged; without this every report re-applied the whole media tile
+        // (texts, a fresh play/pause drawable, the visualiser) for an identical state.
+        if (state == current) return
         current = state
         main.post { listeners.forEach { it(state) } }
     }
