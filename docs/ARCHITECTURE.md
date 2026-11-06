@@ -116,5 +116,6 @@ third_party/aosp/launcher3/   ← vendored, unmodified AOSP sources
 
 `./gradlew assembleDebug` / `assembleRelease` build the APK; CI (`.github/workflows/build.yml`)
 additionally runs `recordPaparazziDebug` (layoutlib screenshot tests, no emulator) before
-assembling. See the root [README](../README.md#building) for signing details and local build
-commands.
+assembling, and publishes every `main` build as an installable update. Local build commands
+are in the root [README](../README.md#build); publishing and signing in
+[`RELEASING.md`](RELEASING.md).

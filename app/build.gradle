@@ -33,10 +33,10 @@ def stableKeyAlias = 'nothinglauncher'
 def envKeystorePath = System.getenv('RELEASE_KEYSTORE_FILE')
 def hasEnvKeystore = envKeystorePath != null && !envKeystorePath.trim().isEmpty() && file(envKeystorePath).exists()
 
-// versionCode must increase with every build so Android treats it as an update.
+// versionCode must increase with every build so Android treats it as an update:
 //   VERSION_CODE env (explicit override) > 2000 + GITHUB_RUN_NUMBER (set automatically by
-//   GitHub Actions) > 2000 for local builds. Rebuilt historical releases use 1001..1011
-//   (see ci/workflows/rebuild-old-releases.yml), so every current build is newer than them.
+//   GitHub Actions, so every CI build installs over the previous one) > 2000 for local builds.
+//   The 2000 offset keeps every build newer than all pre-11.0 releases. See docs/RELEASING.md.
 def envInt = { String name -> def v = System.getenv(name); (v != null && v.trim().isInteger()) ? v.trim().toInteger() : null }
 def resolvedVersionCode = envInt('VERSION_CODE') ?: (envInt('GITHUB_RUN_NUMBER') != null ? 2000 + envInt('GITHUB_RUN_NUMBER') : 2000)
 
@@ -164,7 +164,9 @@ configurations.configureEach { config ->
 }
 
 tasks.withType(Test).configureEach {
-    def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: 'C:/Users/proma/android-sdk'
+    // Paparazzi/layoutlib read the SDK location from the environment; fall back to the one AGP
+    // resolved (local.properties sdk.dir) when neither variable is set.
+    def sdkDir = System.getenv('ANDROID_HOME') ?: System.getenv('ANDROID_SDK_ROOT') ?: android.sdkDirectory.path
     environment 'ANDROID_HOME', sdkDir
     environment 'ANDROID_SDK_ROOT', sdkDir
 }

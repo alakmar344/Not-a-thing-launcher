@@ -69,8 +69,12 @@ release build in ~6 min:
 ```bash
 ./gradlew assembleRelease -x lintVitalRelease --no-daemon --max-workers=1 \
   -Dorg.gradle.jvmargs="-Xmx2300m -XX:MaxMetaspaceSize=512m -XX:+UseSerialGC" \
-  -Dkotlin.compiler.execution.strategy=in-process
+  -Pkotlin.compiler.execution.strategy=in-process
 ```
+
+(It must be `-P`: passed as `-D` it is ignored and a ~1 GB Kotlin daemon still starts.) For
+`testDebugUnitTest`, which forks a separate Robolectric/Paparazzi JVM, give Gradle itself *less*
+heap instead, e.g. `-Dorg.gradle.jvmargs="-Xmx1200m -XX:MaxMetaspaceSize=450m -XX:+UseSerialGC"`.
 
 ## Release builds must be checked, not assumed
 
@@ -111,21 +115,23 @@ Put CI behaviour where the workflow already reaches it instead:
   attached to `assembleRelease` in `app/build.gradle`.
 - Logic that isn't Gradle-shaped goes in a script under `tools/` invoked from such a task.
 
-If a change genuinely can only be made in a workflow file, make it in **`ci/workflows/`**
-instead (same file name as the live one), which pushes normally. `ci/workflows/` is the source of
-truth: `ci/workflows/sync-workflows.yml` mirrors it into `.github/workflows/` after the change is
-merged to `main`, using the `WORKFLOW_SYNC_TOKEN` secret (README, "Staged workflows"). Until a
-human has done that one-time setup, staged changes are **not live** — check whether
-`.github/workflows/sync-workflows.yml` exists, and say plainly in your summary whether your
-change is live or only staged. Keep each staged file a superset of its live counterpart, and
-never add anything to `ci/workflows/` you wouldn't want running on `main` with the repo's
-secrets: once merged it executes with them.
+Don't create copies of workflow files anywhere else in the repo ("staged" workflows, sync
+bots, etc.). That was tried in `ci/workflows/`; nothing in it ever ran, and it buried real fixes
+where nobody would apply them. It was removed in 11.2.
+
+If something really can only be done in a workflow file, keep it to a short, exact manual edit
+that a human can paste into GitHub's web editor. List it under "Known limitation" in
+[`docs/RELEASING.md`](docs/RELEASING.md), and say in your summary that it is **not live** until
+someone applies it. Delete the entry once it has been applied.
+
+Before relying on anything the workflow does, read the live
+[`.github/workflows/build.yml`](.github/workflows/build.yml); it is the only CI there is.
 
 ## Docs policy
 
 - `README.md` — project overview, build/signing instructions. Keep it short and current; link
   out to `docs/` for depth instead of duplicating detail.
-- `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `docs/SCREENSHOTS.md` — must describe the
+- `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `docs/SCREENSHOTS.md`, `docs/RELEASING.md` — must describe the
   **current** codebase only. When you change behaviour, update these in the same change, don't
   leave them to drift.
 - `CHANGELOG.md` — add an entry under `[Unreleased]` for any user-visible fix or feature in the

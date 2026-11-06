@@ -76,4 +76,4 @@ the icon offers "Launcher settings" and "Set as default home app" shortcuts.
 
 Every release is signed with one stable key and uses a monotonically increasing `versionCode`,
 so installing a new APK over an old one updates in place instead of requiring an uninstall. See
-the root [README](../README.md#release-signing--update-compatibility) for details.
+[`RELEASING.md`](RELEASING.md) for details.
