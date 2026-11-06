@@ -47,6 +47,8 @@ object WeatherRepository {
 
     private const val CACHE_FRESH_MS = 30 * 60 * 1000L
     private const val RETRY_BACKOFF_MS = 60 * 1000L
+    private val IP_LOCATION_URLS = listOf("https://ipapi.co/json/", "https://ipwho.is/")
+    private val USER_AGENT = "NotAThingLauncher/${BuildConfig.VERSION_NAME} (Android)"
 
     fun cached(prefs: NothingPrefs): Weather? = parse(prefs.weatherCache)
 
@@ -65,6 +67,9 @@ object WeatherRepository {
         listeners -= listener
     }
 
+    /** Whether any weather element is attached, i.e. whether a refresh would be shown at all. */
+    fun hasListeners(): Boolean = listeners.isNotEmpty()
+
     fun refresh(
         context: Context,
         prefs: NothingPrefs,
@@ -72,13 +77,12 @@ object WeatherRepository {
         callback: (Weather?) -> Unit
     ) {
         val now = System.currentTimeMillis()
-        if (!force && isFresh(cached(prefs))) {
-            callback(cached(prefs))
-            return
-        }
-        if (now - lastAttempt[0] < RETRY_BACKOFF_MS && !force) {
-            callback(cached(prefs))
-            return
+        if (!force) {
+            val cached = cached(prefs)
+            if (isFresh(cached) || now - lastAttempt[0] < RETRY_BACKOFF_MS) {
+                callback(cached)
+                return
+            }
         }
         // Every caller gets an answer, even when it joins a fetch that is already running.
         pendingCallbacks += callback
@@ -194,8 +198,17 @@ object WeatherRepository {
         return lat to lon
     }
 
-    private fun ipLocation(): Triple<Double, Double, String>? {
-        val json = getJson("https://ipapi.co/json/") ?: return null
+    /**
+     * Approximate location from the public IP. ipapi.co's free tier rate-limits (HTTP 429)
+     * busy networks such as carrier NAT, which used to drop straight to the London fallback,
+     * so a second keyless HTTPS provider with the same field names is tried first.
+     */
+    private fun ipLocation(): Triple<Double, Double, String>? =
+        IP_LOCATION_URLS.firstNotNullOfOrNull { url -> getJson(url)?.let(::parseIpLocation) }
+
+    private fun parseIpLocation(json: JSONObject): Triple<Double, Double, String>? {
+        // ipwho.is reports failures as HTTP 200 with "success": false.
+        if (!json.optBoolean("success", true)) return null
         val lat = json.optDouble("latitude", Double.NaN)
         val lon = json.optDouble("longitude", Double.NaN)
         // optString() turns JSON null into the literal "null", so treat null fields as absent.
@@ -213,7 +226,7 @@ object WeatherRepository {
                 connectTimeout = 8000
                 readTimeout = 8000
                 requestMethod = "GET"
-                setRequestProperty("User-Agent", "NothingLauncher/10.1 (Android)")
+                setRequestProperty("User-Agent", USER_AGENT)
                 setRequestProperty("Accept", "application/json")
             }
             if (connection.responseCode !in 200..299) return null

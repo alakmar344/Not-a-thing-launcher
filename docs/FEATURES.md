@@ -36,7 +36,7 @@ sheet → Widgets). Added, moved, resized and removed exactly like any other And
 |---|---|
 | **LED Clock** | Dot-matrix time + date, optional live seconds ticker (Settings → Home) |
 | **Battery & Calendar** | Battery dot gauge next to day/weekday and the next system alarm |
-| **Weather** | Live conditions from Open-Meteo (no API key); manual city or automatic lookup (Settings → Permissions & capabilities → Weather location) |
+| **Weather** | Live conditions from Open-Meteo (no API key); manual city or automatic lookup from the public IP (ipapi.co, falling back to ipwho.is) (Settings → Permissions & capabilities → Weather location). Nothing is fetched unless a weather element is on a home screen |
 | **Media** | Now-playing track/artist with play/pause/next/previous, once notification access is granted |
 
 A plain system "Date & time" widget is also available — it exists mainly so the device always

@@ -47,6 +47,19 @@ dates.
   unchanged for Launcher3's checked-in proto sources.
 
 ### Fixed
+- Home sent the device's public IP to a geolocation service (and fetched a forecast) about every
+  half hour of use **even with no weather element on any home screen**, because
+  `NothingLauncher.onResume()` refreshed weather unconditionally. It now only does so while a
+  weather element is attached.
+- Automatic weather location fell back to **London** whenever ipapi.co rate-limited the
+  network (HTTP 429, common behind carrier NAT and reproduced from this build machine). ipwho.is
+  (HTTPS, no key) is now tried before that fallback. The User-Agent also reported version 10.1;
+  it now uses the real `versionName`.
+- Possible corruption of `NothingPrefs`' in-memory map: the weather fetch thread wrote the cache
+  into a plain `HashMap` while the main thread read it. It is now a `ConcurrentHashMap`.
+- The default LED clock and battery & date tiles could be lost for good on first run: the "done"
+  flag was set before placement, so if Launcher3 hadn't registered the Not a Thing widgets yet
+  (it skips them while the system widget list is empty), nothing was placed and it never retried.
 - Settings rows ran under the navigation bar and display cutout in landscape: since edge-to-edge
   became mandatory (target 35+), the screen only applied the top/bottom insets. It now pads
   for the left/right system bars and cutout too.

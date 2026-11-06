@@ -15,20 +15,35 @@ class NothingPrefs private constructor(context: Context) {
         null
     }
 
-    private val memFallback = mutableMapOf<String, Any?>()
+    /**
+     * Values written this process, read before [sp]. Concurrent because [WeatherRepository]
+     * writes the cache from its fetch thread while the main thread reads: a plain HashMap
+     * mutated from two threads can corrupt itself. ConcurrentHashMap rejects nulls, so a
+     * stored null is kept as [NULL].
+     */
+    private val memFallback = java.util.concurrent.ConcurrentHashMap<String, Any>()
 
     private fun put(key: String, value: Any?, write: SharedPreferences.Editor.() -> Unit) {
-        memFallback[key] = value
+        memFallback[key] = value ?: NULL
         sp?.edit()?.apply {
             write()
             apply()
         }
     }
 
+    /** The in-memory value for [key]: absent → [Unset], stored null → null. */
+    private fun mem(key: String): Any? = when (val v = memFallback[key]) {
+        null -> Unset
+        NULL -> null
+        else -> v
+    }
+
+    private object Unset
+
     /** Manual weather city; blank means "locate automatically". */
     var weatherCity: String
         get() {
-            if (K_WEATHER_CITY in memFallback) return (memFallback[K_WEATHER_CITY] as? String).orEmpty()
+            mem(K_WEATHER_CITY).let { v -> if (v !== Unset) return (v as? String).orEmpty() }
             return sp?.getString(K_WEATHER_CITY, "").orEmpty()
         }
         set(value) = put(K_WEATHER_CITY, value.trim()) { putString(K_WEATHER_CITY, value.trim()) }
@@ -36,7 +51,7 @@ class NothingPrefs private constructor(context: Context) {
     /** Last successful weather response (serialized by [WeatherRepository]). */
     var weatherCache: String?
         get() {
-            if (K_WEATHER_CACHE in memFallback) return memFallback[K_WEATHER_CACHE] as? String
+            mem(K_WEATHER_CACHE).let { v -> if (v !== Unset) return v as? String }
             return sp?.getString(K_WEATHER_CACHE, null)
         }
         set(value) = put(K_WEATHER_CACHE, value) {
@@ -46,8 +61,8 @@ class NothingPrefs private constructor(context: Context) {
     /** Home and drawer backdrop (the v10 "Background" setting). */
     var background: Background
         get() {
-            if (K_BACKGROUND in memFallback) {
-                return Background.entries.getOrElse(memFallback[K_BACKGROUND] as? Int ?: 0) { Background.DOTS }
+            mem(K_BACKGROUND).let { v ->
+                if (v !== Unset) return Background.entries.getOrElse(v as? Int ?: 0) { Background.DOTS }
             }
             return Background.entries.getOrElse(sp?.getInt(K_BACKGROUND, 0) ?: 0) { Background.DOTS }
         }
@@ -56,7 +71,7 @@ class NothingPrefs private constructor(context: Context) {
     /** Live row of 60 dots under the LED clock. */
     var showSeconds: Boolean
         get() {
-            if (K_SECONDS in memFallback) return memFallback[K_SECONDS] as? Boolean ?: true
+            mem(K_SECONDS).let { v -> if (v !== Unset) return v as? Boolean ?: true }
             return sp?.getBoolean(K_SECONDS, true) ?: true
         }
         set(value) = put(K_SECONDS, value) { putBoolean(K_SECONDS, value) }
@@ -64,7 +79,7 @@ class NothingPrefs private constructor(context: Context) {
     /** Night mode the cached app icons were rendered for (-1 = unknown). */
     var iconsRenderedNight: Int
         get() {
-            if (K_ICONS_NIGHT in memFallback) return memFallback[K_ICONS_NIGHT] as? Int ?: -1
+            mem(K_ICONS_NIGHT).let { v -> if (v !== Unset) return v as? Int ?: -1 }
             return sp?.getInt(K_ICONS_NIGHT, -1) ?: -1
         }
         set(value) = put(K_ICONS_NIGHT, value) { putInt(K_ICONS_NIGHT, value) }
@@ -72,7 +87,7 @@ class NothingPrefs private constructor(context: Context) {
     /** Whether the default v10 home tiles were placed on the first screen. */
     var defaultTilesPlaced: Boolean
         get() {
-            if (K_TILES_PLACED in memFallback) return memFallback[K_TILES_PLACED] as? Boolean ?: false
+            mem(K_TILES_PLACED).let { v -> if (v !== Unset) return v as? Boolean ?: false }
             return sp?.getBoolean(K_TILES_PLACED, false) ?: false
         }
         set(value) = put(K_TILES_PLACED, value) { putBoolean(K_TILES_PLACED, value) }
@@ -90,13 +105,14 @@ class NothingPrefs private constructor(context: Context) {
     /** Whether the one-time defaults of this layer (e.g. monochrome icons) were applied. */
     var defaultsApplied: Boolean
         get() {
-            if (K_DEFAULTS_APPLIED in memFallback) return memFallback[K_DEFAULTS_APPLIED] as? Boolean ?: false
+            mem(K_DEFAULTS_APPLIED).let { v -> if (v !== Unset) return v as? Boolean ?: false }
             return sp?.getBoolean(K_DEFAULTS_APPLIED, false) ?: false
         }
         set(value) = put(K_DEFAULTS_APPLIED, value) { putBoolean(K_DEFAULTS_APPLIED, value) }
 
     companion object {
         private const val FILE = "not_a_thing"
+        private val NULL = Any()
         private const val K_WEATHER_CITY = "weather_city"
         private const val K_WEATHER_CACHE = "weather_cache"
         private const val K_BACKGROUND = "background"
