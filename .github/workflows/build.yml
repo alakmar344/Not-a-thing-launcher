@@ -63,13 +63,19 @@ jobs:
         with:
           name: NothingLauncher-release
           path: app/build/outputs/apk/release/*.apk
+       
+      # Main-branch builds publish to a rolling release named after app/build.gradle's versionName
+      # (this used to be hard-coded to v10.0, so v11.x builds were published as "Release v10.0").
+      - name: Read versionName
+        id: version
+        run: echo "name=v$(sed -n 's/^ *versionName \"\(.*\)\"/\1/p' app/build.gradle)" >> "$GITHUB_OUTPUT"
       
       - name: Create Release
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
-          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || 'v10.0' }}
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || steps.version.outputs.name }}
+          name: Release ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || steps.version.outputs.name }}
           files: |
             app/build/outputs/apk/debug/*.apk
             app/build/outputs/apk/release/*.apk
