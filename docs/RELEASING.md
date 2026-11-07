@@ -37,29 +37,6 @@ Settings → About.
 3. Merge to `main`. Optionally also create a tag `vX.Y` on that commit (GitHub → Releases → *Draft a
    new release* → new tag): tag pushes build a separate release named after the tag.
 
-## Known limitation: the rolling release is titled "v10.0"
-
-The live workflow hard-codes `v10.0` as the tag/title for builds from `main`, so up-to-date 11.x
-APKs appear under a release called "Release v10.0". The files in it are always current; only the
-title is wrong. Automation that pushes this repo isn't permitted to edit `.github/workflows/`, so
-this needs a one-time manual edit in GitHub's web editor (≈2 minutes):
-
-1. Open `.github/workflows/build.yml` on GitHub and click the pencil icon.
-2. Directly above the `- name: Create Release` step, add:
-
-   ```yaml
-         - name: Read versionName
-           id: version
-           run: echo "name=v$(sed -n 's/^ *versionName "\(.*\)"/\1/p' app/build.gradle)" >> "$GITHUB_OUTPUT"
-   ```
-
-3. In the `Create Release` step, replace both occurrences of `'v10.0'` with
-   `steps.version.outputs.name`.
-4. Commit to `main`.
-
-After that, `main` builds publish to a release named after `versionName` (e.g. `v11.2`), and a
-new release appears whenever the version is bumped. Remove this section once it's done.
-
 ## Using your own signing key (optional)
 
 The committed key is fine for a sideloaded launcher. If you want a private key instead, decide

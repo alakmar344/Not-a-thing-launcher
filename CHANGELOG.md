@@ -6,6 +6,10 @@ dates.
 
 ## [Unreleased]
 
+### Fixed
+- CI published every `main` build as "Release v10.0" (hard-coded tag); it now uses the
+  `versionName` from `app/build.gradle` (currently `v11.2`).
+
 ## [11.2] — Android 16 target, reliability fixes and a cleaned-up repo
 
 ### Changed
