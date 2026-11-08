@@ -92,14 +92,36 @@ Rendering primitives shared by the widgets live alongside them at the top level 
 `com.nothinglauncher`: `DotFont` (procedural 5×7 glyph rasterizer), `DotMatrixView`/
 `DotMatrixClockView`, `BatteryDotsView`, `MediaDotsView`, `WeatherDotsView`, `SecondsTickerView`.
 
-## 5. Icons
+## 5. Visual tiers (`perf/VisualTier`)
+
+[`VisualTier`](../app/src/main/java/com/nothinglauncher/perf/VisualTier.kt) classifies the
+device once per process into `LITE` / `BALANCED` / `RICH` from `ActivityManager` total RAM, the
+low-RAM flag and core count (`classify()` is pure and unit-tested in `VisualTierTest`), unless
+`NothingPrefs.visualQuality` forces it. Every surface reads the same decisions from an
+`Effects` value: `DotGridDrawable.forTier()` (vignette, light pool), `ClockWidget` (glow,
+power-on), `MediaDotsView` (frame interval), `BatteryDotsView` (pulse redraw steps), `Sheets`
+(blur), `SettingsUi.playEntrance`. `VisualTier.motionAllowed()` additionally stops decorative
+motion under Battery Saver or with animations disabled. `NothingLauncher.onResume` recreates
+home when the tier changes, like it does for the backdrop.
+
+Memory: `NothingApplication.onTrimMemory` drops the `DotFont` and `IconFactory` caches;
+`NothingLauncher.onTrimMemory` closes the widget picker when home is backgrounded (immediately
+on Lite). `VisualTier.checkPastExits` reads `ApplicationExitInfo` (Android 11+) on a background
+thread at startup; a low-memory kill or an Android 17 `MemoryLimiter` exit sets
+`memoryPressureSeen`, which makes Auto resolve to Lite.
+
+[`Tactile`](../app/src/main/java/com/nothinglauncher/Tactile.kt) adds press-scale and haptic
+ticks; `NothingWidget.onViewCreated` applies it to every element tile. Its touch listener never
+consumes events, so Launcher3's long-press/drag on widgets is unchanged.
+
+## 6. Icons
 
 [`NothingIconLogic`](../app/src/main/java/com/nothinglauncher/icons/NothingIconLogic.kt) decides
 night-mode and re-renders icons when the mono/colour toggle or night mode changes — actual icon
 styling (themed monochrome vs. colour) is otherwise Launcher3's own icon pipeline, driven by
 `LauncherPrefs.THEMED_ICONS`.
 
-## 6. Build pipeline
+## 7. Build pipeline
 
 ```
 third_party/aosp/launcher3/   ← vendored, unmodified AOSP sources

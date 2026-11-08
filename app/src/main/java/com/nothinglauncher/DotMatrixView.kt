@@ -89,6 +89,52 @@ open class DotMatrixView @JvmOverloads constructor(
     var accentVisible: Boolean = true
         set(value) { if (field != value) { field = value; invalidate() } }
 
+    /**
+     * Power-on sweep progress, 0..1 (1 = fully lit, the resting state). Columns ahead of the
+     * scan line are dark, a narrow band at it glows in the accent colour.
+     */
+    var reveal: Float = 1f
+        set(value) { val v = value.coerceIn(0f, 1f); if (v != field) { field = v; invalidate() } }
+
+    private val scanPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private var revealAnimator: android.animation.ValueAnimator? = null
+
+    /** Plays the power-on sweep once. Cheap: ~40 frames of one view. */
+    fun playReveal(durationMs: Long = 720L) {
+        if (!isAttachedToWindow || width == 0) return
+        revealAnimator?.cancel()
+        revealAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = durationMs
+            interpolator = android.view.animation.PathInterpolator(0.3f, 0f, 0.2f, 1f)
+            addUpdateListener { reveal = it.animatedValue as Float }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    reveal = 1f
+                    if (revealAnimator === animation) revealAnimator = null
+                }
+            })
+            start()
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        revealAnimator?.cancel()
+        revealAnimator = null
+        reveal = 1f
+        super.onDetachedFromWindow()
+    }
+
+    /** 0 = normal, 1 = not yet revealed (dark), 2 = on the scan line. */
+    private fun scanState(fraction: Float): Int {
+        if (reveal >= 1f) return 0
+        val front = reveal * (1f + SCAN_BAND)
+        return when {
+            fraction > front -> 1
+            fraction > front - SCAN_BAND -> 2
+            else -> 0
+        }
+    }
+
     init {
         onPaint.color = ContextCompat.getColor(context, R.color.dot_on)
         glowPaint.color = onPaint.color
@@ -164,7 +210,11 @@ open class DotMatrixView @JvmOverloads constructor(
                     val cx = x0 + (col + 0.5f) * pitch
                     val tc = col - textStart
                     val lit = tr in 0 until DotFont.ROWS && tc in 0 until cols && raster.lit[tr][tc]
-                    drawDot(canvas, cx, cy, radius, lit, if (lit) raster.charIndexAtColumn[tc] else -1)
+                    when (scanState(col / gridCols.toFloat())) {
+                        0 -> drawDot(canvas, cx, cy, radius, lit, if (lit) raster.charIndexAtColumn[tc] else -1)
+                        1 -> drawDot(canvas, cx, cy, radius, false, -1)
+                        else -> drawScanDot(canvas, cx, cy, radius, lit)
+                    }
                 }
             }
         } else {
@@ -182,10 +232,21 @@ open class DotMatrixView @JvmOverloads constructor(
                     val lit = raster.lit[row][col]
                     if (!lit && offColor == 0) continue
                     val cx = x0 + (col + 0.5f) * pitch
-                    drawDot(canvas, cx, cy, radius, lit, raster.charIndexAtColumn[col])
+                    when (scanState(col / cols.toFloat())) {
+                        0 -> drawDot(canvas, cx, cy, radius, lit, raster.charIndexAtColumn[col])
+                        1 -> drawDot(canvas, cx, cy, radius, false, -1)
+                        else -> drawScanDot(canvas, cx, cy, radius, lit)
+                    }
                 }
             }
         }
+    }
+
+    private fun drawScanDot(canvas: Canvas, cx: Float, cy: Float, r: Float, lit: Boolean) {
+        scanPaint.color = accentPaint.color
+        // Lit dots flare at full accent; the unlit panel under the line glows faintly.
+        scanPaint.alpha = if (lit) 0xFF else 0x55
+        canvas.drawCircle(cx, cy, if (lit) r * 1.08f else r * 0.82f, scanPaint)
     }
 
     private fun drawDot(canvas: Canvas, cx: Float, cy: Float, r: Float, lit: Boolean, charIndex: Int) {
@@ -205,5 +266,10 @@ open class DotMatrixView @JvmOverloads constructor(
             canvas.drawCircle(cx, cy, r * 1.55f, glowPaint)
         }
         canvas.drawCircle(cx, cy, r, paint)
+    }
+
+    private companion object {
+        /** Width of the glowing scan line, as a fraction of the panel. */
+        const val SCAN_BAND = 0.14f
     }
 }

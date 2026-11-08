@@ -75,6 +75,8 @@ class BatteryDotsView @JvmOverloads constructor(
 
     private var receiverRegistered = false
 
+    private val pulseSteps = com.nothinglauncher.perf.VisualTier.effects(context).pulseSteps
+
     // Resolved once: onDraw runs at 60 fps while the charging pulse animates.
     private val labelCharging = context.getString(R.string.charging).uppercase()
     private val labelLow = context.getString(R.string.battery_low).uppercase()
@@ -176,7 +178,13 @@ class BatteryDotsView @JvmOverloads constructor(
                 duration = 1600
                 repeatCount = ValueAnimator.INFINITE
                 interpolator = LinearInterpolator()
-                addUpdateListener { pulse = it.animatedValue as Float; invalidate() }
+                addUpdateListener {
+                    val v = it.animatedValue as Float
+                    // Lite/balanced tiers quantise the pulse: the animator still ticks per frame
+                    // (cheap), but the ring only redraws when the visible step changes.
+                    val q = if (pulseSteps > 0) (v * pulseSteps).roundToInt() / pulseSteps.toFloat() else v
+                    if (q != pulse) { pulse = q; invalidate() }
+                }
                 start()
             }
         } else if (!shouldPulse) {

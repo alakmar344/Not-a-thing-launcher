@@ -41,6 +41,8 @@ class MediaDotsView @JvmOverloads constructor(
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
     }
 
+    private val frameMs = com.nothinglauncher.perf.VisualTier.effects(context).visualizerFrameMs
+
     private val barCounts = IntArray(16) { Random.nextInt(1, 6) }
     private var running = false
 
@@ -52,7 +54,8 @@ class MediaDotsView @JvmOverloads constructor(
                 barCounts[i] = (barCounts[i] + change).coerceIn(1, 5)
             }
             invalidate()
-            postDelayed(this, 140)
+            // Faster and smoother on capable phones, calmer (fewer redraws) on Lite ones.
+            postDelayed(this, frameMs)
         }
     }
 

@@ -100,6 +100,34 @@ class NothingPrefs private constructor(context: Context) {
 
     enum class Background { DOTS, BLACK, WALLPAPER }
 
+    /** Settings › Look › Visual quality. AUTO follows [com.nothinglauncher.perf.VisualTier]. */
+    enum class VisualQuality { AUTO, LITE, FULL }
+
+    var visualQuality: VisualQuality
+        get() {
+            mem(K_QUALITY).let { v ->
+                if (v !== Unset) return VisualQuality.entries.getOrElse(v as? Int ?: 0) { VisualQuality.AUTO }
+            }
+            return VisualQuality.entries.getOrElse(sp?.getInt(K_QUALITY, 0) ?: 0) { VisualQuality.AUTO }
+        }
+        set(value) = put(K_QUALITY, value.ordinal) { putInt(K_QUALITY, value.ordinal) }
+
+    /** The system killed home for memory at least once (low-memory killer or Android 17's limiter). */
+    var memoryPressureSeen: Boolean
+        get() {
+            mem(K_MEM_PRESSURE).let { v -> if (v !== Unset) return v as? Boolean ?: false }
+            return sp?.getBoolean(K_MEM_PRESSURE, false) ?: false
+        }
+        set(value) = put(K_MEM_PRESSURE, value) { putBoolean(K_MEM_PRESSURE, value) }
+
+    /** Timestamp of the newest process exit already looked at. */
+    var lastExitCheck: Long
+        get() {
+            mem(K_EXIT_CHECK).let { v -> if (v !== Unset) return v as? Long ?: 0L }
+            return sp?.getLong(K_EXIT_CHECK, 0L) ?: 0L
+        }
+        set(value) = put(K_EXIT_CHECK, value) { putLong(K_EXIT_CHECK, value) }
+
     enum class IconStyle { MONO, COLOR }
 
     /** Whether the one-time defaults of this layer (e.g. monochrome icons) were applied. */
@@ -120,6 +148,9 @@ class NothingPrefs private constructor(context: Context) {
         private const val K_ICONS_NIGHT = "icons_rendered_night"
         private const val K_TILES_PLACED = "default_tiles_placed"
         private const val K_DEFAULTS_APPLIED = "defaults_applied_v11"
+        private const val K_QUALITY = "visual_quality"
+        private const val K_MEM_PRESSURE = "memory_pressure_seen"
+        private const val K_EXIT_CHECK = "last_exit_check"
 
         @Volatile private var instance: NothingPrefs? = null
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="dot_lit_ambient">#4A4A52</color>
+    <color name="tile_sheen_top">#18181B</color>
+    <color name="tile_sheen_bottom">#0C0C0E</color>
+</resources>

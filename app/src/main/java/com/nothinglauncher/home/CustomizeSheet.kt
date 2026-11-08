@@ -44,6 +44,7 @@ object CustomizeSheet {
             t.tileIcon.setImageResource(icon)
             t.tileLabel.setText(label)
             t.root.contentDescription = launcher.getString(label)
+            com.nothinglauncher.Tactile.press(t.root)
             t.root.setOnClickListener {
                 dialog.dismiss()
                 action()

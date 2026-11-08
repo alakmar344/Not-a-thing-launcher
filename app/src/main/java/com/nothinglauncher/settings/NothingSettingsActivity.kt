@@ -26,6 +26,7 @@ import com.nothinglauncher.Sheets
 import com.nothinglauncher.WeatherRepository
 import com.nothinglauncher.databinding.ActivitySettingsBinding
 import com.nothinglauncher.databinding.ItemSettingRowBinding
+import com.nothinglauncher.perf.VisualTier
 
 /**
  * The v10 settings screen, wired to stock Launcher3 where Launcher3 owns the behaviour (grid,
@@ -49,11 +50,7 @@ class NothingSettingsActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         binding = ActivitySettingsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        binding.settingsRoot.background = DotGridDrawable(
-            resources.displayMetrics.density,
-            backgroundColor = ContextCompat.getColor(this, R.color.nothing_bg),
-            dotColor = ContextCompat.getColor(this, R.color.dot_off)
-        )
+        binding.settingsRoot.background = DotGridDrawable.forTier(this)
         binding.backButton.setOnClickListener { finish() }
         val density = resources.displayMetrics.density
         // Edge-to-edge is enforced from targetSdk 35 and can't be opted out of from 36, so the
@@ -75,6 +72,11 @@ class NothingSettingsActivity : AppCompatActivity() {
             insets
         }
         build()
+        if (savedInstanceState == null && VisualTier.effects(this).entranceMotion &&
+            VisualTier.motionAllowed(this)
+        ) {
+            SettingsUi.playEntrance(binding.settingsList)
+        }
     }
 
     override fun onResume() {
@@ -133,6 +135,21 @@ class NothingSettingsActivity : AppCompatActivity() {
                 listOf(getString(R.string.bg_dots), getString(R.string.bg_black), getString(R.string.bg_wallpaper)),
                 prefs.background.ordinal
             ) { prefs.background = NothingPrefs.Background.entries[it] }
+            lateinit var qualityRow: com.nothinglauncher.databinding.ItemSettingRowBinding
+            qualityRow = SettingsUi.choiceRow(
+                card, getString(R.string.setting_quality), qualitySubtitle(),
+                listOf(getString(R.string.quality_auto), getString(R.string.quality_lite), getString(R.string.quality_full)),
+                prefs.visualQuality.ordinal
+            ) {
+                val choice = NothingPrefs.VisualQuality.entries[it]
+                prefs.visualQuality = choice
+                // Choosing Auto again is the way back from a low-memory downgrade.
+                if (choice == NothingPrefs.VisualQuality.AUTO) prefs.memoryPressureSeen = false
+                VisualTier.invalidate()
+                qualityRow.rowSubtitle.text = qualitySubtitle()
+                // This screen's own backdrop follows at once; home rebuilds when shown again.
+                binding.settingsRoot.background = DotGridDrawable.forTier(this)
+            }
             SettingsUi.actionRow(card, getString(R.string.nt_choose_wallpaper), null, trailingIcon = R.drawable.ic_wallpaper) {
                 Intents.openWallpaperPicker(this)
             }
@@ -172,6 +189,28 @@ class NothingSettingsActivity : AppCompatActivity() {
             SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName()))
         }
         refreshStatus()
+    }
+
+    private fun qualitySubtitle(): String = when (prefs.visualQuality) {
+        NothingPrefs.VisualQuality.LITE -> getString(R.string.setting_quality_sub_lite)
+        NothingPrefs.VisualQuality.FULL -> getString(R.string.setting_quality_sub_full)
+        NothingPrefs.VisualQuality.AUTO -> if (prefs.memoryPressureSeen) {
+            getString(R.string.setting_quality_sub_pressure)
+        } else {
+            val info = VisualTier.deviceInfo(this)
+            getString(
+                R.string.setting_quality_sub_auto,
+                String.format(java.util.Locale.getDefault(), "%.1f", info.totalRamGb),
+                info.cores,
+                getString(
+                    when (VisualTier.autoTier(this)) {
+                        VisualTier.Tier.LITE -> R.string.quality_tier_lite
+                        VisualTier.Tier.BALANCED -> R.string.quality_tier_balanced
+                        VisualTier.Tier.RICH -> R.string.quality_tier_rich
+                    }
+                )
+            )
+        }
     }
 
     private fun refreshStatus() {

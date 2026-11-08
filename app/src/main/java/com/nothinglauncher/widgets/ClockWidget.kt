@@ -13,6 +13,7 @@ import com.nothinglauncher.Intents
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.SecondsTickerView
+import com.nothinglauncher.perf.VisualTier
 import java.util.Calendar
 import java.util.Locale
 
@@ -34,6 +35,10 @@ class ClockWidget(context: Context) : NothingWidget(context) {
         val meridiem = root.findViewById<TextView>(R.id.clockMeridiem)
         root.findViewById<View>(R.id.liveDot).background.mutate().setTint(accent)
         clock.accentColor = accent
+        // Lite devices skip the glow halo (half the circles per redraw) and the power-on sweep.
+        val fx = VisualTier.effects(ctx)
+        clock.glow = clock.glow && fx.dotGlow
+        clock.powerOnEnabled = fx.clockPowerOn
         root.findViewById<SecondsTickerView>(R.id.secondsTicker).apply {
             accentColor = accent
             // Settings › Seconds ticker; re-checked whenever the tile is shown again.

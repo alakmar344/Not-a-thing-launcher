@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.content.ContextWrapper
+import android.os.Build
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
@@ -12,6 +13,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import com.nothinglauncher.databinding.DialogConfirmBinding
 import com.nothinglauncher.databinding.DialogEditNoteBinding
+import com.nothinglauncher.perf.VisualTier
 
 /** Floating bottom sheets & dialogs in the v10 visual language. */
 object Sheets {
@@ -23,9 +25,22 @@ object Sheets {
         dialog.window?.apply {
             setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
             setGravity(Gravity.BOTTOM)
+            // Rich tier on Android 12+: frosted glass behind the sheet instead of a flat dim,
+            // when the device (and Battery Saver / the user) allow cross-window blur.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                VisualTier.effects(context).sheetBlur && VisualTier.blurAvailable(context)
+            ) {
+                addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+                attributes = attributes.apply {
+                    blurBehindRadius = (BLUR_DP * context.resources.displayMetrics.density).toInt()
+                    dimAmount = 0.42f
+                }
+            }
         }
         return dialog
     }
+
+    private const val BLUR_DP = 28f
 
     /** Shows [dialog] unless its activity is going away (avoids BadTokenException). */
     fun showSafely(context: Context, dialog: Dialog) {

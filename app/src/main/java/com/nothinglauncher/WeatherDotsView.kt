@@ -49,10 +49,12 @@ class WeatherDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
-    /** Paints the moon's "bite" in the tile surface colour (bg_tile_dark uses @color/surface). */
-    private val cutoutPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.surface)
-    }
+    // Crescent cut as a real shape (not painted over in the tile colour), so it stays correct on
+    // the tiles' gradient sheen. Rebuilt only when the icon position moves.
+    private val moonPath = android.graphics.Path()
+    private val biteRect = android.graphics.Path()
+    private var moonKeyX = Float.NaN
+    private var moonKeyY = Float.NaN
 
     // Upper-cased copies are made once per change instead of on every draw.
     private var cityUpper = ""
@@ -162,8 +164,15 @@ class WeatherDotsView @JvmOverloads constructor(
         }
         if (!cloudy && !isDay) {
             // Crescent moon made from two overlapping circles.
-            canvas.drawCircle(cx, cy, 10f * density, onPaint)
-            canvas.drawCircle(cx + 5f * density, cy - 3f * density, 9f * density, cutoutPaint)
+            if (cx != moonKeyX || cy != moonKeyY) {
+                moonKeyX = cx; moonKeyY = cy
+                moonPath.reset()
+                moonPath.addCircle(cx, cy, 10f * density, android.graphics.Path.Direction.CW)
+                biteRect.reset()
+                biteRect.addCircle(cx + 5f * density, cy - 3f * density, 9f * density, android.graphics.Path.Direction.CW)
+                moonPath.op(biteRect, android.graphics.Path.Op.DIFFERENCE)
+            }
+            canvas.drawPath(moonPath, onPaint)
             canvas.drawCircle(cx - 1f * density, cy + 1f * density, 2f * density, accentPaint)
             return
         }

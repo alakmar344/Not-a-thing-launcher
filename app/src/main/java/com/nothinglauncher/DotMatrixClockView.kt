@@ -25,6 +25,9 @@ class DotMatrixClockView @JvmOverloads constructor(
     var previewTime: Pair<Int, Int>? = null
         set(value) { field = value; tick(); updateRunning() }
 
+    /** Whether this clock takes part in [playPowerOn] (set from the visual tier). */
+    var powerOnEnabled: Boolean = false
+
     private var lastMinuteStamp = -1L
     private var lastTextKey = -1
     private var lastColonIndex = -2
@@ -90,10 +93,12 @@ class DotMatrixClockView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        attached += this
         updateRunning()
     }
 
     override fun onDetachedFromWindow() {
+        attached -= this
         super.onDetachedFromWindow()
         running = false
         removeCallbacks(ticker)
@@ -112,5 +117,18 @@ class DotMatrixClockView @JvmOverloads constructor(
     override fun onVisibilityAggregated(isVisible: Boolean) {
         super.onVisibilityAggregated(isVisible)
         updateRunning()
+    }
+
+    companion object {
+        /** Attached clocks (main thread only); weak so a dropped widget view is never kept. */
+        private val attached: MutableSet<DotMatrixClockView> =
+            java.util.Collections.newSetFromMap(java.util.WeakHashMap())
+
+        /** Runs the power-on sweep on every visible clock that has it enabled. */
+        fun playPowerOn() {
+            for (clock in attached.toList()) {
+                if (clock.powerOnEnabled && clock.isShown && clock.previewTime == null) clock.playReveal()
+            }
+        }
     }
 }

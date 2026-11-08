@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- v12 additions to the Not a Thing palette (light). Night values in values-night/nt_v12.xml. -->
+<resources>
+    <!-- Brighter backdrop dots inside the "light pool" (rich visual tier). -->
+    <color name="dot_lit_ambient">#ADADA6</color>
+    <!-- Top edge of tiles: a hint of light falling on the surface. -->
+    <color name="tile_sheen_top">#FFFFFF</color>
+    <color name="tile_sheen_bottom">#F7F7F5</color>
+</resources>
