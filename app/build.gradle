@@ -62,7 +62,7 @@ android {
         //    resizeable with screenOrientation="unspecified"; Launcher3 rotates on tablets.
         targetSdk 36
         versionCode resolvedVersionCode
-        versionName "11.2"
+        versionName "12"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 

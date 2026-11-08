@@ -34,31 +34,15 @@ Settings → About.
 1. Bump `versionName` in `app/build.gradle`.
 2. Move the `[Unreleased]` entries in [`CHANGELOG.md`](../CHANGELOG.md) under a new heading for that
    version.
-3. Merge to `main`. Optionally also create a tag `vX.Y` on that commit (GitHub → Releases → *Draft a
-   new release* → new tag): tag pushes build a separate release named after the tag.
+3. Merge to `main`. That alone publishes the release `v<versionName>`. Optionally also push the
+   matching tag (e.g. `v12`); a tag that doesn't match `versionName` fails the build.
 
-## Known limitation: the rolling release is titled "v10.0"
+## How releases are named
 
-The live workflow hard-codes `v10.0` as the tag/title for builds from `main`, so up-to-date 11.x
-APKs appear under a release called "Release v10.0". The files in it are always current; only the
-title is wrong. Automation that pushes this repo isn't permitted to edit `.github/workflows/`, so
-this needs a one-time manual edit in GitHub's web editor (≈2 minutes):
-
-1. Open `.github/workflows/build.yml` on GitHub and click the pencil icon.
-2. Directly above the `- name: Create Release` step, add:
-
-   ```yaml
-         - name: Read versionName
-           id: version
-           run: echo "name=v$(sed -n 's/^ *versionName "\(.*\)"/\1/p' app/build.gradle)" >> "$GITHUB_OUTPUT"
-   ```
-
-3. In the `Create Release` step, replace both occurrences of `'v10.0'` with
-   `steps.version.outputs.name`.
-4. Commit to `main`.
-
-After that, `main` builds publish to a release named after `versionName` (e.g. `v11.2`), and a
-new release appears whenever the version is bumped. Remove this section once it's done.
+The workflow reads `versionName` from `app/build.gradle` and publishes `main` builds to the tag
+`v<versionName>`, titled `Release v<versionName>` — `versionName "12"` gives **v12**. Bumping
+`versionName` starts a new release; until then each push replaces the files in the current one.
+A pushed tag must equal `v<versionName>` or the build fails on purpose.
 
 ## Using your own signing key (optional)
 
