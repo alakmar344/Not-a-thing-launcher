@@ -54,4 +54,17 @@
     <string name="nt_setting_advanced">Advanced home settings</string>
     <string name="nt_setting_advanced_sub">Notification dots and other stock options</string>
     <string name="nt_widget_date_time">Date &amp; time</string>
+    <!-- v12: visual quality (perf.VisualTier) -->
+    <string name="setting_quality">Visual quality</string>
+    <string name="quality_auto">Auto</string>
+    <string name="quality_lite">Lite</string>
+    <string name="quality_full">Full</string>
+    <string name="quality_tier_lite">Lite</string>
+    <string name="quality_tier_balanced">Balanced</string>
+    <string name="quality_tier_rich">Full</string>
+    <!-- %1$s RAM in GB, %2$d CPU cores, %3$s tier name -->
+    <string name="setting_quality_sub_auto">This phone: %1$s GB RAM, %2$d cores. Auto picks %3$s.</string>
+    <string name="setting_quality_sub_pressure">Auto picks Lite: Android had to close home to free memory before.</string>
+    <string name="setting_quality_sub_lite">Lightest on memory and battery: flat dot grid, no glow, calmer motion.</string>
+    <string name="setting_quality_sub_full">Light pool, glowing LEDs, power-on sweep and blurred sheets.</string>
 </resources>

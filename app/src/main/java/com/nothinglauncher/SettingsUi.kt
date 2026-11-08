@@ -65,7 +65,10 @@ object SettingsUi {
         sw.onCheckedChange = onChange
         sw.contentDescription = title
         b.rowTrailing.addView(sw)
-        b.root.setOnClickListener { sw.setChecked(!sw.isChecked, animate = true, notify = true) }
+        b.root.setOnClickListener {
+            Tactile.tick(it)
+            sw.setChecked(!sw.isChecked, animate = true, notify = true)
+        }
         sw.isClickable = false
         sw.isFocusable = false
         sw.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -89,7 +92,7 @@ object SettingsUi {
     }
 
     /** A full-width segmented control under the title. */
-    fun choiceRow(card: LinearLayout, title: String, subtitle: String?, options: List<String>, selected: Int, onSelect: (Int) -> Unit) {
+    fun choiceRow(card: LinearLayout, title: String, subtitle: String?, options: List<String>, selected: Int, onSelect: (Int) -> Unit): ItemSettingRowBinding {
         val b = row(card, title, subtitle)
         b.root.background = null
         b.rowBelow.isVisible = true
@@ -121,13 +124,35 @@ object SettingsUi {
                 isClickable = true
                 isFocusable = true
                 contentDescription = "$title: $label"
-                setOnClickListener { paint(index); onSelect(index) }
+                setOnClickListener {
+                    if (!isSelected) Tactile.tick(this)
+                    paint(index)
+                    onSelect(index)
+                }
             }
             views += tv
             group.addView(tv, LinearLayout.LayoutParams(0, (36 * d).toInt(), 1f))
         }
         paint(selected)
         b.rowBelow.addView(group, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        return b
+    }
+
+    /**
+     * Cards slide up and fade in one after another (balanced/full tiers). Runs once per screen
+     * on the RenderThread-friendly alpha/translation properties only.
+     */
+    fun playEntrance(list: ViewGroup) {
+        val d = list.resources.displayMetrics.density
+        for (i in 0 until list.childCount) {
+            val v = list.getChildAt(i)
+            v.alpha = 0f
+            v.translationY = 18 * d
+            v.animate().alpha(1f).translationY(0f)
+                .setStartDelay(40L + i * 32L).setDuration(340L)
+                .setInterpolator(android.view.animation.DecelerateInterpolator(2f))
+                .start()
+        }
     }
 
     fun actionRow(

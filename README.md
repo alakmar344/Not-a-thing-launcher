@@ -10,7 +10,7 @@ Under the hood it is **stock AOSP Launcher3** (the open-source launcher behind P
 Not a Thing design layered on top, so the home screen, drawer, folders, widgets, drag & drop and
 app shortcuts all behave exactly like stock Android.
 
-**Version 11.2** · runs on Android 8.0 – 17 · targets Android 16 (API 36)
+**Version 12** · runs on Android 8.0 – 17 · targets Android 16 (API 36)
 
 <p>
   <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png" width="24%" alt="Home" />
@@ -29,6 +29,8 @@ app shortcuts all behave exactly like stock Android.
   folders and drawer.
 - **Dot-matrix widgets** in the stock picker (long-press home → Widgets → *Not a Thing*): LED
   clock, battery & date, weather, media player.
+- **Fits the phone.** Lighter on 3–4 GB phones and richer on 8 GB ones, picked automatically
+  (Settings → Look → Visual quality).
 - **Customize sheet** on long-press and the Not a Thing settings screen (grid, icon style,
   backdrop, seconds ticker, weather location, …).
 

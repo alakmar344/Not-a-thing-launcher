@@ -6,6 +6,53 @@ dates.
 
 ## [Unreleased]
 
+## [12] — Fits the phone, and a bit more character
+
+### Added
+- **Visual quality that fits the phone** (Settings → Look → Visual quality: Auto / Lite / Full).
+  Auto reads RAM and CPU cores and shows what it found. 3–4 GB phones (including 3.5 GB) get
+  **Lite**: flat dot grid, no LED glow, no power-on sweep or entrance motion, a calmer media
+  visualiser, and the charging pulse redrawn ~8×/s instead of every frame. 6 GB phones get
+  **Balanced**. 8 GB+ phones get **Full**: everything, plus the backdrop light pool and blurred
+  sheets.
+- **Backdrop light pool** (Full): dots near the top of the screen glow brighter and slightly
+  larger, like an LED panel lit from above.
+- **LED clock power-on**: back on home after 5+ minutes, a red scan line sweeps across the clock
+  and lights the digits behind it (Balanced and Full).
+- **Tactile tiles**: element tiles and Customize sheet tiles sink a little under the finger and
+  spring back with a light haptic tick. Settings toggles and choices tick too.
+- **Frosted sheets** on Android 12+ (Full, where the device allows blur).
+- Settings cards slide in one after another (Balanced and Full).
+- New screenshots: `homeLite` (Lite tier) and `clockPowerOn` (the sweep, frozen mid-way).
+
+### Changed
+- Element tiles have a faint top-down sheen instead of a flat fill.
+- Decorative motion stops while Battery Saver is on or system animations are off, on every
+  tier.
+- **Android 17 memory limits.** Android 17 caps each app's memory relative to the device's RAM.
+  When home goes to the background the Not a Thing layer drops its own caches and closes the
+  widget picker (its previews are the largest bitmaps held for it). On Android 11+, if the system
+  ever closed home to free memory (the low-memory killer or Android 17's `MemoryLimiter`), Auto
+  quality switches to Lite and says so in settings.
+- Version is now **12**, published as release **v12** (the workflow names releases after
+  `versionName`).
+
+### Fixed
+- Possible crash registering the Not a Thing widgets on Android 8.0/8.1: a widget field that
+  only exists from Android 9 was written unconditionally (found by lint's API check).
+- Settings switches were invisible when on in light mode (a white pill on a white card, so only
+  a lone dot showed). The "on" track now uses the active colour: black on light, white on dark.
+- The weather tile's crescent moon is now a real cut-out shape instead of a disc painted in the
+  tile colour, so it stays correct on the new tile sheen.
+
+### Docs
+- `RELEASING.md`: removed the "release titled v10.0" limitation (the live workflow already names
+  releases after `versionName`) and documented how release names are derived.
+
+Not measured: memory and frame timings on real 3.5 GB / 8 GB devices, and behaviour on an
+Android 17 device or emulator. None were available. Unit, Robolectric and screenshot tests run
+on the JVM.
+
 ## [11.2] — Android 16 target, reliability fixes and a cleaned-up repo
 
 ### Changed

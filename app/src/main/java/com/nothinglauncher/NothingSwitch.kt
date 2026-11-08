@@ -16,8 +16,8 @@ import android.widget.Switch
 import androidx.core.content.ContextCompat
 
 /**
- * A minimal toggle: an outlined pill with a grey dot when off, a solid white pill with a
- * black dot when on. Animated and accessible (announced as a switch).
+ * A minimal toggle: an outlined pill with a grey dot when off, a solid pill in the active
+ * colour (black on light, white on dark) with a contrasting dot when on. Animated and accessible (announced as a switch).
  */
 class NothingSwitch @JvmOverloads constructor(
     context: Context,
@@ -30,14 +30,16 @@ class NothingSwitch @JvmOverloads constructor(
         strokeWidth = 1.5f * density
         color = ContextCompat.getColor(context, R.color.hairline_strong)
     }
+    // Same pair as the selected segment of choice rows: black on light cards, white on dark
+    // ones. (It used to be white in both, which vanished on light cards, leaving a lone dot.)
     private val trackOn = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.nothing_white)
+        color = ContextCompat.getColor(context, R.color.pill_active_bg)
     }
     private val thumbOff = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
     }
     private val thumbOn = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.nothing_black)
+        color = ContextCompat.getColor(context, R.color.pill_active_text)
     }
     private val rect = RectF()
 

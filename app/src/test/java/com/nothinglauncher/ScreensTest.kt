@@ -18,6 +18,9 @@ import com.android.resources.NightMode
 import com.nothinglauncher.widgets.BatteryCalendarWidget
 import com.nothinglauncher.widgets.ClockWidget
 import android.appwidget.AppWidgetHostView
+import com.nothinglauncher.perf.VisualTier
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -43,8 +46,15 @@ abstract class ScreensTest(private val night: Boolean) {
     private fun dp(v: Int) = (v * density).toInt()
     private fun color(id: Int) = ContextCompat.getColor(ctx, id)
 
+    /** Goldens show the full look (8 GB-class phones); [homeLite] shows the Lite tier. */
+    @Before
+    fun fullTier() = VisualTier.setForTests(VisualTier.Tier.RICH)
+
+    @After
+    fun resetTier() = VisualTier.setForTests(null)
+
     private fun backdrop(child: View): View = FrameLayout(ctx).apply {
-        background = DotGridDrawable(density, backgroundColor = color(R.color.nothing_bg), dotColor = color(R.color.dot_off))
+        background = DotGridDrawable.forTier(ctx)
         addView(child, FrameLayout.LayoutParams(MATCH, MATCH))
     }
 
@@ -121,6 +131,23 @@ abstract class ScreensTest(private val night: Boolean) {
     @Test
     fun homeColor() = paparazzi.snapshot(home(NothingPrefs.IconStyle.COLOR))
 
+    /** 3–4 GB phones: flat grid, no glow or light pool. */
+    @Test
+    fun homeLite() {
+        VisualTier.setForTests(VisualTier.Tier.LITE)
+        paparazzi.snapshot(home(NothingPrefs.IconStyle.MONO))
+    }
+
+    /** The LED clock's power-on scan, frozen just past half way. */
+    @Test
+    fun clockPowerOn() {
+        val home = home(NothingPrefs.IconStyle.MONO)
+        fun find(v: View): DotMatrixClockView? = v as? DotMatrixClockView
+            ?: (v as? ViewGroup)?.let { g -> (0 until g.childCount).firstNotNullOfOrNull { find(g.getChildAt(it)) } }
+        requireNotNull(find(home)) { "no clock on home" }.reveal = 0.58f
+        paparazzi.snapshot(home)
+    }
+
     @Test
     fun drawer() {
         val column = LinearLayout(ctx).apply {
@@ -170,8 +197,7 @@ abstract class ScreensTest(private val night: Boolean) {
     @Test
     fun settings() {
         val root = LayoutInflater.from(ctx).inflate(R.layout.activity_settings, null)
-        root.findViewById<View>(R.id.settingsRoot).background =
-            DotGridDrawable(density, backgroundColor = color(R.color.nothing_bg), dotColor = color(R.color.dot_off))
+        root.findViewById<View>(R.id.settingsRoot).background = DotGridDrawable.forTier(ctx)
         val list = root.findViewById<LinearLayout>(R.id.settingsList)
         val accent = color(R.color.nothing_red)
         SettingsUi.section(list, ctx.getString(R.string.section_home), accent)
@@ -183,6 +209,7 @@ abstract class ScreensTest(private val night: Boolean) {
         SettingsUi.card(list).also { card ->
             SettingsUi.choiceRow(card, ctx.getString(R.string.setting_icons), ctx.getString(R.string.setting_icons_sub), listOf(ctx.getString(R.string.icons_mono), ctx.getString(R.string.icons_color)), 0) {}
             SettingsUi.choiceRow(card, ctx.getString(R.string.setting_background), ctx.getString(R.string.setting_background_sub), listOf(ctx.getString(R.string.bg_dots), ctx.getString(R.string.bg_black), ctx.getString(R.string.bg_wallpaper)), 0) {}
+            SettingsUi.choiceRow(card, ctx.getString(R.string.setting_quality), ctx.getString(R.string.setting_quality_sub_auto, "7.4", 8, ctx.getString(R.string.quality_tier_rich)), listOf(ctx.getString(R.string.quality_auto), ctx.getString(R.string.quality_lite), ctx.getString(R.string.quality_full)), 0) {}
         }
         paparazzi.snapshot(root)
     }

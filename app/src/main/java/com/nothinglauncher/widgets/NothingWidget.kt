@@ -41,10 +41,14 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
         parent.removeAllViews()
         // The host already applies the widget cell padding; the element fills it.
         parent.setPadding(0, 0, 0, 0)
+        val view = createView(parent)
         parent.addView(
-            createView(parent),
+            view,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         )
+        // Tiles sink a little under the finger. Long-press still reaches Launcher3 (the touch
+        // listener never consumes), and a drag cancels the press, which springs the tile back.
+        com.nothinglauncher.Tactile.pressTiles(view, pressedScale = 0.975f)
     }
 
     override fun updateWidgetInfo(info: AppWidgetProviderInfo, context: Context) {
@@ -61,7 +65,8 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
         // make Launcher3 try to configure our (negative, in-process) widget id and crash, and
         // its size limits would clamp ours.
         info.configure = null
-        info.widgetFeatures = 0
+        // Field added in Android 9; touching it on 8.0/8.1 throws NoSuchFieldError.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.widgetFeatures = 0
         info.minWidth = 0
         info.minHeight = 0
         info.minResizeWidth = 0

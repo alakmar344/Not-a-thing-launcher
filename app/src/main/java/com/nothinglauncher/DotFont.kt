@@ -130,6 +130,9 @@ object DotFont {
      * Same as [rasterize] but memoised, so views can call it from onDraw without allocating
      * a new raster every frame. The returned raster is shared: treat it as read-only.
      */
+    /** Drops memoised rasters (memory trim); they are rebuilt on the next draw. */
+    fun clearCache() = rasterCache.evictAll()
+
     fun rasterizeCached(text: String, spacing: Int = 1): Raster {
         val key = if (spacing == 1) text else "$spacing\u0000$text"
         rasterCache.get(key)?.let { return it }

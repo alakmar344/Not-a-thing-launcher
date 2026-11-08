@@ -16,7 +16,29 @@ just use it like any Pixel-style launcher.
 - **Icons** rendered as the app's glyph in a flat disc (monochrome) or the original artwork in a
   circle (colour) — toggle in Settings → Look (follows Launcher3's themed-icons setting).
 - **Backdrop**: dot-grid, solid black/bone, or the system wallpaper (Settings → Look →
-  Background).
+  Background). On Full quality the dot grid has a soft "light pool" near the top where dots
+  glow brighter, plus an edge vignette.
+- **Tiles** have a faint top-down sheen and sink slightly under your finger, springing back
+  with a light haptic tick (also on the Customize sheet). Settings toggles and choices tick too.
+- **LED clock power-on.** Coming back to home after 5+ minutes (or on start), a red scan line
+  sweeps across the clock and lights the digits up behind it.
+- **Frosted sheets** on Android 12+ at Full quality, where the device allows blur.
+
+## Visual quality (fits the phone)
+
+Settings → Look → **Visual quality**: *Auto* (default), *Lite* or *Full*. Auto picks from the
+phone's RAM and CPU cores and shows what it detected:
+
+| Tier | Picked for | What changes |
+|---|---|---|
+| **Lite** | up to "4 GB" phones (incl. 3.5 GB), Android low-RAM devices, ≤ 4 cores | Flat dot grid (no vignette or light pool), no LED glow (half the dots drawn), no power-on sweep or settings entrance, slower media visualiser, charging pulse redrawn ~8×/s instead of every frame, widget picker closed as soon as home is hidden |
+| **Balanced** | "6 GB"-class phones | Vignette, LED glow, power-on sweep, entrance motion |
+| **Full** | "8 GB"+ phones with 6+ cores | Everything above plus the light pool, sheet blur (Android 12+), smoothest visualiser |
+
+Whatever the tier, decorative motion stops while Battery Saver is on or system animations are
+off. On Android 11+, if the system ever had to close home to free memory (the low-memory
+killer, or Android 17's per-app memory limiter), Auto switches to Lite and says so; picking Auto
+again resets it. When home goes to the background the layer also drops its own caches.
 
 ## Home screen
 
@@ -55,7 +77,8 @@ groups:
 
 - **Home** — grid size (3×3/4×4/5×5 on phones), seconds ticker, "add icon to home screen on
   install", auto-rotate.
-- **Look** — icon style (mono/colour), background (dots/black/wallpaper), wallpaper picker.
+- **Look** — icon style (mono/colour), background (dots/black/wallpaper), visual quality
+  (auto/lite/full), wallpaper picker.
 - **Permissions & capabilities** — notification access (needed for the media widget and
   notification dots), weather location.
 - **System** — default-launcher status/shortcut, **Advanced home settings** (opens Launcher3's
