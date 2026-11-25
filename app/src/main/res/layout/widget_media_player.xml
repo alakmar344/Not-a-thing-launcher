@@ -10,7 +10,6 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -33,44 +32,68 @@
             android:text="@string/media_label"
             android:textColor="@color/text_secondary" />
 
-        <ImageView
-            android:layout_width="14dp"
-            android:layout_height="14dp"
-            android:importantForAccessibility="no"
-            android:src="@drawable/ic_tune"
-            android:tint="@color/text_secondary" />
+        <TextView
+            android:id="@+id/mediaRoute"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_tertiary"
+            android:textSize="9sp"
+            android:visibility="gone" />
     </LinearLayout>
 
-    <!-- Track Title and Artist -->
-    <TextView
-        android:id="@+id/mediaTitle"
-        style="@style/Text.Body"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:fontFamily="@font/space_mono_bold"
-        android:text="@string/media_title_default"
-        android:textColor="@color/text_primary"
-        android:textSize="13sp" />
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/mediaArtist"
-        style="@style/Text.Body.Secondary"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
-        android:fontFamily="@font/space_mono_regular"
-        android:text="@string/media_artist_default"
-        android:textSize="10sp" />
+        <com.nothinglauncher.MediaArtDotsView
+            android:id="@+id/mediaArtDots"
+            android:layout_width="54dp"
+            android:layout_height="54dp"
+            android:layout_marginEnd="12dp"
+            android:visibility="gone" />
 
-    <!-- Waveform Visualizer -->
-    <com.nothinglauncher.MediaDotsView
-        android:id="@+id/mediaVisualizer"
-        android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:layout_marginTop="10dp" />
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
-    <!-- Controls -->
+            <TextView
+                android:id="@+id/mediaTitle"
+                style="@style/Text.Body"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:fontFamily="@font/space_mono_bold"
+                android:maxLines="1"
+                android:text="@string/media_title_default"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/mediaArtist"
+                style="@style/Text.Body.Secondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:ellipsize="end"
+                android:fontFamily="@font/space_mono_regular"
+                android:maxLines="1"
+                android:text="@string/media_artist_default"
+                android:textSize="10sp" />
+
+            <com.nothinglauncher.MediaDotsView
+                android:id="@+id/mediaVisualizer"
+                android:layout_width="match_parent"
+                android:layout_height="22dp"
+                android:layout_marginTop="8dp" />
+        </LinearLayout>
+    </LinearLayout>
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -100,7 +123,7 @@
             android:focusable="true"
             android:padding="8dp"
             android:src="@drawable/ic_pause"
-            android:tint="@color/surface_dark" />
+            android:tint="@color/pill_active_text" />
 
         <ImageView
             android:id="@+id/mediaNext"

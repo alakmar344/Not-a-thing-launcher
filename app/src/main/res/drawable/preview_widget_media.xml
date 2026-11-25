@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="260dp"
+    android:height="140dp"
+    android:viewportWidth="260"
+    android:viewportHeight="140">
+    <path android:fillColor="#111113" android:pathData="M24,4h212c11,0 20,9 20,20v92c0,11 -9,20 -20,20H24c-11,0 -20,-9 -20,-20V24C4,13 13,4 24,4z" />
+    <!-- Halftone square -->
+    <path android:fillColor="#2D2D30" android:pathData="M20,22h68c4.4,0 8,3.6 8,8v68c0,4.4 -3.6,8 -8,8H20c-4.4,0 -8,-3.6 -8,-8V30C12,25.6 15.6,22 20,22z" />
+    <path android:fillColor="#F4F4F2" android:pathData="M32,42m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0 M48,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M64,42m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0 M40,62m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0 M58,62m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0 M48,80m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0" />
+    <path android:fillColor="#D71921" android:pathData="M72,80m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path android:fillColor="#F4F4F2" android:pathData="M112,28h92v8h-92z" />
+    <path android:fillColor="#9C9CA1" android:pathData="M112,44h56v5h-56z" />
+    <!-- Visualizer bars -->
+    <path android:fillColor="#D71921" android:pathData="M112,68h6v18h-6z M160,62h6v24h-6z M208,70h6v16h-6z" />
+    <path android:fillColor="#F4F4F2" android:pathData="M124,62h6v24h-6z M136,72h6v14h-6z M148,66h6v20h-6z M172,70h6v16h-6z M184,60h6v26h-6z M196,68h6v18h-6z M220,64h6v22h-6z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M174,110m-14,0a14,14 0,1 1,28 0a14,14 0,1 1,-28 0" />
+    <path android:fillColor="#0C0C0E" android:pathData="M170,104l10,6l-10,6z" />
+</vector>

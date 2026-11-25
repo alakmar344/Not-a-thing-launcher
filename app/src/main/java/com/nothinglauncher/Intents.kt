@@ -67,4 +67,26 @@ object Intents {
         val launch = context.packageManager.getLaunchIntentForPackage(packageName) ?: return
         startOrToast(context, source, launch)
     }
+
+    fun openAccessibilitySettings(context: Context, source: View? = null) = startOrToast(
+        context, source,
+        Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS),
+        Intent(Settings.ACTION_SETTINGS)
+    )
+
+    fun openUsageAccess(context: Context, source: View? = null) = startOrToast(
+        context, source,
+        Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS),
+        Intent(Settings.ACTION_SETTINGS)
+    )
+
+    @Suppress("WrongConstant", "PrivateApi")
+    fun expandNotifications(context: Context): Boolean = try {
+        val sb = context.getSystemService("statusbar")
+        val cls = Class.forName("android.app.StatusBarManager")
+        cls.getMethod("expandNotificationsPanel").invoke(sb)
+        true
+    } catch (_: Exception) {
+        false
+    }
 }

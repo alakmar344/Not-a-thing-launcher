@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="2dp">
+
+    <LinearLayout
+        android:id="@+id/wtTorch"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/bg_tile_dark"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="@drawable/fg_ripple_tile"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/wtTorchIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_flashlight" />
+
+        <TextView
+            android:id="@+id/wtTorchLabel"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/toggle_torch"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+    <LinearLayout
+        android:id="@+id/wtFocus"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/bg_tile_dark"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="@drawable/fg_ripple_tile"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/wtFocusIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_focus" />
+
+        <TextView
+            android:id="@+id/wtFocusLabel"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/toggle_focus"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+    <LinearLayout
+        android:id="@+id/wtCaffeine"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/bg_tile_dark"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="@drawable/fg_ripple_tile"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/wtCaffeineIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_caffeine" />
+
+        <TextView
+            android:id="@+id/wtCaffeineLabel"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/toggle_caffeine"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+    <LinearLayout
+        android:id="@+id/wtSound"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:background="@drawable/bg_tile_dark"
+        android:clickable="true"
+        android:focusable="true"
+        android:foreground="@drawable/fg_ripple_tile"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="6dp">
+
+        <ImageView
+            android:id="@+id/wtSoundIcon"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/ic_volume" />
+
+        <TextView
+            android:id="@+id/wtSoundLabel"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/toggle_sound"
+            android:textSize="9sp" />
+    </LinearLayout>
+</LinearLayout>

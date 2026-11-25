@@ -35,12 +35,12 @@ Settings → About.
 2. Move the `[Unreleased]` entries in [`CHANGELOG.md`](../CHANGELOG.md) under a new heading for that
    version.
 3. Merge to `main`. That alone publishes the release `v<versionName>`. Optionally also push the
-   matching tag (e.g. `v12`); a tag that doesn't match `versionName` fails the build.
+   matching tag (e.g. `v13`); a tag that doesn't match `versionName` fails the build.
 
 ## How releases are named
 
 The workflow reads `versionName` from `app/build.gradle` and publishes `main` builds to the tag
-`v<versionName>`, titled `Release v<versionName>` — `versionName "12"` gives **v12**. Bumping
+`v<versionName>`, titled `Release v<versionName>` — `versionName "13"` gives **v13**. Bumping
 `versionName` starts a new release; until then each push replaces the files in the current one.
 A pushed tag must equal `v<versionName>` or the build fails on purpose.
 

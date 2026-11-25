@@ -4,6 +4,7 @@ import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
@@ -15,15 +16,17 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import androidx.collection.LruCache
 
 /**
  * Turns any app icon into a consistent circular launcher icon in the Nothing OS design language.
  *
- * MONO (the Nothing look):
- *  1. Android 13+ themed icon (monochrome layer) → monochrome glyph on themed disc.
- *  2. Adaptive icon with a sparse foreground → its foreground as themed glyph.
- *  3. Anything else → the whole icon rendered in sleek monochrome with contrast boost.
- * COLOR: the original artwork, uniformly clipped to a circle.
+ * Styles:
+ * - **MONO:** Android 13+ monochrome layer or sparse adaptive foreground as crisp glyph in disc;
+ *   colorful non-sparse icons extract high-contrast monochrome silhouettes rather than muddy grey.
+ * - **DOTS:** Hardware LED dot-matrix glyph — samples the app's monochrome/silhouette mask onto
+ *   a 13x13 circular dot grid inside the disc!
+ * - **COLOR:** Original artwork uniformly clipped to a circle.
  */
 object IconFactory {
 
@@ -35,8 +38,7 @@ object IconFactory {
     private const val GLYPH_COLOR_LIGHT = 0xFF0E0E10.toInt()
     private const val RIM_COLOR_LIGHT = 0xFFD8D8D4.toInt()
 
-    // Bounded by memory rather than entry count: 300 large icons could exceed 40 MB.
-    private val iconCache = object : androidx.collection.LruCache<String, Bitmap>(
+    private val iconCache = object : LruCache<String, Bitmap>(
         (Runtime.getRuntime().maxMemory() / 16).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     ) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.allocationByteCount
@@ -46,7 +48,6 @@ object IconFactory {
         iconCache.evictAll()
     }
 
-    /** The three layers of an adaptive icon (monochrome only exists on Android 13+). */
     class Layers(val background: Drawable?, val foreground: Drawable?, val monochrome: Drawable?)
 
     fun render(
@@ -78,7 +79,6 @@ object IconFactory {
         return drawable
     }
 
-    /** Renders from explicit adaptive layers (used directly by previews/tests). */
     fun renderLayers(resources: Resources, layers: Layers, style: NothingPrefs.IconStyle, sizePx: Int): Drawable {
         val isLight = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_NO
         return renderInternal(resources, layers.foreground ?: layers.background ?: ColorDrawable(0), layers, style, sizePx, isLight)
@@ -92,16 +92,15 @@ object IconFactory {
         sizePx: Int,
         isLight: Boolean
     ): Drawable {
-        // Bitmap.createBitmap throws for 0/negative sizes (e.g. a not-yet-measured view).
         @Suppress("NAME_SHADOWING")
         val sizePx = sizePx.coerceAtLeast(1)
         val bitmap = try {
             when (style) {
                 NothingPrefs.IconStyle.MONO -> renderMono(source, layers, sizePx, isLight)
+                NothingPrefs.IconStyle.DOTS -> renderDotGlyph(source, layers, sizePx, isLight)
                 NothingPrefs.IconStyle.COLOR -> renderColor(source, layers, sizePx, isLight)
             }
-        } catch (e: Exception) {
-            // Some icons misbehave when drawn off-screen; never let that break the launcher.
+        } catch (_: Exception) {
             renderFallback(source, sizePx, isLight)
         }
         return BitmapDrawable(resources, bitmap)
@@ -124,9 +123,8 @@ object IconFactory {
         canvas.drawCircle(size / 2f, size / 2f, size / 2f - rim.strokeWidth / 2f, rim)
     }
 
-    /** Draws an adaptive-icon layer so its 72/108 visible area fills [size]. */
     private fun drawLayer(canvas: Canvas, layer: Drawable, size: Int, filterPaint: Paint? = null) {
-        val extra = size / 4 // 108 / 72 = 1.5 → a quarter of the size on each side
+        val extra = size / 4
         val d = layer.mutate()
         d.setBounds(-extra, -extra, size + extra, size + extra)
         if (filterPaint != null) {
@@ -157,8 +155,6 @@ object IconFactory {
                 drawLayer(canvas, monochrome, size, tint)
             }
             foreground != null && isSparse(foreground, size) -> {
-                // Sparse foreground = the app's glyph: draw its shape in the glyph colour, exactly
-                // like a real monochrome layer (crisp ink on light discs, bone on dark ones).
                 val tint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG).apply {
                     colorFilter = PorterDuffColorFilter(glyphColor, PorterDuff.Mode.SRC_IN)
                 }
@@ -169,12 +165,93 @@ object IconFactory {
                 val tc = Canvas(tmp)
                 layers.background?.let { drawLayer(tc, it, size) }
                 layers.foreground?.let { drawLayer(tc, it, size) }
-                canvas.drawBitmap(tmp, 0f, 0f, greyPaint(contrast = 0.85f, lift = if (isLight) -10f else 10f))
+                canvas.drawBitmap(tmp, 0f, 0f, greyPaint(contrast = 1.05f, lift = if (isLight) -14f else 12f))
                 tmp.recycle()
             }
-            else -> drawLegacy(canvas, source, size, greyPaint(contrast = 0.9f, lift = if (isLight) -15f else 20f))
+            else -> drawLegacy(canvas, source, size, greyPaint(contrast = 1.05f, lift = if (isLight) -15f else 18f))
         }
         canvas.restore()
+        return bmp
+    }
+
+    /**
+     * Procedural LED dot-matrix icon renderer: samples the icon's glyph or high-contrast luminance
+     * silhouette onto a crisp 13x13 circular dot matrix inside the disc.
+     */
+    private fun renderDotGlyph(source: Drawable, layers: Layers?, size: Int, isLight: Boolean): Bitmap {
+        val grid = 13
+        val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        drawDisc(canvas, size, isLight)
+
+        val probe = Bitmap.createBitmap(grid, grid, Bitmap.Config.ARGB_8888)
+        val pc = Canvas(probe)
+        val monochrome = layers?.monochrome
+        val foreground = layers?.foreground
+        var maskMode = false
+        when {
+            monochrome != null -> {
+                maskMode = true
+                drawLayer(pc, monochrome, grid)
+            }
+            foreground != null && isSparse(foreground, size) -> {
+                maskMode = true
+                drawLayer(pc, foreground, grid)
+            }
+            layers != null -> {
+                layers.background?.let { drawLayer(pc, it, grid) }
+                layers.foreground?.let { drawLayer(pc, it, grid) }
+            }
+            else -> drawLegacy(pc, source, grid, null)
+        }
+
+        val pixels = IntArray(grid * grid)
+        probe.getPixels(pixels, 0, grid, 0, 0, grid, grid)
+        probe.recycle()
+
+        // Compute average luminance for non-mask adaptive silhouette extraction.
+        var lumSum = 0f
+        var lumCount = 0
+        if (!maskMode) {
+            for (p in pixels) {
+                if (Color.alpha(p) > 64) {
+                    val l = (0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p))
+                    lumSum += l
+                    lumCount++
+                }
+            }
+        }
+        val avgLum = if (lumCount > 0) lumSum / lumCount else 128f
+
+        val pad = size * 0.18f
+        val pitch = (size - 2f * pad) / grid
+        val dotR = pitch * 0.36f
+        val onPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isLight) GLYPH_COLOR_LIGHT else GLYPH_COLOR_DARK
+        }
+        val offPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = if (isLight) RIM_COLOR_LIGHT else RIM_COLOR_DARK
+            alpha = 110
+        }
+        val center = (grid - 1) / 2f
+        for (row in 0 until grid) {
+            for (col in 0 until grid) {
+                val dx = col - center
+                val dy = row - center
+                if (dx * dx + dy * dy > (grid * 0.50f) * (grid * 0.50f)) continue
+                val p = pixels[row * grid + col]
+                val a = Color.alpha(p)
+                val lit = if (maskMode) {
+                    a > 0x48
+                } else {
+                    val l = 0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p)
+                    a > 0x60 && kotlin.math.abs(l - avgLum) > 22f && (if (avgLum > 128f) l < avgLum + 10f else l > avgLum - 10f)
+                }
+                val cx = pad + (col + 0.5f) * pitch
+                val cy = pad + (row + 0.5f) * pitch
+                canvas.drawCircle(cx, cy, if (lit) dotR else dotR * 0.68f, if (lit) onPaint else offPaint)
+            }
+        }
         return bmp
     }
 
@@ -208,9 +285,8 @@ object IconFactory {
         return bmp
     }
 
-    /** Legacy (non-adaptive) icons are drawn at ~70% on the disc. */
     private fun drawLegacy(canvas: Canvas, source: Drawable, size: Int, paint: Paint?) {
-        val inner = (size * 0.70f).toInt()
+        val inner = (size * 0.70f).toInt().coerceAtLeast(1)
         val offset = (size - inner) / 2
         val tmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val d = source.mutate()
@@ -220,7 +296,6 @@ object IconFactory {
         tmp.recycle()
     }
 
-    /** True if the layer covers less than ~55% of the visible circle (i.e. it's a glyph). */
     private fun isSparse(layer: Drawable, size: Int): Boolean {
         val probe = 48
         val tmp = Bitmap.createBitmap(probe, probe, Bitmap.Config.ARGB_8888)
@@ -228,8 +303,6 @@ object IconFactory {
         val d = layer.mutate()
         d.setBounds(-extra, -extra, probe + extra, probe + extra)
         d.draw(Canvas(tmp))
-        // One bulk copy instead of a JNI getPixel() per pixel (2304 per icon, for every app
-        // each time the icon cache is rebuilt).
         val pixels = IntArray(probe * probe)
         tmp.getPixels(pixels, 0, probe, 0, 0, probe, probe)
         var inside = 0
@@ -243,7 +316,6 @@ object IconFactory {
             if ((pixels[y * probe + x] ushr 24) > 0x80) opaque++
         }
         tmp.recycle()
-        // Restore bounds for the real render.
         d.setBounds(-size / 4, -size / 4, size + size / 4, size + size / 4)
         return inside > 0 && opaque.toFloat() / inside < 0.55f
     }

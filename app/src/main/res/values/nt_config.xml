@@ -10,10 +10,22 @@
         <item>com.nothinglauncher.widgets.BatteryCalendarWidget</item>
         <item>com.nothinglauncher.widgets.WeatherWidget</item>
         <item>com.nothinglauncher.widgets.MediaWidget</item>
+        <item>com.nothinglauncher.widgets.QuickTogglesWidget</item>
+        <item>com.nothinglauncher.widgets.FocusTimerWidget</item>
+        <item>com.nothinglauncher.widgets.EssentialNoteWidget</item>
+        <item>com.nothinglauncher.widgets.HabitMatrixWidget</item>
+        <item>com.nothinglauncher.widgets.VitalsWidget</item>
+        <item>com.nothinglauncher.widgets.CompassStepWidget</item>
+        <item>com.nothinglauncher.widgets.SmartFolderWidget</item>
     </string-array>
 
-    <!-- Every app icon is rendered by the v10 icon factory (glyph in a disc). -->
+    <!-- Every app icon and label is rendered by the Not a Thing icon factory. -->
     <string name="launcher_activity_logic_class" translatable="false">com.nothinglauncher.icons.NothingIconLogic</string>
+
+    <!-- Hide the setup studio launcher icon inside our own drawer (visible in external launchers). -->
+    <string-array name="filtered_components" translatable="false">
+        <item>com.nothinglauncher/com.nothinglauncher.LauncherEntryActivity</item>
+    </string-array>
 
     <dimen name="nt_tile_gap">12dp</dimen>
 </resources>

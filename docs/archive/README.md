@@ -20,3 +20,6 @@ and [`../FEATURES.md`](../FEATURES.md) instead.
 | `FEATURES.v10.1.md` | Feature catalog of the bespoke launcher as of v10.1 |
 | `SCREENSHOTS.v10.1.md` | Screenshot showcase of the bespoke launcher as of v10.1 |
 | `images/` | Screenshots referenced by the files above |
+| `RELEASE_V12.md` | Release notes, v12 (Launcher3-based release prior to v13) |
+| `ARCHITECTURE.v12.md` | Architecture reference as of v12 |
+| `FEATURES.v12.md` | Feature catalog as of v12 |

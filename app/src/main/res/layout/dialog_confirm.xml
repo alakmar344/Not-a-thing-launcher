@@ -58,7 +58,7 @@
                 android:fontFamily="@font/space_grotesk_medium"
                 android:foreground="@drawable/fg_ripple_pill"
                 android:gravity="center"
-                android:textColor="@color/ink"
+                android:textColor="@color/pill_active_text"
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>

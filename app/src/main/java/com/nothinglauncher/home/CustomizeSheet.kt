@@ -10,7 +10,9 @@ import com.nothinglauncher.Intents
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.SettingsUi
+import com.nothinglauncher.SetupBackupManager
 import com.nothinglauncher.Sheets
+import com.nothinglauncher.Tactile
 import com.nothinglauncher.databinding.ItemSheetTileBinding
 import com.nothinglauncher.databinding.SheetCustomizeBinding
 import com.nothinglauncher.settings.NothingSettingsActivity
@@ -56,6 +58,54 @@ object CustomizeSheet {
         }
         tile(b.tileSettings, R.drawable.ic_tune, R.string.nt_tile_settings) {
             Intents.start(launcher, Intent(launcher, NothingSettingsActivity::class.java))
+        }
+
+        val rootLayout = b.root as? android.view.ViewGroup
+        if (rootLayout != null) {
+            val d = launcher.resources.displayMetrics.density
+            val row = android.widget.LinearLayout(launcher).apply {
+                orientation = android.widget.LinearLayout.HORIZONTAL
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                    android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = (10 * d).toInt() }
+            }
+            fun chip(labelRes: Int, first: Boolean = false, action: () -> Unit) {
+                val tv = android.widget.TextView(launcher).apply {
+                    setText(labelRes)
+                    textSize = 11.5f
+                    gravity = android.view.Gravity.CENTER
+                    setTextColor(launcher.getColor(R.color.text_primary))
+                    setBackgroundResource(R.drawable.bg_tile_dark)
+                    val pv = (10 * d).toInt()
+                    val ph = (8 * d).toInt()
+                    setPadding(ph, pv, ph, pv)
+                    layoutParams = android.widget.LinearLayout.LayoutParams(
+                        0,
+                        android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                        1f
+                    ).apply { if (!first) marginStart = (8 * d).toInt() }
+                    Tactile.press(this)
+                    setOnClickListener {
+                        Tactile.tick(this)
+                        dialog.dismiss()
+                        action()
+                    }
+                }
+                row.addView(tv)
+            }
+            chip(R.string.essential_title, first = true) {
+                (launcher as? NothingLauncher)?.openEssentialSpace()
+            }
+            chip(R.string.nt_presets_short) {
+                SetupBackupManager.showPresetsSheet(launcher) { launcher.recreate() }
+            }
+            chip(R.string.vault_title) {
+                com.nothinglauncher.drawer.HiddenVaultSheet.openWithAuth(launcher) {
+                    (launcher as? NothingLauncher)?.refreshHiddenApps()
+                }
+            }
+            rootLayout.addView(row)
         }
         Sheets.showSafely(launcher, dialog)
     }

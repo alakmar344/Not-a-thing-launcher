@@ -2,34 +2,51 @@ package com.nothinglauncher
 
 import android.annotation.SuppressLint
 import android.graphics.Rect
+import android.os.Build
+import android.os.Looper
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.DecelerateInterpolator
-import android.view.animation.OvershootInterpolator
+import androidx.dynamicanimation.animation.DynamicAnimation
+import androidx.dynamicanimation.animation.SpringAnimation
+import androidx.dynamicanimation.animation.SpringForce
 import com.nothinglauncher.perf.VisualTier
 
 /**
- * Makes tiles feel physical: they sink slightly under the finger and spring back on release,
- * with a light haptic tick when the tap lands. Scale is a RenderThread property animation (no
- * relayout, no redraw of the content), so it is cheap enough for every tier; it is skipped
- * when the user turned animations off or Battery Saver is on. Haptics follow the system's
- * "touch feedback" setting because they go through [View.performHapticFeedback].
+ * Physical spring micro-interactions for tiles, pills, and icons.
+ * Uses AndroidX [SpringAnimation] for natural velocity-preserving rebounds, with haptic
+ * confirmation and optional synthesized mechanical click audio.
  */
 object Tactile {
 
-    private val pressInterpolator = DecelerateInterpolator(1.6f)
-    private val releaseInterpolator = OvershootInterpolator(1.4f)
+    private fun spring(view: View, prop: DynamicAnimation.ViewProperty, target: Float, stiffness: Float, damping: Float) {
+        if (Looper.myLooper() == null) {
+            view.scaleX = target
+            view.scaleY = target
+            return
+        }
+        val tagKey = if (prop === DynamicAnimation.SCALE_X) R.id.nt_spring_x else R.id.nt_spring_y
+        val existing = view.getTag(tagKey) as? SpringAnimation
+        val anim = existing ?: SpringAnimation(view, prop, target).also {
+            view.setTag(tagKey, it)
+        }
+        anim.spring = (anim.spring ?: SpringForce(target)).apply {
+            finalPosition = target
+            this.stiffness = stiffness
+            this.dampingRatio = damping
+        }
+        anim.animateToFinalPosition(target)
+    }
 
-    @SuppressLint("ClickableViewAccessibility") // Never consumes the event; clicks are unchanged.
+    @SuppressLint("ClickableViewAccessibility") // Never consumes the event; clicks and long-press pass through.
     fun press(view: View, pressedScale: Float = 0.965f) {
         val bounds = Rect()
         view.setOnTouchListener { v, e ->
             when (e.actionMasked) {
                 MotionEvent.ACTION_DOWN -> if (VisualTier.motionAllowed(v.context)) {
-                    v.animate().scaleX(pressedScale).scaleY(pressedScale)
-                        .setDuration(110L).setInterpolator(pressInterpolator).start()
+                    spring(v, DynamicAnimation.SCALE_X, pressedScale, 720f, SpringForce.DAMPING_RATIO_NO_BOUNCY)
+                    spring(v, DynamicAnimation.SCALE_Y, pressedScale, 720f, SpringForce.DAMPING_RATIO_NO_BOUNCY)
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (e.actionMasked == MotionEvent.ACTION_UP) {
@@ -37,8 +54,13 @@ object Tactile {
                         if (bounds.contains(e.x.toInt(), e.y.toInt())) tick(v)
                     }
                     if (v.scaleX != 1f || v.scaleY != 1f) {
-                        v.animate().scaleX(1f).scaleY(1f)
-                            .setDuration(280L).setInterpolator(releaseInterpolator).start()
+                        if (VisualTier.motionAllowed(v.context)) {
+                            spring(v, DynamicAnimation.SCALE_X, 1f, 380f, SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY)
+                            spring(v, DynamicAnimation.SCALE_Y, 1f, 380f, SpringForce.DAMPING_RATIO_MEDIUM_BOUNCY)
+                        } else {
+                            v.scaleX = 1f
+                            v.scaleY = 1f
+                        }
                     }
                 }
             }
@@ -58,8 +80,20 @@ object Tactile {
         }
     }
 
-    /** A subtle confirmation tick for toggles and selections. */
+    /** A subtle confirmation haptic tick + optional mechanical click sound. */
     fun tick(view: View) {
         view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+        TactileAudio.playTick(view.context)
+    }
+
+    /** Stronger milestone confirmation (habit checked, timer started, mode toggled). */
+    fun confirm(view: View) {
+        val flag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            HapticFeedbackConstants.CONFIRM
+        } else {
+            HapticFeedbackConstants.KEYBOARD_TAP
+        }
+        view.performHapticFeedback(flag)
+        TactileAudio.playTick(view.context)
     }
 }

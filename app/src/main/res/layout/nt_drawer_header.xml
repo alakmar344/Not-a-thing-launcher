@@ -1,39 +1,89 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- v10 drawer header (included into Launcher3's all_apps_content.xml). -->
 <com.nothinglauncher.drawer.DrawerHeader xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="64dp"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
     android:paddingStart="24dp"
-    android:paddingEnd="20dp">
+    android:paddingTop="10dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="6dp">
 
-    <com.nothinglauncher.DotMatrixView
-        android:layout_width="wrap_content"
-        android:layout_height="22dp"
-        app:dmDotColor="@color/dot_on"
-        app:dmDotScale="0.42"
-        app:dmText="APPS" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
 
-    <TextView
-        android:id="@+id/drawerCount"
-        android:layout_width="0dp"
+        <com.nothinglauncher.DotMatrixView
+            android:layout_width="wrap_content"
+            android:layout_height="22dp"
+            app:dmDotColor="@color/dot_on"
+            app:dmDotScale="0.42"
+            app:dmText="APPS" />
+
+        <TextView
+            android:id="@+id/drawerCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:fontFamily="@font/space_mono_regular"
+            android:letterSpacing="0.1"
+            android:textColor="@color/text_tertiary"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/drawerModeChip"
+            style="@style/Text.Label"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_pill_outline"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="@drawable/fg_ripple_pill"
+            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:text="@string/drawer_mode_grid"
+            android:textColor="@color/text_secondary"
+            android:textSize="9sp" />
+
+        <ImageView
+            android:id="@+id/drawerVault"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/bg_icon_button"
+            android:contentDescription="@string/vault_title"
+            android:padding="10dp"
+            android:src="@drawable/ic_lock"
+            android:tint="@color/text_primary" />
+
+        <ImageView
+            android:id="@+id/drawerSettings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_icon_button"
+            android:contentDescription="@string/nt_tile_settings"
+            android:padding="10dp"
+            android:src="@drawable/ic_tune"
+            android:tint="@color/text_primary" />
+    </LinearLayout>
+
+    <HorizontalScrollView
+        android:id="@+id/drawerRecentsScroll"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:fontFamily="@font/space_mono_regular"
-        android:letterSpacing="0.1"
-        android:textColor="@color/text_tertiary"
-        android:textSize="11sp" />
+        android:layout_marginTop="4dp"
+        android:scrollbars="none"
+        android:visibility="gone">
 
-    <ImageView
-        android:id="@+id/drawerSettings"
-        android:layout_width="44dp"
-        android:layout_height="44dp"
-        android:background="@drawable/bg_icon_button"
-        android:contentDescription="@string/nt_tile_settings"
-        android:padding="12dp"
-        android:src="@drawable/ic_tune"
-        android:tint="@color/text_primary" />
+        <LinearLayout
+            android:id="@+id/drawerRecentsRow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal" />
+    </HorizontalScrollView>
 </com.nothinglauncher.drawer.DrawerHeader>

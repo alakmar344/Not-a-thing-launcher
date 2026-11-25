@@ -1,11 +1,16 @@
 package com.nothinglauncher
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.animation.ValueAnimator
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapShader
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.ColorFilter
 import android.graphics.ComposeShader
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.PixelFormat
 import android.graphics.PorterDuff
@@ -14,41 +19,61 @@ import android.graphics.Rect
 import android.graphics.Shader
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.view.animation.DecelerateInterpolator
+import com.nothinglauncher.perf.VisualTier
+import java.util.Calendar
 import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * The signature background: a fine, evenly spaced dot grid like the unlit face of an LED panel.
- * Rendered from a single repeating tile, so it costs the same however large the screen is.
+ * The signature Nothing backdrop: a fine, evenly spaced dot grid like the unlit face of an LED panel.
  *
- * Optional layers, chosen by [com.nothinglauncher.perf.VisualTier]:
- *  - [vignette]: edges fade into the background colour;
- *  - [lightDotColor]: a soft "light pool" near the top where the dots glow brighter and a
- *    touch larger, as if the panel were lit from above. One extra composed shader pass.
+ * v13 additions:
+ * - Scroll-reactive light pool parallax (`setParallax`) via zero-allocation Shader `LocalMatrix`.
+ * - Touch-reactive dot ripple (`triggerRipple`) on empty-space taps (`BALANCED` and `RICH`).
+ * - Bedtime night-dimming (`nightDim`) lowering ambient dot brightness during late hours or Focus Mode.
  */
 class DotGridDrawable(
-    density: Float,
+    private val density: Float,
     private val backgroundColor: Int = Color.BLACK,
     dotColor: Int = 0xFF1A1A1D.toInt(),
     pitchDp: Float = 18f,
     dotRadiusDp: Float = 1.1f,
     private val vignette: Boolean = true,
-    lightDotColor: Int = 0
+    lightDotColor: Int = 0,
+    private val rippleEnabled: Boolean = false,
+    private val rippleColor: Int = 0xFFD71921.toInt(),
+    private val dimDots: Boolean = false
 ) : Drawable() {
 
     private val gridPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val vignettePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val lightPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val ripplePaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val backgroundPaint = Paint().apply { color = backgroundColor }
     private val lightTile: BitmapShader?
+    private val rippleTile: BitmapShader?
+    private val lightMatrix = Matrix()
+    private var lightMask: RadialGradient? = null
+
+    private var parallaxOffsetX = 0f
+    private var drawerFade = 0f
+
+    private var rippleX = 0f
+    private var rippleY = 0f
+    private var rippleProgress = 0f
+    private var rippleActive = false
+    private var rippleAnimator: ValueAnimator? = null
 
     init {
         val pitch = max(4, (pitchDp * density).roundToInt())
         gridPaint.shader = tileShader(pitch, dotRadiusDp * density, dotColor)
-        // A composed bitmap × gradient shader is only reliably hardware-accelerated from
-        // Android 9; older versions simply get the flat grid.
+        if (dimDots) gridPaint.alpha = 135
         lightTile = if (lightDotColor != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             tileShader(pitch, dotRadiusDp * density * 1.3f, lightDotColor)
+        } else null
+        rippleTile = if (rippleEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            tileShader(pitch, dotRadiusDp * density * 1.45f, rippleColor)
         } else null
     }
 
@@ -61,6 +86,71 @@ class DotGridDrawable(
         return BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
 
+    fun setParallax(fractionX: Float, drawerProgress: Float = 0f) {
+        val clampedX = fractionX.coerceIn(-1f, 1f)
+        val clampedDrawer = drawerProgress.coerceIn(0f, 1f)
+        if (clampedX == parallaxOffsetX && clampedDrawer == drawerFade) return
+        parallaxOffsetX = clampedX
+        drawerFade = clampedDrawer
+        updateLightMatrix()
+        invalidateSelf()
+    }
+
+    private fun updateLightMatrix() {
+        val mask = lightMask ?: return
+        val w = bounds.width().toFloat()
+        if (w <= 0f) return
+        lightMatrix.setTranslate(parallaxOffsetX * w * 0.16f, -drawerFade * bounds.height() * 0.12f)
+        mask.setLocalMatrix(lightMatrix)
+        lightPaint.alpha = ((1f - drawerFade * 0.7f) * (if (dimDots) 140f else 255f)).roundToInt().coerceIn(0, 255)
+    }
+
+    fun triggerRipple(x: Float, y: Float) {
+        if (rippleTile == null || bounds.isEmpty) return
+        rippleX = x
+        rippleY = y
+        rippleAnimator?.cancel()
+        rippleActive = true
+        rippleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 420L
+            interpolator = DecelerateInterpolator(1.6f)
+            addUpdateListener {
+                rippleProgress = it.animatedValue as Float
+                updateRippleShader()
+                invalidateSelf()
+            }
+            addListener(object : AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: Animator) {
+                    rippleActive = false
+                    rippleProgress = 0f
+                    invalidateSelf()
+                }
+            })
+            start()
+        }
+    }
+
+    private fun updateRippleShader() {
+        val tile = rippleTile ?: return
+        val maxR = max(bounds.width(), bounds.height()) * 0.42f
+        val radius = (24f * density + maxR * rippleProgress).coerceAtLeast(1f)
+        val alpha = ((1f - rippleProgress) * 185f).roundToInt().coerceIn(0, 255)
+        val innerEdge = (rippleProgress * 0.65f).coerceIn(0f, 0.85f)
+        val midEdge = (innerEdge + 0.14f).coerceIn(innerEdge + 0.01f, 0.98f)
+        val ringMask = RadialGradient(
+            rippleX, rippleY, radius,
+            intArrayOf(
+                Color.TRANSPARENT,
+                Color.argb(alpha, 0, 0, 0),
+                Color.argb((alpha * 0.4f).roundToInt(), 0, 0, 0),
+                Color.TRANSPARENT
+            ),
+            floatArrayOf(0f, innerEdge, midEdge, 1f),
+            Shader.TileMode.CLAMP
+        )
+        ripplePaint.shader = ComposeShader(tile, ringMask, PorterDuff.Mode.DST_IN)
+    }
+
     override fun onBoundsChange(bounds: Rect) {
         super.onBoundsChange(bounds)
         if (bounds.isEmpty) return
@@ -68,8 +158,6 @@ class DotGridDrawable(
             vignettePaint.shader = RadialGradient(
                 bounds.exactCenterX(), bounds.top + bounds.height() * 0.38f,
                 max(bounds.width(), bounds.height()) * 0.78f,
-                // Fade towards the background colour rather than hard-coded black, so the light
-                // theme's edges don't turn muddy grey.
                 intArrayOf(Color.TRANSPARENT, Color.TRANSPARENT, (backgroundColor and 0x00FFFFFF) or 0xCC000000.toInt()),
                 floatArrayOf(0f, 0.45f, 1f),
                 Shader.TileMode.CLAMP
@@ -77,25 +165,24 @@ class DotGridDrawable(
         }
         lightTile?.let { tile ->
             val mask = RadialGradient(
-                // Centred a third of the way down: below the usual top clock tile, around the
-                // first rows of icons, where the backdrop is actually visible.
                 bounds.exactCenterX(), bounds.top + bounds.height() * 0.32f,
                 max(bounds.width(), bounds.height()) * 0.62f,
                 intArrayOf(0xFF000000.toInt(), 0x80000000.toInt(), Color.TRANSPARENT),
                 floatArrayOf(0f, 0.45f, 1f),
                 Shader.TileMode.CLAMP
             )
-            // DST_IN keeps the bright tile only where the gradient is opaque.
+            lightMask = mask
+            updateLightMatrix()
             lightPaint.shader = ComposeShader(tile, mask, PorterDuff.Mode.DST_IN)
         }
     }
 
     override fun draw(canvas: Canvas) {
         val b = bounds
-        // Fill only our bounds; drawColor() would paint the whole clip.
         canvas.drawRect(b, backgroundPaint)
         canvas.drawRect(b, gridPaint)
         if (lightPaint.shader != null) canvas.drawRect(b, lightPaint)
+        if (rippleActive && ripplePaint.shader != null) canvas.drawRect(b, ripplePaint)
         if (vignette) canvas.drawRect(b, vignettePaint)
     }
 
@@ -116,15 +203,27 @@ class DotGridDrawable(
         if (Color.alpha(backgroundColor) == 0xFF) PixelFormat.OPAQUE else PixelFormat.TRANSLUCENT
 
     companion object {
-        /** The backdrop for [context] at its current visual tier. */
-        fun forTier(context: android.content.Context): DotGridDrawable {
-            val fx = com.nothinglauncher.perf.VisualTier.effects(context)
+        private fun isNightDimActive(context: Context): Boolean {
+            val prefs = NothingPrefs.get(context)
+            if (prefs.focusMode) return true
+            if (!prefs.nightDimDots) return false
+            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            return hour >= 22 || hour < 7
+        }
+
+        /** The backdrop for [context] at its current visual tier and hardware accent. */
+        fun forTier(context: Context): DotGridDrawable {
+            val fx = VisualTier.effects(context)
+            val tier = VisualTier.current(context)
             return DotGridDrawable(
                 context.resources.displayMetrics.density,
                 backgroundColor = context.getColor(R.color.nothing_bg),
                 dotColor = context.getColor(R.color.dot_off),
                 vignette = fx.vignette,
-                lightDotColor = if (fx.backdropLight) context.getColor(R.color.dot_lit_ambient) else 0
+                lightDotColor = if (fx.backdropLight) context.getColor(R.color.dot_lit_ambient) else 0,
+                rippleEnabled = tier != VisualTier.Tier.LITE,
+                rippleColor = AccentTheme.accentColor(context),
+                dimDots = isNightDimActive(context)
             )
         }
     }

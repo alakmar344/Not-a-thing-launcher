@@ -6,6 +6,26 @@ dates.
 
 ## [Unreleased]
 
+## [13] — Essential Space, Command Search, and 11 interactive elements
+
+### Added
+- **Archive:** Preserved historical v12 documentation under `docs/archive/` (`ARCHITECTURE.v12.md`, `FEATURES.v12.md`, `RELEASE_V12.md`).
+- **In-process Essential Space (`-1` overlay):** Swipe right from Home page 0 to reveal [`EssentialSpaceOverlay`](app/src/main/java/com/nothinglauncher/space/EssentialSpaceOverlay.kt) via Launcher3's `LauncherOverlayManager`: time-aware greeting, Weather + Calendar/Alarm briefing, Hardware Switchboard (Torch, Focus Mode, Caffeine, Ringer), Scratchpad Note, instant Voice Memos, Focus Timer/Stopwatch ticker, and Storage/RAM/Screen-Time Vitals.
+- **7 new in-process home elements (11 total):** `QuickTogglesWidget`, `FocusTimerWidget`, `EssentialNoteWidget`, `HabitMatrixWidget`, `VitalsWidget`, `CompassStepWidget`, and `SmartFolderWidget`, plus Android S+ widget picker previews (`preview_widget_*.xml`) and descriptions across all 11 widgets.
+- **Offline Command Search & Smart Drawer:** `CommandEngine` (math & percentage calculator, unit/temperature converter, `time <city>` lookup, device toggles, optional contacts search, web search, acronym & 1-typo fuzzy app matcher), `NothingSearchAlgorithm` + `NothingSearchAdapterProvider` Command Cards, `DrawerHeader` with Grid/List switcher and recent apps strip, and biometric `HiddenVaultSheet`.
+- **Personalization, Physics & Gestures:** 5 hardware accent palettes (`RED`, `AMBER`, `PHOSPHOR`, `COBALT`, `MONO` via `AccentTheme`), `IconStyle.DOTS` (13×13 dot-glyph icon rendering) + third-party ADW/Nova `IconPackManager`, per-app custom labels (`NothingShortcuts.RENAME_APP`) & Hide in Vault shortcut (`NothingShortcuts.HIDE_IN_VAULT`), SpringAnimation tile physics (`Tactile`) with optional synthesized click audio (`TactileAudio`), interactive backdrop parallax/tap-ripples/night-dimming (`DotGridDrawable`), label-free home & hotseat pill toggles, and Swipe-Down / Double-Tap / Pinch home gestures with optional `NothingLockAccessibilityService`.
+- **Setup Hub, Curated Presets & Backup:** `LauncherEntryActivity` onboarding & permission hub, 4 one-tap starter presets (`Telemetry v13`, `Monolith Minimal`, `Command & Focus`, `Studio Media`), and SAF `.nothing.json` export/import in `SetupBackupManager`.
+- **Tests:** Added [`V13FeaturesTest.kt`](app/src/test/java/com/nothinglauncher/V13FeaturesTest.kt) covering offline math/conversions/fuzzy search, Word Clock, Bayer halftone, Focus Timer/Stopwatch, AccentTheme, JSON export/import & presets, `DOTS` icon rendering, all 11 widget providers, and Settings/Entry inflation.
+
+### Changed
+- **Upgraded Core 4 widgets:** `ClockWidget` now cycles Digital, Analog Dot-Matrix, Editorial Word Clock, and World Clock faces without clipping the date on 2-row grids; `BatteryCalendarWidget` gains charging-bolt indicator and hides empty alarm rows cleanly; `WeatherWidget` gains compact vs wide 12-hour temperature sparkline + wind speed; `MediaWidget` adds background 10×10 Bayer 4×4 halftone album art (`MediaArtHalftone`) and active audio route indicator.
+- **Settings & Customize Sheet:** Expanded `NothingSettingsActivity` with Personality & Physics, Gestures & Home Cleanliness, Essential Space & Privacy, and Presets/Backup sections; added quick chips for Essential Space, Presets, and Hidden Vault to `CustomizeSheet`.
+- Bumped `versionName` to `"13"` in `app/build.gradle`.
+
+### Fixed
+- Fixed light-mode contrast on active dialog/media pills (`dialog_edit_note.xml`, `dialog_confirm.xml`, `widget_media_player.xml`) using `@color/pill_active_text`.
+- Fixed clock date clipping on 2-row cells in `widget_clock.xml` and orphan alarm icon visibility in `widget_calendar.xml`.
+
 ## [12] — Fits the phone, and a bit more character
 
 ### Added

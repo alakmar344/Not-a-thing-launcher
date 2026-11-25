@@ -2,18 +2,19 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
-import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
+import com.nothinglauncher.AccentTheme
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.WeatherDotsView
 import com.nothinglauncher.WeatherRepository
 
-/** Live weather (Open-Meteo, no key). Tap to refresh. */
+/** Live weather + 12h dot-matrix sparkline (Open-Meteo, no key). Tap to refresh. */
 class WeatherWidget(context: Context) : NothingWidget(context) {
     override val labelRes = R.string.element_weather
     override val descriptionRes = R.string.element_weather_sub
+    override val previewRes = R.drawable.preview_widget_weather
     override val spanX = 4
     override val spanY = 2
     override val minSpanX = 2
@@ -24,12 +25,16 @@ class WeatherWidget(context: Context) : NothingWidget(context) {
         val prefs = NothingPrefs.get(ctx)
         val root = LayoutInflater.from(ctx).inflate(R.layout.widget_weather, host, false)
         val weatherView = root.findViewById<WeatherDotsView>(R.id.weatherView)
-        weatherView.accentColor = ctx.getColor(R.color.nothing_red)
+        weatherView.accentColor = AccentTheme.accentColor(ctx)
         val listener: (WeatherRepository.Weather?) -> Unit = { weather ->
-            if (root.isAttachedToWindow) weatherView.bind(weather)
+            if (root.isAttachedToWindow) {
+                weatherView.accentColor = AccentTheme.accentColor(ctx)
+                weatherView.bind(weather)
+            }
         }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
+                weatherView.accentColor = AccentTheme.accentColor(ctx)
                 weatherView.bind(WeatherRepository.addListener(prefs, listener))
                 WeatherRepository.refresh(ctx, prefs) { }
             }
@@ -40,7 +45,7 @@ class WeatherWidget(context: Context) : NothingWidget(context) {
         })
         weatherView.bind(WeatherRepository.cached(prefs))
         root.setOnClickListener {
-            it.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            com.nothinglauncher.Tactile.tick(it)
             WeatherRepository.refresh(ctx, prefs, force = true) { }
         }
         return root

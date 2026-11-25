@@ -20,6 +20,13 @@
 # widgets vanished from release builds while every (unminified) debug test still passed.
 -keep,allowshrinking,allowoptimization class com.nothinglauncher.** { *; }
 -keep,allowshrinking,allowoptimization class com.android.systemui.plugins.** { *; }
+-keepnames class * extends com.nothinglauncher.widgets.NothingWidget
+-keepclassmembers class * extends com.nothinglauncher.widgets.NothingWidget {
+    public <init>(android.content.Context);
+}
+-keepclassmembers class com.android.launcher3.allapps.search.AppsSearchContainerLayout {
+    com.android.launcher3.allapps.search.AllAppsSearchBarController mSearchBarController;
+}
 
 # Generated protobuf-lite messages are accessed reflectively.
 -keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
