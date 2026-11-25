@@ -12,6 +12,11 @@ Output lands in `app/src/test/snapshots/images/`, named `com.nothinglauncher_<Te
 CI (`.github/workflows/build.yml`) records them on every build and uploads them as an artifact,
 and `testDebugUnitTest` fails the build if a layout changes without re-recording.
 
+> **Host note:** On Windows hosts where Application Control blocks `libicuuc_stubdata.dll`,
+> `recordPaparazziDebug` / Paparazzi `Renderer.prepare` cannot load layoutlib native binaries
+> locally; non-Paparazzi unit and Robolectric tests (`VisualTierTest`, `LauncherRuntimeTest`,
+> `V13FeaturesTest`) still execute normally.
+
 ## Dark mode (`ScreensDarkTest`)
 
 | | |

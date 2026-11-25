@@ -1,102 +1,67 @@
 # Features
 
-Not a Thing is **stock Android Launcher3** with the Not a Thing visual design on top. Home
-screen, app drawer, folders, widgets, drag & drop, app shortcuts and settings all behave exactly
-like stock Android/Launcher3 — this page only lists what the Not a Thing layer (`app/`) adds or
-changes. For what "stock Launcher3 behaviour" means in practice, see the
-[AOSP Launcher3 docs](https://android.googlesource.com/platform/packages/apps/Launcher3/) or
-just use it like any Pixel-style launcher.
+Not a Thing Launcher v13 pairs stock **AOSP Launcher3** (`android-14.0.0_r75`) with a cohesive Nothing OS–inspired dot-matrix surface, interactive telemetry, the `-1` Essential Space hub, offline Command Search, and granular personalization.
 
-## Visuals
+All workspace drag & drop, folder mechanics, and Android system widgets continue to work like stock Android. For the historical v12 and pre-v11 feature catalogs, see [`archive/`](archive/).
 
-- **Fixed monochrome palette** (black/bone + Nothing red `#D71921`) replacing Launcher3's
-  wallpaper-derived Material You colours, applied everywhere: home, all-apps, folders, popups,
-  the widget picker and settings.
-- **Space Grotesk** typography and red notification dots.
-- **Icons** rendered as the app's glyph in a flat disc (monochrome) or the original artwork in a
-  circle (colour) — toggle in Settings → Look (follows Launcher3's themed-icons setting).
-- **Backdrop**: dot-grid, solid black/bone, or the system wallpaper (Settings → Look →
-  Background). On Full quality the dot grid has a soft "light pool" near the top where dots
-  glow brighter, plus an edge vignette.
-- **Tiles** have a faint top-down sheen and sink slightly under your finger, springing back
-  with a light haptic tick (also on the Customize sheet). Settings toggles and choices tick too.
-- **LED clock power-on.** Coming back to home after 5+ minutes (or on start), a red scan line
-  sweeps across the clock and lights the digits up behind it.
-- **Frosted sheets** on Android 12+ at Full quality, where the device allows blur.
+## Visuals, Accents & Physics
 
-## Visual quality (fits the phone)
+- **5 Hardware Accent Palettes (`AccentTheme`):** Switch live in Settings → Personality & Physics between **Nothing Red** (`#D71921`), **Warm Amber**, **Phosphor Green**, **Cobalt Blue**, and **Pure Monochrome**.
+- **Interactive Dot-Grid Backdrop (`DotGridDrawable`):** Dot grid, solid black/bone, or live wallpaper. In Dots mode, a subtle light pool shifts smoothly across workspace pages and drawer transitions, empty-space taps emit an accent-tinted dot ripple (`BALANCED`/`RICH` tiers), and **Night-dim dots** / **Focus Mode** soften ambient dot brightness after 22:00.
+- **Icons & Icon Packs (`IconFactory` + `IconPackManager`):** Pick **Nothing Monochrome**, **Original Colour**, or **13×13 Dot-Matrix Glyphs**, or layer installed third-party ADW/Nova/Apex icon packs on top of any style.
+- **Spring Physics & Mechanical Audio (`Tactile` + `TactileAudio`):** Every widget tile, Customize chip, and Drawer card uses `SpringAnimation` press/rebound with haptic ticks and an optional synthesized 4 ms mechanical click sound.
+- **Space Grotesk Typography & Contrast:** Unified typography with crisp contrast in both dark and light modes (`@color/pill_active_text` on active pills and dialogs).
 
-Settings → Look → **Visual quality**: *Auto* (default), *Lite* or *Full*. Auto picks from the
-phone's RAM and CPU cores and shows what it detected:
+## Visual Quality (Fits the Phone)
+
+Settings → Look → **Visual quality**: *Auto* (default), *Lite*, or *Full*. Auto selects from device RAM and CPU cores:
 
 | Tier | Picked for | What changes |
 |---|---|---|
-| **Lite** | up to "4 GB" phones (incl. 3.5 GB), Android low-RAM devices, ≤ 4 cores | Flat dot grid (no vignette or light pool), no LED glow (half the dots drawn), no power-on sweep or settings entrance, slower media visualiser, charging pulse redrawn ~8×/s instead of every frame, widget picker closed as soon as home is hidden |
-| **Balanced** | "6 GB"-class phones | Vignette, LED glow, power-on sweep, entrance motion |
-| **Full** | "8 GB"+ phones with 6+ cores | Everything above plus the light pool, sheet blur (Android 12+), smoothest visualiser |
+| **Lite** | up to 4 GB RAM (incl. 3.5 GB), low-RAM flag, or ≤ 4 cores | Flat dot grid (no vignette/light pool/ripples), no LED glow, no power-on sweep or settings entrance, slower visualiser, charging pulse redrawn ~8×/s, widget picker released immediately when backgrounded |
+| **Balanced** | 6 GB-class phones | Edge vignette, LED glow, power-on clock sweep, empty-space dot ripples, settings entrance |
+| **Full** | 8 GB+ phones with 6+ cores | Everything above plus top light pool, sheet blur (Android 12+), and full frame-rate visualiser |
 
-Whatever the tier, decorative motion stops while Battery Saver is on or system animations are
-off. On Android 11+, if the system ever had to close home to free memory (the low-memory
-killer, or Android 17's per-app memory limiter), Auto switches to Lite and says so; picking Auto
-again resets it. When home goes to the background the layer also drops its own caches.
+All decorative motion pauses automatically under Battery Saver or disabled system animations. On Android 11+, if the OS terminates home under memory pressure (`ApplicationExitInfo` / Android 17 memory limits), Auto automatically switches to `Lite` and reports it in Settings.
 
-## Home screen
+## `-1` Essential Space Overlay
 
-- First run places two Not a Thing widgets automatically: the LED clock across the top and a
-  battery/calendar tile below it (if the grid has room).
-- Long-press empty space opens the Not a Thing **Customize sheet** (Wallpaper & style, Widgets,
-  Settings) instead of Launcher3's stock long-press menu.
-- Everything else on the home screen (pages, folders, Max/enlarged icons, drag & drop,
-  resizing, the dock) is stock Launcher3.
+Swipe right from Home page 0 (or trigger via Customize sheet / gesture) to reveal the in-process **Essential Space** without background services:
 
-## Dot-matrix widgets
+- **Daily Briefing:** Time-of-day greeting, Open-Meteo weather summary pill, next alarm time, and optional next 48h calendar event (`READ_CALENDAR`).
+- **Hardware Switchboard:** Quick tiles for Camera Torch, Focus Mode (mutes home accents), Caffeine (keeps screen awake), and Ringer cycle (Normal / Vibrate / Silent).
+- **Quick Capture & Voice Memos:** Instant shared scratchpad note editor synced with the Essential Note home widget, plus local `.m4a` voice recording and playback (`RECORD_AUDIO`).
+- **Live Focus Timer / Stopwatch:** Real-time countdown & stopwatch readout synced 1:1 with the home Focus Timer widget.
+- **Device Vitals:** Free/total storage, available/total RAM, and optional daily foreground screen time (`PACKAGE_USAGE_STATS`).
 
-Found in the stock widget picker under *Not a Thing* (long-press home → Widgets, or Customize
-sheet → Widgets). Added, moved, resized and removed exactly like any other Android widget:
+## 11 Dot-Matrix Widgets
 
-| Widget | What it shows |
-|---|---|
-| **LED Clock** | Dot-matrix time + date, optional live seconds ticker (Settings → Home) |
-| **Battery & Calendar** | Battery dot gauge next to day/weekday and the next system alarm |
-| **Weather** | Live conditions from Open-Meteo (no API key); manual city or automatic lookup from the public IP (ipapi.co, falling back to ipwho.is) (Settings → Permissions & capabilities → Weather location). Nothing is fetched unless a weather element is on a home screen |
-| **Media** | Now-playing track/artist with play/pause/next/previous, once notification access is granted |
+Available under *Not a Thing* in the stock widget picker (`Customize → Widgets`), with Android S+ preview cards and descriptions:
 
-A plain system "Date & time" widget is also available — it exists mainly so the device always
-has at least one installed widget provider (Launcher3 needs that to register the in-process
-widgets above).
+| # | Widget | What it does |
+|---|---|---|
+| 1 | **Clock (`ClockWidget`)** | Tap bottom pill to cycle Digital (12/24h + optional seconds), Analog Dot-Matrix, Editorial Word Clock, and World Clock (`worldClockZoneId`) |
+| 2 | **Battery & Calendar (`BatteryCalendarWidget`)** | Dot battery arc with charging bolt badge, today's date (links to Calendar), and next alarm row (hidden cleanly when no alarm is set) |
+| 3 | **Weather (`WeatherWidget`)** | Live Open-Meteo conditions (IP fallback or manual city; zero fetches unless on Home) with compact `2×2` and wide `4×2+` 12-hour temperature dot-sparkline + wind speed |
+| 4 | **Media Player (`MediaWidget`)** | Track/artist, transport controls, audio output route (`BT`, `WIRED`, `SPEAKER`), and background 10×10 Bayer 4×4 halftone album art |
+| 5 | **Hardware Toggles (`QuickTogglesWidget`)** | Home-screen toggles for Torch, Focus Mode, Caffeine, and Ringer mode |
+| 6 | **Focus Timer (`FocusTimerWidget`)** | Circular dot-ring Pomodoro timer & stopwatch (`5/10/15/25/45` min presets) synced with Essential Space |
+| 7 | **Essential Note (`EssentialNoteWidget`)** | Always-visible scratchpad synced with Essential Space |
+| 8 | **Habit Matrix (`HabitMatrixWidget`)** | 7×7 dot streak calendar with 1-tap daily check-off and editable title |
+| 9 | **Device Vitals (`VitalsWidget`)** | Live Storage & RAM dot gauges + optional daily screen time |
+| 10 | **Compass & Steps (`CompassStepWidget`)** | Magnetometer heading dot dial and step counter with strict visibility sensor gating |
+| 11 | **Essential Stack (`SmartFolderWidget`)** | Interactive 2×2 quick-launch stack with custom title |
 
-## App drawer & search
+A minimal `DateTimeWidgetProvider` (`AppWidgetProvider`) remains bundled so Launcher3 always detects a registered system widget provider.
 
-Stock Launcher3: search, alphabetical scrubber, hidden apps, app shortcuts via long-press — all
-unmodified, just restyled in the Not a Thing palette.
+## Offline Command Search, Smart Drawer & Hidden Vault
 
-## Settings
+- **Command Search (`CommandEngine`):** Evaluates math & percentages (`(12 + 8) * 3`, `15% of 240`), metric/imperial/temperature conversions (`100 km to mi`, `25 c to f`), city timezones (`time tokyo`), device toggles (`torch`, `focus`, `caffeine`, `settings`), optional contacts search (`READ_CONTACTS`), DuckDuckGo web search, and acronym/initials (`yt` → YouTube) + 1-typo fuzzy app scoring.
+- **Smart Drawer (`DrawerHeader` + `NothingAllAppsContainerView`):** Live app count, 1-tap `GRID` / `LIST` drawer switcher, recent-apps strip (up to 5 recent launches), Vault button, and Settings shortcut.
+- **Hidden Vault & Long-Press Shortcuts (`HiddenVaultSheet`, `NothingShortcuts`):** Long-press any app icon for *Hide in Vault* (removes from drawer and search until unlocked with biometrics/device credential or unhiding) or *Rename* (per-app custom label across home and drawer).
 
-Not a Thing's own settings screen (long-press home → Settings, or the app icon's shortcut)
-groups:
+## Gestures, Presets, Backup & Setup Hub
 
-- **Home** — grid size (3×3/4×4/5×5 on phones), seconds ticker, "add icon to home screen on
-  install", auto-rotate.
-- **Look** — icon style (mono/colour), background (dots/black/wallpaper), visual quality
-  (auto/lite/full), wallpaper picker.
-- **Permissions & capabilities** — notification access (needed for the media widget and
-  notification dots), weather location.
-- **System** — default-launcher status/shortcut, **Advanced home settings** (opens Launcher3's
-  own stock settings screen, e.g. notification dots), and About.
-
-Grid size, icon style and rotation are read from and written straight to Launcher3's own
-`LauncherPrefs`/`InvariantDeviceProfile`, so they always match what Launcher3's stock settings
-screen (reachable via "Advanced home settings") shows.
-
-## App icon & onboarding
-
-Unlike a raw home-only activity, Not a Thing has a real app icon (an invisible trampoline
-activity). Tapping it shows a first-run welcome screen with "Set as default home", or opens the
-system's home-app chooser / straight to the home screen if it's already default. Long-pressing
-the icon offers "Launcher settings" and "Set as default home app" shortcuts.
-
-## Updates
-
-Every release is signed with one stable key and uses a monotonically increasing `versionCode`,
-so installing a new APK over an old one updates in place instead of requiring an uninstall. See
-[`RELEASING.md`](RELEASING.md) for details.
+- **Home Gestures & Cleanliness:** Configure Swipe Down, Double-Tap empty space, and 2-finger Pinch-in (Expand Notifications, Command Search, Essential Space, Customize Sheet, Hidden Vault, or biometric-safe Screen Lock via optional [`NothingLockAccessibilityService`](../app/src/main/java/com/nothinglauncher/NothingLockAccessibilityService.kt)); toggle home icon labels and hotseat search pill visibility.
+- **Curated Presets & `.nothing.json` Backup (`SetupBackupManager`):** Apply *Telemetry v13*, *Monolith Minimal*, *Command & Focus*, or *Studio Media* in one tap, or export/import complete configuration, notes, habits, labels, and vault state via `.nothing.json` files.
+- **Setup & Permissions Hub (`LauncherEntryActivity`):** Launched from the drawer icon; checks Default Home status, lets users apply presets or export backups, and surfaces live `ACTIVE` / `ENABLE` status for all optional permissions.
