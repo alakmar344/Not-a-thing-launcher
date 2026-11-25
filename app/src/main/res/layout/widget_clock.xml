@@ -37,34 +37,66 @@
             style="@style/Text.Label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:background="@drawable/fg_ripple_pill"
+            android:clickable="true"
+            android:focusable="true"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
             android:textColor="@color/text_primary"
             android:text="@string/format_24h" />
     </LinearLayout>
 
-    <com.nothinglauncher.DotMatrixClockView
-        android:id="@+id/clock"
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="@dimen/clock_matrix_height"
-        android:layout_marginTop="14dp"
-        app:dmDotColor="@color/dot_on"
-        app:dmDotScale="0.4"
-        app:dmGlow="true"
-        app:dmOffColor="@color/dot_off"
-        app:dmPanel="true"
-        app:dmPanelPadRows="1" />
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:minHeight="60dp"
+        android:layout_marginTop="10dp">
+
+        <com.nothinglauncher.DotMatrixClockView
+            android:id="@+id/clock"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:dmDotColor="@color/dot_on"
+            app:dmDotScale="0.4"
+            app:dmGlow="true"
+            app:dmOffColor="@color/dot_off"
+            app:dmPanel="true"
+            app:dmPanelPadRows="1" />
+
+        <com.nothinglauncher.AnalogDotClockView
+            android:id="@+id/clockAnalog"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+        <com.nothinglauncher.DotMatrixView
+            android:id="@+id/clockWord"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone"
+            app:dmDotColor="@color/dot_on"
+            app:dmDotScale="0.38"
+            app:dmGlow="true"
+            app:dmGravity="start"
+            app:dmOffColor="@color/dot_off"
+            app:dmPanel="true" />
+    </FrameLayout>
 
     <com.nothinglauncher.SecondsTickerView
         android:id="@+id/secondsTicker"
         android:layout_width="match_parent"
         android:layout_height="8dp"
-        android:layout_marginTop="12dp" />
+        android:layout_marginTop="8dp" />
 
     <TextView
         android:id="@+id/clockDate"
         style="@style/Text.Body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
+        android:layout_marginTop="10dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/text_secondary"

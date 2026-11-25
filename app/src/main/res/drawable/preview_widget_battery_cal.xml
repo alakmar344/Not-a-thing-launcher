@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="260dp"
+    android:height="140dp"
+    android:viewportWidth="260"
+    android:viewportHeight="140">
+    <!-- Left light battery ring tile -->
+    <path android:fillColor="#F4F4F2" android:pathData="M24,4h84c11,0 20,9 20,20v92c0,11 -9,20 -20,20H24c-11,0 -20,-9 -20,-20V24C4,13 13,4 24,4z" />
+    <path android:strokeColor="#0C0C0E" android:strokeWidth="6" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M66,28 A42,42 0 1,1 28,88" />
+    <path android:fillColor="#0C0C0E" android:pathData="M50,62h12v6h-12z M70,62h12v6h-12z M50,76h12v6h-12z M70,76h12v6h-12z" />
+    <!-- Right dark calendar tile -->
+    <path android:fillColor="#111113" android:pathData="M152,4h84c11,0 20,9 20,20v92c0,11 -9,20 -20,20h-84c-11,0 -20,-9 -20,-20V24C132,13 141,4 152,4z" />
+    <path android:fillColor="#232327" android:pathData="M152,4h84c11,0 20,9 20,20v92c0,11 -9,20 -20,20h-84c-11,0 -20,-9 -20,-20V24C132,13 141,4 152,4zM152,5.5C141.8,5.5 133.5,13.8 133.5,24v92c0,10.2 8.3,18.5 18.5,18.5h84c10.2,0 18.5,-8.3 18.5,-18.5V24c0,-10.2 -8.3,-18.5 -18.5,-18.5H152z" />
+    <path android:fillColor="#D71921" android:pathData="M234,22m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path android:fillColor="#9C9CA1" android:pathData="M148,18h28v5h-28z" />
+    <path android:fillColor="#F4F4F2" android:pathData="M152,44m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M164,44m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M152,58m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M164,58m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M152,72m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M164,72m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M152,86m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0 M164,86m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path android:fillColor="#F4F4F2" android:pathData="M148,104h56v6h-56z" />
+</vector>

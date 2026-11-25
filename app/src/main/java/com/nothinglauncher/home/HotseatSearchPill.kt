@@ -4,13 +4,18 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.View
 import android.widget.LinearLayout
+import androidx.core.view.isVisible
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherState
+import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
+import com.nothinglauncher.Tactile
+import com.nothinglauncher.drawer.HiddenVaultSheet
 
 /**
- * The v10 "Search apps & web" pill under the dock, in the slot Launcher3 reserves for a hotseat
- * search bar. Tapping it opens the drawer with the keyboard; the grid button opens the drawer.
+ * The v10/v13 "Search apps & web" pill under the dock, in the slot Launcher3 reserves for a hotseat
+ * search bar. Tapping it opens the drawer with the keyboard; the grid button opens the drawer;
+ * long-pressing opens the Hidden Vault.
  *
  * On phone grids Launcher3 measures this slot at width 0 (it is meant for scalable grids), so the
  * pill sizes itself to the icon area of the dock.
@@ -22,8 +27,32 @@ class HotseatSearchPill @JvmOverloads constructor(
 
     override fun onFinishInflate() {
         super.onFinishInflate()
+        Tactile.press(this, 0.98f)
         setOnClickListener { openDrawer(search = true) }
+        setOnLongClickListener {
+            val launcher = try {
+                Launcher.getLauncher(context)
+            } catch (_: RuntimeException) {
+                null
+            }
+            if (launcher != null) {
+                HiddenVaultSheet.openWithAuth(launcher) {
+                    (launcher as? NothingLauncher)?.refreshHiddenApps()
+                }
+            }
+            true
+        }
         findViewById<View>(R.id.pillApps).setOnClickListener { openDrawer(search = false) }
+        refreshVisibility()
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        refreshVisibility()
+    }
+
+    fun refreshVisibility() {
+        isVisible = NothingPrefs.get(context).showSearchPill
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
