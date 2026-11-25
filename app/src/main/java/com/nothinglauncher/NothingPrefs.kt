@@ -2,10 +2,14 @@ package com.nothinglauncher
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
+import java.util.concurrent.ConcurrentHashMap
 
 /**
- * Settings owned by the Not a Thing layer (Launcher3 keeps its own LauncherPrefs for the
- * home screen model). Only state the dot-matrix elements need lives here.
+ * Settings and persistent workspace state owned by the Not a Thing layer.
+ * Launcher3 keeps its own LauncherPrefs for workspace grid, icon placement, and rotation;
+ * this singleton owns visual personality, Essential Space notes/timers, gestures, and vault.
  */
 class NothingPrefs private constructor(context: Context) {
 
@@ -16,12 +20,10 @@ class NothingPrefs private constructor(context: Context) {
     }
 
     /**
-     * Values written this process, read before [sp]. Concurrent because [WeatherRepository]
-     * writes the cache from its fetch thread while the main thread reads: a plain HashMap
-     * mutated from two threads can corrupt itself. ConcurrentHashMap rejects nulls, so a
-     * stored null is kept as [NULL].
+     * In-memory cache + Robolectric/layoutlib fallback. Uses [NULL] sentinel because
+     * ConcurrentHashMap rejects null values.
      */
-    private val memFallback = java.util.concurrent.ConcurrentHashMap<String, Any>()
+    private val memFallback = ConcurrentHashMap<String, Any>()
 
     private fun put(key: String, value: Any?, write: SharedPreferences.Editor.() -> Unit) {
         memFallback[key] = value ?: NULL
@@ -31,7 +33,6 @@ class NothingPrefs private constructor(context: Context) {
         }
     }
 
-    /** The in-memory value for [key]: absent → [Unset], stored null → null. */
     private fun mem(key: String): Any? = when (val v = memFallback[key]) {
         null -> Unset
         NULL -> null
@@ -40,57 +41,329 @@ class NothingPrefs private constructor(context: Context) {
 
     private object Unset
 
-    /** Manual weather city; blank means "locate automatically". */
+    private fun getBool(key: String, def: Boolean): Boolean {
+        mem(key).let { if (it !== Unset) return it as? Boolean ?: def }
+        return sp?.getBoolean(key, def) ?: def
+    }
+
+    private fun putBool(key: String, v: Boolean) = put(key, v) { putBoolean(key, v) }
+
+    private fun getInt(key: String, def: Int): Int {
+        mem(key).let { if (it !== Unset) return it as? Int ?: def }
+        return sp?.getInt(key, def) ?: def
+    }
+
+    private fun putInt(key: String, v: Int) = put(key, v) { putInt(key, v) }
+
+    private fun getLong(key: String, def: Long): Long {
+        mem(key).let { if (it !== Unset) return it as? Long ?: def }
+        return sp?.getLong(key, def) ?: def
+    }
+
+    private fun putLong(key: String, v: Long) = put(key, v) { putLong(key, v) }
+
+    private fun getStr(key: String, def: String = ""): String {
+        mem(key).let { if (it !== Unset) return (it as? String) ?: def }
+        return sp?.getString(key, def) ?: def
+    }
+
+    private fun getNullableStr(key: String): String? {
+        mem(key).let { if (it !== Unset) return it as? String }
+        return sp?.getString(key, null)
+    }
+
+    private fun putStr(key: String, v: String?) = put(key, v) {
+        if (v == null) remove(key) else putString(key, v)
+    }
+
     var weatherCity: String
-        get() {
-            mem(K_WEATHER_CITY).let { v -> if (v !== Unset) return (v as? String).orEmpty() }
-            return sp?.getString(K_WEATHER_CITY, "").orEmpty()
-        }
-        set(value) = put(K_WEATHER_CITY, value.trim()) { putString(K_WEATHER_CITY, value.trim()) }
+        get() = getStr(K_WEATHER_CITY)
+        set(value) = putStr(K_WEATHER_CITY, value.trim())
 
-    /** Last successful weather response (serialized by [WeatherRepository]). */
     var weatherCache: String?
-        get() {
-            mem(K_WEATHER_CACHE).let { v -> if (v !== Unset) return v as? String }
-            return sp?.getString(K_WEATHER_CACHE, null)
-        }
-        set(value) = put(K_WEATHER_CACHE, value) {
-            if (value == null) remove(K_WEATHER_CACHE) else putString(K_WEATHER_CACHE, value)
-        }
+        get() = getNullableStr(K_WEATHER_CACHE)
+        set(value) = putStr(K_WEATHER_CACHE, value)
 
-    /** Home and drawer backdrop (the v10 "Background" setting). */
     var background: Background
-        get() {
-            mem(K_BACKGROUND).let { v ->
-                if (v !== Unset) return Background.entries.getOrElse(v as? Int ?: 0) { Background.DOTS }
-            }
-            return Background.entries.getOrElse(sp?.getInt(K_BACKGROUND, 0) ?: 0) { Background.DOTS }
-        }
-        set(value) = put(K_BACKGROUND, value.ordinal) { putInt(K_BACKGROUND, value.ordinal) }
+        get() = Background.entries.getOrElse(getInt(K_BACKGROUND, 0)) { Background.DOTS }
+        set(value) = putInt(K_BACKGROUND, value.ordinal)
 
-    /** Live row of 60 dots under the LED clock. */
     var showSeconds: Boolean
-        get() {
-            mem(K_SECONDS).let { v -> if (v !== Unset) return v as? Boolean ?: true }
-            return sp?.getBoolean(K_SECONDS, true) ?: true
-        }
-        set(value) = put(K_SECONDS, value) { putBoolean(K_SECONDS, value) }
+        get() = getBool(K_SECONDS, true)
+        set(value) = putBool(K_SECONDS, value)
 
-    /** Night mode the cached app icons were rendered for (-1 = unknown). */
     var iconsRenderedNight: Int
-        get() {
-            mem(K_ICONS_NIGHT).let { v -> if (v !== Unset) return v as? Int ?: -1 }
-            return sp?.getInt(K_ICONS_NIGHT, -1) ?: -1
-        }
-        set(value) = put(K_ICONS_NIGHT, value) { putInt(K_ICONS_NIGHT, value) }
+        get() = getInt(K_ICONS_NIGHT, -1)
+        set(value) = putInt(K_ICONS_NIGHT, value)
 
-    /** Whether the default v10 home tiles were placed on the first screen. */
     var defaultTilesPlaced: Boolean
-        get() {
-            mem(K_TILES_PLACED).let { v -> if (v !== Unset) return v as? Boolean ?: false }
-            return sp?.getBoolean(K_TILES_PLACED, false) ?: false
+        get() = getBool(K_TILES_PLACED, false)
+        set(value) = putBool(K_TILES_PLACED, value)
+
+    var visualQuality: VisualQuality
+        get() = VisualQuality.entries.getOrElse(getInt(K_QUALITY, 0)) { VisualQuality.AUTO }
+        set(value) = putInt(K_QUALITY, value.ordinal)
+
+    var memoryPressureSeen: Boolean
+        get() = getBool(K_MEM_PRESSURE, false)
+        set(value) = putBool(K_MEM_PRESSURE, value)
+
+    var lastExitCheck: Long
+        get() = getLong(K_EXIT_CHECK, 0L)
+        set(value) = putLong(K_EXIT_CHECK, value)
+
+    var defaultsApplied: Boolean
+        get() = getBool(K_DEFAULTS_APPLIED, false)
+        set(value) = putBool(K_DEFAULTS_APPLIED, value)
+
+    // --- v13 personalization, physics, Essential Space & tools ---
+
+    var accentPalette: AccentTheme.Palette
+        get() = AccentTheme.Palette.entries.getOrElse(getInt(K_ACCENT_PALETTE, 0)) { AccentTheme.Palette.RED }
+        set(value) = putInt(K_ACCENT_PALETTE, value.ordinal)
+
+    var iconStyle: IconStyle
+        get() = IconStyle.entries.getOrElse(getInt(K_ICON_STYLE, 0)) { IconStyle.MONO }
+        set(value) = putInt(K_ICON_STYLE, value.ordinal)
+
+    var iconPackPackage: String
+        get() = getStr(K_ICON_PACK)
+        set(value) = putStr(K_ICON_PACK, value.trim())
+
+    var hideHomeLabels: Boolean
+        get() = getBool(K_HIDE_HOME_LABELS, false)
+        set(value) = putBool(K_HIDE_HOME_LABELS, value)
+
+    var showSearchPill: Boolean
+        get() = getBool(K_SHOW_SEARCH_PILL, true)
+        set(value) = putBool(K_SHOW_SEARCH_PILL, value)
+
+    var drawerLayoutMode: DrawerLayoutMode
+        get() = DrawerLayoutMode.entries.getOrElse(getInt(K_DRAWER_MODE, 0)) { DrawerLayoutMode.GRID }
+        set(value) = putInt(K_DRAWER_MODE, value.ordinal)
+
+    var showDrawerRecents: Boolean
+        get() = getBool(K_DRAWER_RECENTS, true)
+        set(value) = putBool(K_DRAWER_RECENTS, value)
+
+    var tactileSound: Boolean
+        get() = getBool(K_TACTILE_SOUND, false)
+        set(value) = putBool(K_TACTILE_SOUND, value)
+
+    var nightDimDots: Boolean
+        get() = getBool(K_NIGHT_DIM, false)
+        set(value) = putBool(K_NIGHT_DIM, value)
+
+    var focusMode: Boolean
+        get() = getBool(K_FOCUS_MODE, false)
+        set(value) = putBool(K_FOCUS_MODE, value)
+
+    var caffeineEnabled: Boolean
+        get() = getBool(K_CAFFEINE, false)
+        set(value) = putBool(K_CAFFEINE, value)
+
+    var essentialNote: String
+        get() = getStr(K_ESSENTIAL_NOTE)
+        set(value) = putStr(K_ESSENTIAL_NOTE, value.trim())
+
+    var clockFaceMode: Int
+        get() = getInt(K_CLOCK_FACE, 0).coerceIn(0, 3)
+        set(value) = putInt(K_CLOCK_FACE, value.coerceIn(0, 3))
+
+    var worldClockZoneId: String
+        get() = getStr(K_WORLD_ZONE, "UTC").ifBlank { "UTC" }
+        set(value) = putStr(K_WORLD_ZONE, value.trim().ifBlank { "UTC" })
+
+    var swipeDownAction: GestureAction
+        get() = GestureAction.entries.getOrElse(getInt(K_GESTURE_DOWN, GestureAction.NOTIFICATIONS.ordinal)) { GestureAction.NOTIFICATIONS }
+        set(value) = putInt(K_GESTURE_DOWN, value.ordinal)
+
+    var doubleTapAction: GestureAction
+        get() = GestureAction.entries.getOrElse(getInt(K_GESTURE_DOUBLE_TAP, GestureAction.LOCK_SCREEN.ordinal)) { GestureAction.LOCK_SCREEN }
+        set(value) = putInt(K_GESTURE_DOUBLE_TAP, value.ordinal)
+
+    var pinchAction: GestureAction
+        get() = GestureAction.entries.getOrElse(getInt(K_GESTURE_PINCH, GestureAction.CUSTOMIZE.ordinal)) { GestureAction.CUSTOMIZE }
+        set(value) = putInt(K_GESTURE_PINCH, value.ordinal)
+
+    var onboardingDone: Boolean
+        get() = getBool(K_ONBOARDING_DONE, false)
+        set(value) = putBool(K_ONBOARDING_DONE, value)
+
+    var habitTitle: String
+        get() = getStr(K_HABIT_TITLE, "FOCUS").ifBlank { "FOCUS" }
+        set(value) = putStr(K_HABIT_TITLE, value.trim().ifBlank { "FOCUS" })
+
+    var habitDates: Set<String>
+        get() = parseStringSet(getStr(K_HABIT_DATES))
+        set(value) = putStr(K_HABIT_DATES, encodeStringSet(value))
+
+    var hiddenPackages: Set<String>
+        get() = parseStringSet(getStr(K_HIDDEN_PACKAGES))
+        set(value) = putStr(K_HIDDEN_PACKAGES, encodeStringSet(value))
+
+    var customAppLabels: Map<String, String>
+        get() = parseStringMap(getStr(K_CUSTOM_LABELS))
+        set(value) = putStr(K_CUSTOM_LABELS, encodeStringMap(value))
+
+    var recentComponents: List<String>
+        get() = parseStringList(getStr(K_RECENT_APPS))
+        set(value) = putStr(K_RECENT_APPS, JSONArray(value.take(8)).toString())
+
+    fun recordAppLaunch(componentFlat: String) {
+        if (componentFlat.isBlank()) return
+        val next = listOf(componentFlat) + recentComponents.filterNot { it == componentFlat }
+        recentComponents = next.take(8)
+    }
+
+    // Focus timer & stopwatch shared state
+    var timerDurationMs: Long
+        get() = getLong(K_TIMER_DURATION, 25 * 60_000L).coerceAtLeast(60_000L)
+        set(value) = putLong(K_TIMER_DURATION, value.coerceAtLeast(60_000L))
+
+    var timerRemainingMs: Long
+        get() = getLong(K_TIMER_REMAINING, timerDurationMs).coerceAtLeast(0L)
+        set(value) = putLong(K_TIMER_REMAINING, value.coerceAtLeast(0L))
+
+    var timerEndAtMs: Long
+        get() = getLong(K_TIMER_END_AT, 0L)
+        set(value) = putLong(K_TIMER_END_AT, value)
+
+    var timerRunning: Boolean
+        get() = getBool(K_TIMER_RUNNING, false)
+        set(value) = putBool(K_TIMER_RUNNING, value)
+
+    var timerStopwatchMode: Boolean
+        get() = getBool(K_TIMER_STOPWATCH, false)
+        set(value) = putBool(K_TIMER_STOPWATCH, value)
+
+    var stopwatchAccumMs: Long
+        get() = getLong(K_SW_ACCUM, 0L)
+        set(value) = putLong(K_SW_ACCUM, value)
+
+    var stopwatchStartMs: Long
+        get() = getLong(K_SW_START, 0L)
+        set(value) = putLong(K_SW_START, value)
+
+    // Pinned quick folder / max app tile bindings
+    var maxAppComponent: String
+        get() = getStr(K_MAX_APP)
+        set(value) = putStr(K_MAX_APP, value.trim())
+
+    var quickFolderTitle: String
+        get() = getStr(K_FOLDER_TITLE, "ESSENTIALS").ifBlank { "ESSENTIALS" }
+        set(value) = putStr(K_FOLDER_TITLE, value.trim().ifBlank { "ESSENTIALS" })
+
+    var quickFolderApps: List<String>
+        get() = parseStringList(getStr(K_FOLDER_APPS))
+        set(value) = putStr(K_FOLDER_APPS, JSONArray(value.take(4)).toString())
+
+    fun widgetSurface(widgetKey: String): AccentTheme.WidgetSurface {
+        val map = parseStringMap(getStr(K_WIDGET_SURFACES))
+        val name = map[widgetKey] ?: return AccentTheme.WidgetSurface.DEFAULT
+        return AccentTheme.WidgetSurface.entries.firstOrNull { it.name == name }
+            ?: AccentTheme.WidgetSurface.DEFAULT
+    }
+
+    fun setWidgetSurface(widgetKey: String, surface: AccentTheme.WidgetSurface) {
+        val map = parseStringMap(getStr(K_WIDGET_SURFACES)).toMutableMap()
+        if (surface == AccentTheme.WidgetSurface.DEFAULT) map.remove(widgetKey) else map[widgetKey] = surface.name
+        putStr(K_WIDGET_SURFACES, encodeStringMap(map))
+    }
+
+    fun exportToJson(): String = JSONObject().apply {
+        put("version", 13)
+        put("background", background.name)
+        put("visualQuality", visualQuality.name)
+        put("accentPalette", accentPalette.name)
+        put("iconStyle", iconStyle.name)
+        put("iconPackPackage", iconPackPackage)
+        put("showSeconds", showSeconds)
+        put("hideHomeLabels", hideHomeLabels)
+        put("showSearchPill", showSearchPill)
+        put("drawerLayoutMode", drawerLayoutMode.name)
+        put("showDrawerRecents", showDrawerRecents)
+        put("tactileSound", tactileSound)
+        put("nightDimDots", nightDimDots)
+        put("focusMode", focusMode)
+        put("weatherCity", weatherCity)
+        put("essentialNote", essentialNote)
+        put("clockFaceMode", clockFaceMode)
+        put("worldClockZoneId", worldClockZoneId)
+        put("swipeDownAction", swipeDownAction.name)
+        put("doubleTapAction", doubleTapAction.name)
+        put("pinchAction", pinchAction.name)
+        put("habitTitle", habitTitle)
+        put("habitDates", JSONArray(habitDates.toList()))
+        put("hiddenPackages", JSONArray(hiddenPackages.toList()))
+        put("customAppLabels", JSONObject(customAppLabels))
+        put("maxAppComponent", maxAppComponent)
+        put("quickFolderTitle", quickFolderTitle)
+        put("quickFolderApps", JSONArray(quickFolderApps))
+    }.toString(2)
+
+    fun importFromJson(raw: String): Boolean {
+        return try {
+            val o = JSONObject(raw)
+            if (!o.has("version")) return false
+        o.optString("background").takeIf { it.isNotEmpty() }?.let { n ->
+            Background.entries.firstOrNull { it.name == n }?.let { background = it }
         }
-        set(value) = put(K_TILES_PLACED, value) { putBoolean(K_TILES_PLACED, value) }
+        o.optString("visualQuality").takeIf { it.isNotEmpty() }?.let { n ->
+            VisualQuality.entries.firstOrNull { it.name == n }?.let { visualQuality = it }
+        }
+        o.optString("accentPalette").takeIf { it.isNotEmpty() }?.let { n ->
+            AccentTheme.Palette.entries.firstOrNull { it.name == n }?.let { accentPalette = it }
+        }
+        o.optString("iconStyle").takeIf { it.isNotEmpty() }?.let { n ->
+            IconStyle.entries.firstOrNull { it.name == n }?.let { iconStyle = it }
+        }
+        if (o.has("iconPackPackage")) iconPackPackage = o.optString("iconPackPackage", "")
+        if (o.has("showSeconds")) showSeconds = o.optBoolean("showSeconds", showSeconds)
+        if (o.has("hideHomeLabels")) hideHomeLabels = o.optBoolean("hideHomeLabels", hideHomeLabels)
+        if (o.has("showSearchPill")) showSearchPill = o.optBoolean("showSearchPill", showSearchPill)
+        o.optString("drawerLayoutMode").takeIf { it.isNotEmpty() }?.let { n ->
+            DrawerLayoutMode.entries.firstOrNull { it.name == n }?.let { drawerLayoutMode = it }
+        }
+        if (o.has("showDrawerRecents")) showDrawerRecents = o.optBoolean("showDrawerRecents", showDrawerRecents)
+        if (o.has("tactileSound")) tactileSound = o.optBoolean("tactileSound", tactileSound)
+        if (o.has("nightDimDots")) nightDimDots = o.optBoolean("nightDimDots", nightDimDots)
+        if (o.has("focusMode")) focusMode = o.optBoolean("focusMode", focusMode)
+        if (o.has("weatherCity")) weatherCity = o.optString("weatherCity", "")
+        if (o.has("essentialNote")) essentialNote = o.optString("essentialNote", "")
+        if (o.has("clockFaceMode")) clockFaceMode = o.optInt("clockFaceMode", 0)
+        if (o.has("worldClockZoneId")) worldClockZoneId = o.optString("worldClockZoneId", "UTC")
+        o.optString("swipeDownAction").takeIf { it.isNotEmpty() }?.let { n ->
+            GestureAction.entries.firstOrNull { it.name == n }?.let { swipeDownAction = it }
+        }
+        o.optString("doubleTapAction").takeIf { it.isNotEmpty() }?.let { n ->
+            GestureAction.entries.firstOrNull { it.name == n }?.let { doubleTapAction = it }
+        }
+        o.optString("pinchAction").takeIf { it.isNotEmpty() }?.let { n ->
+            GestureAction.entries.firstOrNull { it.name == n }?.let { pinchAction = it }
+        }
+        if (o.has("habitTitle")) habitTitle = o.optString("habitTitle", "FOCUS")
+        o.optJSONArray("habitDates")?.let { arr ->
+            habitDates = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }.toSet()
+        }
+        o.optJSONArray("hiddenPackages")?.let { arr ->
+            hiddenPackages = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }.toSet()
+        }
+        o.optJSONObject("customAppLabels")?.let { obj ->
+            val m = LinkedHashMap<String, String>()
+            obj.keys().forEach { k -> m[k] = obj.optString(k, "") }
+            customAppLabels = m.filterValues { it.isNotBlank() }
+        }
+        if (o.has("maxAppComponent")) maxAppComponent = o.optString("maxAppComponent", "")
+        if (o.has("quickFolderTitle")) quickFolderTitle = o.optString("quickFolderTitle", "ESSENTIALS")
+        o.optJSONArray("quickFolderApps")?.let { arr ->
+            quickFolderApps = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }
+        }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
 
     fun addListener(listener: SharedPreferences.OnSharedPreferenceChangeListener) =
         sp?.registerOnSharedPreferenceChangeListener(listener)
@@ -100,43 +373,14 @@ class NothingPrefs private constructor(context: Context) {
 
     enum class Background { DOTS, BLACK, WALLPAPER }
 
-    /** Settings › Look › Visual quality. AUTO follows [com.nothinglauncher.perf.VisualTier]. */
+    /** Settings -> Look -> Visual quality. AUTO follows [com.nothinglauncher.perf.VisualTier]. */
     enum class VisualQuality { AUTO, LITE, FULL }
 
-    var visualQuality: VisualQuality
-        get() {
-            mem(K_QUALITY).let { v ->
-                if (v !== Unset) return VisualQuality.entries.getOrElse(v as? Int ?: 0) { VisualQuality.AUTO }
-            }
-            return VisualQuality.entries.getOrElse(sp?.getInt(K_QUALITY, 0) ?: 0) { VisualQuality.AUTO }
-        }
-        set(value) = put(K_QUALITY, value.ordinal) { putInt(K_QUALITY, value.ordinal) }
+    enum class IconStyle { MONO, COLOR, DOTS }
 
-    /** The system killed home for memory at least once (low-memory killer or Android 17's limiter). */
-    var memoryPressureSeen: Boolean
-        get() {
-            mem(K_MEM_PRESSURE).let { v -> if (v !== Unset) return v as? Boolean ?: false }
-            return sp?.getBoolean(K_MEM_PRESSURE, false) ?: false
-        }
-        set(value) = put(K_MEM_PRESSURE, value) { putBoolean(K_MEM_PRESSURE, value) }
+    enum class DrawerLayoutMode { GRID, LIST, CATEGORIES }
 
-    /** Timestamp of the newest process exit already looked at. */
-    var lastExitCheck: Long
-        get() {
-            mem(K_EXIT_CHECK).let { v -> if (v !== Unset) return v as? Long ?: 0L }
-            return sp?.getLong(K_EXIT_CHECK, 0L) ?: 0L
-        }
-        set(value) = put(K_EXIT_CHECK, value) { putLong(K_EXIT_CHECK, value) }
-
-    enum class IconStyle { MONO, COLOR }
-
-    /** Whether the one-time defaults of this layer (e.g. monochrome icons) were applied. */
-    var defaultsApplied: Boolean
-        get() {
-            mem(K_DEFAULTS_APPLIED).let { v -> if (v !== Unset) return v as? Boolean ?: false }
-            return sp?.getBoolean(K_DEFAULTS_APPLIED, false) ?: false
-        }
-        set(value) = put(K_DEFAULTS_APPLIED, value) { putBoolean(K_DEFAULTS_APPLIED, value) }
+    enum class GestureAction { NONE, NOTIFICATIONS, SEARCH, ESSENTIAL_SPACE, LOCK_SCREEN, CUSTOMIZE, VAULT }
 
     companion object {
         private const val FILE = "not_a_thing"
@@ -152,11 +396,74 @@ class NothingPrefs private constructor(context: Context) {
         private const val K_MEM_PRESSURE = "memory_pressure_seen"
         private const val K_EXIT_CHECK = "last_exit_check"
 
+        private const val K_ACCENT_PALETTE = "v13_accent_palette"
+        private const val K_ICON_STYLE = "v13_icon_style"
+        private const val K_ICON_PACK = "v13_icon_pack"
+        private const val K_HIDE_HOME_LABELS = "v13_hide_home_labels"
+        private const val K_SHOW_SEARCH_PILL = "v13_show_search_pill"
+        private const val K_DRAWER_MODE = "v13_drawer_mode"
+        private const val K_DRAWER_RECENTS = "v13_drawer_recents"
+        private const val K_TACTILE_SOUND = "v13_tactile_sound"
+        private const val K_NIGHT_DIM = "v13_night_dim"
+        private const val K_FOCUS_MODE = "v13_focus_mode"
+        private const val K_CAFFEINE = "v13_caffeine"
+        private const val K_ESSENTIAL_NOTE = "v13_essential_note"
+        private const val K_CLOCK_FACE = "v13_clock_face"
+        private const val K_WORLD_ZONE = "v13_world_zone"
+        private const val K_GESTURE_DOWN = "v13_gesture_down"
+        private const val K_GESTURE_DOUBLE_TAP = "v13_gesture_double_tap"
+        private const val K_GESTURE_PINCH = "v13_gesture_pinch"
+        private const val K_ONBOARDING_DONE = "v13_onboarding_done"
+        private const val K_HABIT_TITLE = "v13_habit_title"
+        private const val K_HABIT_DATES = "v13_habit_dates"
+        private const val K_HIDDEN_PACKAGES = "v13_hidden_packages"
+        private const val K_CUSTOM_LABELS = "v13_custom_labels"
+        private const val K_RECENT_APPS = "v13_recent_apps"
+        private const val K_TIMER_DURATION = "v13_timer_duration"
+        private const val K_TIMER_REMAINING = "v13_timer_remaining"
+        private const val K_TIMER_END_AT = "v13_timer_end_at"
+        private const val K_TIMER_RUNNING = "v13_timer_running"
+        private const val K_TIMER_STOPWATCH = "v13_timer_stopwatch"
+        private const val K_SW_ACCUM = "v13_sw_accum"
+        private const val K_SW_START = "v13_sw_start"
+        private const val K_MAX_APP = "v13_max_app"
+        private const val K_FOLDER_TITLE = "v13_folder_title"
+        private const val K_FOLDER_APPS = "v13_folder_apps"
+        private const val K_WIDGET_SURFACES = "v13_widget_surfaces"
+
         @Volatile private var instance: NothingPrefs? = null
 
         fun get(context: Context): NothingPrefs =
             instance ?: synchronized(this) {
                 instance ?: NothingPrefs(context).also { instance = it }
             }
+
+        private fun parseStringSet(raw: String): Set<String> = parseStringList(raw).toSet()
+
+        private fun encodeStringSet(set: Set<String>): String = JSONArray(set.toList()).toString()
+
+        private fun parseStringList(raw: String): List<String> {
+            if (raw.isBlank()) return emptyList()
+            return try {
+                val arr = JSONArray(raw)
+                (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+
+        private fun parseStringMap(raw: String): Map<String, String> {
+            if (raw.isBlank()) return emptyMap()
+            return try {
+                val obj = JSONObject(raw)
+                val out = LinkedHashMap<String, String>()
+                obj.keys().forEach { k -> out[k] = obj.optString(k, "") }
+                out
+            } catch (_: Exception) {
+                emptyMap()
+            }
+        }
+
+        private fun encodeStringMap(map: Map<String, String>): String = JSONObject(map).toString()
     }
 }

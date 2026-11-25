@@ -3,24 +3,24 @@ package com.nothinglauncher
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-import java.util.Locale
+import java.util.Calendar
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 /**
- * Live weather for the Weather element (Open-Meteo, no API key).
- * A manual city can be set from the element menu; otherwise the approximate city is
- * resolved from the network's public IP. Responses are cached across restarts.
+ * Live weather + 12-hour forecast sparkline for the Weather element & Essential Space (Open-Meteo, no API key).
+ * A manual city can be set from Settings; otherwise the approximate city is resolved from the network's public IP.
  */
 object WeatherRepository {
 
@@ -31,7 +31,10 @@ object WeatherRepository {
         val high: Int,
         val low: Int,
         val isDay: Boolean,
-        val updatedAt: Long
+        val updatedAt: Long,
+        val hourlyTemps: List<Int> = emptyList(),
+        val hourlyRainProbs: List<Int> = emptyList(),
+        val windKmh: Int = 0
     )
 
     private val io = Executors.newSingleThreadExecutor { r ->
@@ -47,7 +50,7 @@ object WeatherRepository {
 
     private const val CACHE_FRESH_MS = 30 * 60 * 1000L
     private const val RETRY_BACKOFF_MS = 60 * 1000L
-    private val IP_LOCATION_URLS = listOf("https://ipapi.co/json/", "https://ipwho.is/")
+    private val IP_LOCATION_URLS = listOf("https://ipwho.is/", "https://ipapi.co/json/")
     private val USER_AGENT = "NotAThingLauncher/${BuildConfig.VERSION_NAME} (Android)"
 
     fun cached(prefs: NothingPrefs): Weather? = parse(prefs.weatherCache)
@@ -55,7 +58,6 @@ object WeatherRepository {
     fun isFresh(weather: Weather?): Boolean =
         weather != null && System.currentTimeMillis() - weather.updatedAt < CACHE_FRESH_MS
 
-    /** Every weather element on screen listens here so one fetch updates all of them. */
     fun addListener(prefs: NothingPrefs, listener: (Weather?) -> Unit): Weather? {
         listeners += listener
         val cached = cached(prefs)
@@ -67,7 +69,6 @@ object WeatherRepository {
         listeners -= listener
     }
 
-    /** Whether any weather element is attached, i.e. whether a refresh would be shown at all. */
     fun hasListeners(): Boolean = listeners.isNotEmpty()
 
     fun refresh(
@@ -84,10 +85,8 @@ object WeatherRepository {
                 return
             }
         }
-        // Every caller gets an answer, even when it joins a fetch that is already running.
         pendingCallbacks += callback
         if (!running.compareAndSet(false, true)) {
-            // A forced refresh (e.g. a new city) must not be satisfied by a stale in-flight fetch.
             if (force) rerunRequested.set(true)
             return
         }
@@ -101,19 +100,15 @@ object WeatherRepository {
             rerunRequested.set(false)
             val generation = cityGeneration.get()
             val result = try {
-                fetch(appContext, prefs)
-            } catch (e: Exception) {
+                fetch(prefs)
+            } catch (_: Exception) {
                 null
             }
-            // The city changed while we were fetching: discard the result and go again.
             if (generation != cityGeneration.get() || rerunRequested.get()) continue
             if (result != null) {
                 prefs.weatherCache = serialize(result)
             }
             val resolved = result ?: cached(prefs)
-            // Clear the flag before posting the drain: a caller that queued its callback while
-            // the flag was still set is then guaranteed to be answered by the drain below
-            // (previously it could be enqueued after the drain ran and never be called back).
             running.set(false)
             main.post {
                 listeners.forEach { it(resolved) }
@@ -121,7 +116,6 @@ object WeatherRepository {
                 while (true) callbacks += pendingCallbacks.poll() ?: break
                 callbacks.forEach { it(resolved) }
             }
-            // A forced request may have slipped in between the check above and the reset.
             if (rerunRequested.get() && running.compareAndSet(false, true)) continue
             return
         }
@@ -134,7 +128,7 @@ object WeatherRepository {
         refresh(context, prefs, force = true, callback = callback)
     }
 
-    private fun fetch(context: Context, prefs: NothingPrefs): Weather? {
+    private fun fetch(prefs: NothingPrefs): Weather? {
         val manual = prefs.weatherCity.trim()
         var lat: Double
         var lon: Double
@@ -159,8 +153,9 @@ object WeatherRepository {
         }
 
         val url = "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
-            "&current=temperature_2m,weather_code,is_day" +
-            "&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1"
+            "&current=temperature_2m,weather_code,is_day,wind_speed_10m" +
+            "&hourly=temperature_2m,precipitation_probability" +
+            "&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=2"
         val json = getJson(url) ?: return null
         val current = json.optJSONObject("current") ?: return null
         val daily = json.optJSONObject("daily")
@@ -168,11 +163,32 @@ object WeatherRepository {
         if (temp.isNaN()) return null
         val code = current.optInt("weather_code", -1)
         val isDay = current.optInt("is_day", 1) == 1
-        // Round like the current temperature (toInt() truncates -2.7 to -2 and 21.9 to 21).
+        val wind = current.optDouble("wind_speed_10m", 0.0).takeUnless { it.isNaN() }?.roundToInt() ?: 0
         val high = (daily?.optJSONArray("temperature_2m_max")?.optDouble(0, temp) ?: temp)
             .takeUnless { it.isNaN() }?.roundToInt() ?: temp.roundToInt()
         val low = (daily?.optJSONArray("temperature_2m_min")?.optDouble(0, temp) ?: temp)
             .takeUnless { it.isNaN() }?.roundToInt() ?: temp.roundToInt()
+
+        val hourly = json.optJSONObject("hourly")
+        val hTemps = ArrayList<Int>(12)
+        val hRain = ArrayList<Int>(12)
+        if (hourly != null) {
+            val tArr = hourly.optJSONArray("temperature_2m")
+            val rArr = hourly.optJSONArray("precipitation_probability")
+            val startIdx = Calendar.getInstance().get(Calendar.HOUR_OF_DAY).coerceIn(0, 23)
+            if (tArr != null) {
+                for (i in 0 until 12) {
+                    val idx = startIdx + i
+                    if (idx < tArr.length()) {
+                        val tv = tArr.optDouble(idx, Double.NaN)
+                        if (!tv.isNaN()) hTemps += tv.roundToInt()
+                    }
+                    if (rArr != null && idx < rArr.length()) {
+                        hRain += rArr.optInt(idx, 0).coerceIn(0, 100)
+                    }
+                }
+            }
+        }
 
         val displayCity = city.trim().ifEmpty { "LOCAL" }
         return Weather(
@@ -182,7 +198,10 @@ object WeatherRepository {
             high = high,
             low = low,
             isDay = isDay,
-            updatedAt = System.currentTimeMillis()
+            updatedAt = System.currentTimeMillis(),
+            hourlyTemps = hTemps,
+            hourlyRainProbs = hRain,
+            windKmh = wind
         )
     }
 
@@ -198,20 +217,13 @@ object WeatherRepository {
         return lat to lon
     }
 
-    /**
-     * Approximate location from the public IP. ipapi.co's free tier rate-limits (HTTP 429)
-     * busy networks such as carrier NAT, which used to drop straight to the London fallback,
-     * so a second keyless HTTPS provider with the same field names is tried first.
-     */
     private fun ipLocation(): Triple<Double, Double, String>? =
         IP_LOCATION_URLS.firstNotNullOfOrNull { url -> getJson(url)?.let(::parseIpLocation) }
 
     private fun parseIpLocation(json: JSONObject): Triple<Double, Double, String>? {
-        // ipwho.is reports failures as HTTP 200 with "success": false.
         if (!json.optBoolean("success", true)) return null
         val lat = json.optDouble("latitude", Double.NaN)
         val lon = json.optDouble("longitude", Double.NaN)
-        // optString() turns JSON null into the literal "null", so treat null fields as absent.
         fun field(name: String): String =
             if (json.isNull(name)) "" else json.optString(name, "").trim()
         val city = field("city").ifBlank { field("region") }.ifBlank { "LOCAL" }
@@ -232,7 +244,7 @@ object WeatherRepository {
             if (connection.responseCode !in 200..299) return null
             val body = BufferedReader(InputStreamReader(connection.inputStream, Charsets.UTF_8)).use { it.readText() }
             JSONObject(body)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         } finally {
             try {
@@ -265,6 +277,9 @@ object WeatherRepository {
         put("low", w.low)
         put("day", w.isDay)
         put("at", w.updatedAt)
+        put("wind", w.windKmh)
+        put("hTemps", JSONArray(w.hourlyTemps))
+        put("hRain", JSONArray(w.hourlyRainProbs))
     }.toString()
 
     private fun parse(raw: String?): Weather? {
@@ -272,6 +287,12 @@ object WeatherRepository {
         return try {
             val o = JSONObject(raw)
             if (!o.has("temp")) return null
+            val hTemps = o.optJSONArray("hTemps")?.let { arr ->
+                (0 until arr.length()).map { arr.optInt(it) }
+            }.orEmpty()
+            val hRain = o.optJSONArray("hRain")?.let { arr ->
+                (0 until arr.length()).map { arr.optInt(it) }
+            }.orEmpty()
             Weather(
                 city = o.optString("city", "").ifBlank { "LOCAL" },
                 temperature = o.optInt("temp"),
@@ -279,9 +300,12 @@ object WeatherRepository {
                 high = o.optInt("high"),
                 low = o.optInt("low"),
                 isDay = o.optBoolean("day", true),
-                updatedAt = o.optLong("at", 0L)
+                updatedAt = o.optLong("at", 0L),
+                hourlyTemps = hTemps,
+                hourlyRainProbs = hRain,
+                windKmh = o.optInt("wind", 0)
             )
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
     }

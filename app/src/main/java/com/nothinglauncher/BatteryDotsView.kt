@@ -61,8 +61,10 @@ class BatteryDotsView @JvmOverloads constructor(
     var charging: Boolean = false
         set(value) {
             if (value == field) return
-            field = value; updateDescription(); updatePulse(); invalidate()
+            field = value; updateDescription(); updatePulse(); onStateChanged?.invoke(level, value); invalidate()
         }
+
+    var onStateChanged: ((level: Int, charging: Boolean) -> Unit)? = null
 
     var accentColor: Int
         get() = accentPaint.color
