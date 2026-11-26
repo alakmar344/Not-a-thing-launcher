@@ -10,6 +10,7 @@ import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.SystemClock
 import android.view.GestureDetector
+import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
@@ -35,6 +36,7 @@ import com.android.launcher3.widget.PendingAddWidgetInfo
 import com.android.launcher3.widget.custom.CustomWidgetManager
 import com.android.systemui.plugins.shared.LauncherOverlayManager
 import com.nothinglauncher.AccentTheme
+import com.nothinglauncher.DeskHudActivity
 import com.nothinglauncher.DotGridDrawable
 import com.nothinglauncher.DotMatrixClockView
 import com.nothinglauncher.Intents
@@ -53,6 +55,8 @@ import com.nothinglauncher.perf.VisualTier
 import com.nothinglauncher.space.EssentialSpaceOverlay
 import com.nothinglauncher.widgets.BatteryCalendarWidget
 import com.nothinglauncher.widgets.ClockWidget
+import com.nothinglauncher.widgets.DeskBriefingWidget
+import com.nothinglauncher.widgets.WeatherWidget
 import java.util.stream.Stream
 import kotlin.math.abs
 
@@ -93,6 +97,18 @@ class NothingLauncher : Launcher() {
 
     fun openEssentialSpace() {
         essentialOverlay?.openOverlay()
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if ((keyCode == KeyEvent.KEYCODE_SLASH || keyCode == KeyEvent.KEYCODE_SEARCH) &&
+            isInState(LauncherState.NORMAL) &&
+            AbstractFloatingView.getTopOpenView(this) == null &&
+            essentialOverlay?.isShown != true
+        ) {
+            executeGestureAction(NothingPrefs.GestureAction.SEARCH)
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onStateBack() {
@@ -392,6 +408,7 @@ class NothingLauncher : Launcher() {
                 appsView?.post { appsView?.searchUiManager?.editText?.requestFocus() }
             }
             NothingPrefs.GestureAction.ESSENTIAL_SPACE -> openEssentialSpace()
+            NothingPrefs.GestureAction.DESK_HUD -> DeskHudActivity.launch(this)
             NothingPrefs.GestureAction.CUSTOMIZE -> CustomizeSheet.show(this)
             NothingPrefs.GestureAction.VAULT -> HiddenVaultSheet.openWithAuth(this) { refreshHiddenApps() }
             NothingPrefs.GestureAction.LOCK_SCREEN -> {
@@ -591,18 +608,29 @@ class NothingLauncher : Launcher() {
         if (provider(ClockWidget::class.java) == null) return false
         val cols = deviceProfile.inv.numColumns
         val rows = deviceProfile.inv.numRows
-        var row = 0
-        fun place(widget: Class<*>, spanX: Int, spanY: Int) {
-            if (row + spanY > rows || !screen.isRegionVacant(0, row, spanX, spanY)) return
+        fun placeAt(widget: Class<*>, col: Int, row: Int, spanX: Int, spanY: Int) {
+            if (col + spanX > cols || row + spanY > rows || !screen.isRegionVacant(col, row, spanX, spanY)) return
             val info = provider(widget) ?: return
             addPendingItem(
                 PendingAddWidgetInfo(info, LauncherSettings.Favorites.CONTAINER_DESKTOP),
-                LauncherSettings.Favorites.CONTAINER_DESKTOP, 0, intArrayOf(0, row), spanX, spanY
+                LauncherSettings.Favorites.CONTAINER_DESKTOP, 0, intArrayOf(col, row), spanX, spanY
             )
-            row += spanY
         }
-        place(ClockWidget::class.java, cols, 2)
-        place(BatteryCalendarWidget::class.java, minOf(cols, 4), 2)
+        if (cols >= 6 && rows >= 4) {
+            // Big-screen Telemetry Studio Bento Grid: balanced 4x2 + 2x2 across all 6 columns.
+            placeAt(ClockWidget::class.java, 0, 0, 4, 2)
+            placeAt(WeatherWidget::class.java, 4, 0, cols - 4, 2)
+            placeAt(BatteryCalendarWidget::class.java, 0, 2, 4, 2)
+            placeAt(DeskBriefingWidget::class.java, 4, 2, cols - 4, 2)
+        } else {
+            var row = 0
+            fun place(widget: Class<*>, spanX: Int, spanY: Int) {
+                placeAt(widget, 0, row, spanX, spanY)
+                row += spanY
+            }
+            place(ClockWidget::class.java, cols, 2)
+            place(BatteryCalendarWidget::class.java, minOf(cols, 4), 2)
+        }
         // Adding goes through the drag & drop path, which opens a resize frame on the last tile.
         AbstractFloatingView.closeOpenViews(this, false, AbstractFloatingView.TYPE_WIDGET_RESIZE_FRAME)
         return true

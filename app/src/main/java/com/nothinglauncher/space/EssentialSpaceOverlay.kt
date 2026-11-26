@@ -38,12 +38,18 @@ import com.nothinglauncher.DotMatrixView
 import com.nothinglauncher.FocusTimerRepository
 import com.nothinglauncher.HardwareControlRepository
 import com.nothinglauncher.Intents
+import com.nothinglauncher.MediaArtDotsView
+import com.nothinglauncher.MediaDotsView
+import com.nothinglauncher.MediaSessionRepository
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.Sheets
 import com.nothinglauncher.Tactile
 import com.nothinglauncher.VoiceMemoRepository
 import com.nothinglauncher.WeatherRepository
+import com.nothinglauncher.perf.VisualTier
+import com.nothinglauncher.widgets.HabitMatrixWidget
+import com.nothinglauncher.widgets.HabitPegboardView
 import java.util.Calendar
 import java.util.Locale
 import kotlin.math.abs
@@ -84,6 +90,8 @@ class EssentialSpaceOverlay(
     private val memoListener: () -> Unit = { bindMemoRow() }
     private val timerListener: () -> Unit = { refreshDynamicCounters() }
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { bindBriefing() }
+    private val mediaListener: (MediaSessionRepository.State) -> Unit = { bindMedia(it) }
+    private var listenersRegistered = false
 
     val isShown: Boolean get() = progress > 0.01f
 
@@ -96,6 +104,7 @@ class EssentialSpaceOverlay(
     override fun onDetachedFromWindow() {
         attached = false
         stopTickers()
+        unregisterListeners()
         settleAnimator?.cancel()
         launcher.workspace?.setLauncherOverlay(null)
         rootView?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
@@ -159,10 +168,30 @@ class EssentialSpaceOverlay(
     override fun onActivityDestroyed() {
         stopTickers()
         VoiceMemoRepository.releaseAll()
+        unregisterListeners()
+    }
+
+    private fun registerListeners() {
+        if (listenersRegistered) return
+        listenersRegistered = true
+        HardwareControlRepository.addTorchListener(launcher, torchListener)
+        VoiceMemoRepository.addListener(memoListener)
+        FocusTimerRepository.addListener(timerListener)
+        WeatherRepository.addListener(NothingPrefs.get(launcher), weatherListener)
+        if (rootView?.findViewById<View?>(R.id.spaceMediaCard) != null) {
+            MediaSessionRepository.start(launcher.applicationContext)
+            MediaSessionRepository.addListener(mediaListener)
+        }
+    }
+
+    private fun unregisterListeners() {
+        if (!listenersRegistered) return
+        listenersRegistered = false
         HardwareControlRepository.removeTorchListener(torchListener)
         VoiceMemoRepository.removeListener(memoListener)
         FocusTimerRepository.removeListener(timerListener)
         WeatherRepository.removeListener(weatherListener)
+        MediaSessionRepository.removeListener(mediaListener)
     }
 
     private fun shouldSettleOpen(p: Float, velocity: Float): Boolean {
@@ -205,6 +234,7 @@ class EssentialSpaceOverlay(
         setupDismissSwipe(view)
         setupInsets(view)
         setupButtons(view)
+        com.nothinglauncher.BigScreenUi.applyMaxWidth(view.findViewById(R.id.essentialColumn), 980)
         dragLayer.addView(
             view,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
@@ -286,6 +316,14 @@ class EssentialSpaceOverlay(
         view.findViewById<View>(R.id.essentialCloseBtn).setOnClickListener {
             Tactile.tick(it)
             hideOverlay(260)
+        }
+        view.findViewById<View>(R.id.essentialDeskBtn)?.apply {
+            Tactile.press(this)
+            setOnClickListener {
+                Tactile.confirm(it)
+                hideOverlay(0)
+                com.nothinglauncher.DeskHudActivity.launch(launcher)
+            }
         }
         val prefs = NothingPrefs.get(launcher)
 
@@ -373,6 +411,43 @@ class EssentialSpaceOverlay(
             FocusTimerRepository.toggleStartPause(launcher)
             refreshDynamicCounters()
         }
+
+        // Optional Big-Screen Bento Cards (Habit Matrix Check-in + Media Deck)
+        val habitAction = View.OnClickListener {
+            Tactile.confirm(it)
+            HabitMatrixWidget.toggleToday(prefs)
+            bindHabit()
+        }
+        view.findViewById<View?>(R.id.spaceHabitToggle)?.apply {
+            Tactile.press(this)
+            setOnClickListener(habitAction)
+        }
+        view.findViewById<View?>(R.id.spaceHabitGrid)?.setOnClickListener(habitAction)
+        view.findViewById<View?>(R.id.spaceHabitTitle)?.setOnClickListener {
+            Tactile.tick(it)
+            Sheets.showTextInput(
+                launcher,
+                launcher.getString(R.string.habit_rename_title),
+                launcher.getString(R.string.habit_rename_hint),
+                prefs.habitTitle,
+                maxLength = 20
+            ) { name ->
+                if (name.isNotBlank()) prefs.habitTitle = name.uppercase(Locale.getDefault())
+                bindHabit()
+            }
+        }
+        view.findViewById<View?>(R.id.spaceMediaPrev)?.setOnClickListener {
+            Tactile.tick(it)
+            MediaSessionRepository.previous()
+        }
+        view.findViewById<View?>(R.id.spaceMediaPlayPause)?.setOnClickListener {
+            Tactile.confirm(it)
+            MediaSessionRepository.playPause()
+        }
+        view.findViewById<View?>(R.id.spaceMediaNext)?.setOnClickListener {
+            Tactile.tick(it)
+            MediaSessionRepository.next()
+        }
     }
 
     private fun applyProgress(newProgress: Float) {
@@ -406,10 +481,7 @@ class EssentialSpaceOverlay(
         }
         launcher.hotseat?.alpha = 1f - 0.85f * clamped
         if (!wasOpen && clamped > 0f) {
-            HardwareControlRepository.addTorchListener(launcher, torchListener)
-            VoiceMemoRepository.addListener(memoListener)
-            FocusTimerRepository.addListener(timerListener)
-            WeatherRepository.addListener(NothingPrefs.get(launcher), weatherListener)
+            registerListeners()
         }
     }
 
@@ -449,6 +521,8 @@ class EssentialSpaceOverlay(
         bindMemoRow()
         refreshDynamicCounters()
         bindVitals()
+        bindHabit()
+        bindMedia(MediaSessionRepository.state)
     }
 
     private fun bindBriefing() {
@@ -568,5 +642,72 @@ class EssentialSpaceOverlay(
             "   •   SCREEN ${h}H ${m}M"
         } ?: ""
         view.findViewById<TextView>(R.id.spaceVitalsText).text = "$storage   •   $ram$screen"
+    }
+
+    private fun bindHabit() {
+        val view = rootView ?: return
+        val grid = view.findViewById<HabitPegboardView?>(R.id.spaceHabitGrid) ?: return
+        val prefs = NothingPrefs.get(launcher)
+        val accent = AccentTheme.accentColor(launcher)
+        view.findViewById<View?>(R.id.spaceHabitDot)?.let { AccentTheme.tintDot(it, launcher) }
+        grid.accentColor = accent
+        val dates = prefs.habitDates
+        val streak = HabitMatrixWidget.computeStreak(dates)
+        val doneToday = HabitMatrixWidget.isDoneToday(prefs)
+        view.findViewById<TextView?>(R.id.spaceHabitTitle)?.text =
+            prefs.habitTitle.uppercase(Locale.getDefault())
+        view.findViewById<TextView?>(R.id.spaceHabitStreak)?.text = "${streak}D"
+        view.findViewById<TextView?>(R.id.spaceHabitToggle)?.apply {
+            setText(if (doneToday) R.string.habit_done else R.string.habit_log)
+            setBackgroundResource(if (doneToday) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
+            setTextColor(
+                launcher.getColor(if (doneToday) R.color.pill_active_text else R.color.text_primary)
+            )
+        }
+        grid.completedDates = dates
+    }
+
+    private fun bindMedia(state: MediaSessionRepository.State) {
+        val view = rootView ?: return
+        if (view.findViewById<View?>(R.id.spaceMediaCard) == null) return
+        val canControl = state.permissionGranted && state.hasSession
+        val accent = AccentTheme.accentColor(launcher)
+        view.findViewById<View?>(R.id.spaceMediaDot)?.let { AccentTheme.tintDot(it, launcher) }
+
+        view.findViewById<MediaDotsView?>(R.id.spaceMediaBars)?.apply {
+            accentColor = accent
+            isPlaying = canControl && state.isPlaying
+        }
+        val art = view.findViewById<MediaArtDotsView?>(R.id.spaceMediaArt)
+        val showArt = VisualTier.current(launcher) != VisualTier.Tier.LITE &&
+            canControl && state.artHalftone != null
+        art?.apply {
+            accentColor = accent
+            isVisible = showArt
+            if (showArt) matrix = state.artHalftone
+        }
+        view.findViewById<TextView?>(R.id.spaceMediaRoute)?.apply {
+            text = if (canControl) state.outputRoute else ""
+            isVisible = canControl && state.outputRoute.isNotBlank()
+        }
+        view.findViewById<TextView?>(R.id.spaceMediaTitle)?.text = when {
+            !state.permissionGranted -> launcher.getString(R.string.media_permission_needed)
+            !state.hasSession -> launcher.getString(R.string.media_no_session)
+            state.title.isBlank() -> launcher.getString(R.string.media_connect_hint)
+            else -> state.title
+        }
+        view.findViewById<TextView?>(R.id.spaceMediaArtist)?.apply {
+            text = if (canControl) state.artist.uppercase(Locale.getDefault()) else ""
+            isVisible = canControl && state.artist.isNotBlank()
+        }
+
+        val playPause = view.findViewById<ImageView?>(R.id.spaceMediaPlayPause)
+        playPause?.setImageResource(if (state.isPlaying) R.drawable.ic_pause else R.drawable.ic_play)
+        val prev = view.findViewById<View?>(R.id.spaceMediaPrev)
+        val next = view.findViewById<View?>(R.id.spaceMediaNext)
+        listOfNotNull(playPause, prev, next).forEach {
+            it.isEnabled = canControl
+            it.alpha = if (canControl) 1f else 0.4f
+        }
     }
 }

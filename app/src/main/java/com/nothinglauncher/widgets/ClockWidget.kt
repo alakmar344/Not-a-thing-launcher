@@ -55,11 +55,22 @@ class ClockWidget(context: Context) : NothingWidget(context) {
 
         fun refreshAccentAndFace() {
             val accent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(root, ctx, "clock", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "clock", defaultLight = false)
             AccentTheme.tintDot(liveDot, ctx)
+            clockLabel.setTextColor(sc.textSecondary)
+            meridiem.setTextColor(sc.textPrimary)
+            date.setTextColor(sc.textSecondary)
+            clock.dotColor = sc.onDot
+            clock.offColor = sc.offDot
             clock.accentColor = accent
             analog.accentColor = accent
+            analog.applySurfaceColors(sc)
+            word.dotColor = sc.onDot
+            word.offColor = sc.offDot
             word.accentColor = accent
             ticker.accentColor = accent
+            ticker.applySurfaceColors(sc)
 
             val mode = prefs.clockFaceMode
             clock.isVisible = mode == 0 || mode == 3
@@ -94,7 +105,7 @@ class ClockWidget(context: Context) : NothingWidget(context) {
                     clockLabel.setText(R.string.clock_mode_word)
                     meridiem.text = ctx.getString(R.string.clock_mode_word_short)
                     val (l1, l2) = WordClockFormatter.format(cal)
-                    word.text = "$l1 $l2"
+                    word.text = "$l1\n$l2"
                     date.text = DateFormat.format(
                         DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
                     )

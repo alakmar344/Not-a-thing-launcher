@@ -22,7 +22,45 @@ object AccentTheme {
         MONO(0xFF9C9CA1.toInt(), R.string.accent_mono)
     }
 
-    enum class WidgetSurface { DEFAULT, DARK, PAPER, GLASS }
+    enum class WidgetSurface(val labelRes: Int) {
+        DEFAULT(R.string.nt_surface_default),
+        DARK(R.string.nt_surface_dark),
+        PAPER(R.string.nt_surface_paper),
+        GLASS(R.string.nt_surface_glass)
+    }
+
+    data class SurfaceColors(
+        val onDot: Int,
+        val offDot: Int,
+        val textPrimary: Int,
+        val textSecondary: Int
+    )
+
+    fun surfaceColors(context: Context, widgetKey: String, defaultLight: Boolean = false): SurfaceColors {
+        val surface = NothingPrefs.get(context).widgetSurface(widgetKey)
+        val usePaper = surface == WidgetSurface.PAPER || (surface == WidgetSurface.DEFAULT && defaultLight)
+        val useDark = surface == WidgetSurface.DARK
+        return when {
+            usePaper -> SurfaceColors(
+                onDot = ContextCompat.getColor(context, R.color.ink),
+                offDot = ContextCompat.getColor(context, R.color.paper_dot_off),
+                textPrimary = ContextCompat.getColor(context, R.color.ink),
+                textSecondary = ContextCompat.getColor(context, R.color.ink_secondary)
+            )
+            useDark -> SurfaceColors(
+                onDot = 0xFFF4F4F2.toInt(),
+                offDot = 0xFF1D1D21.toInt(),
+                textPrimary = 0xFFF4F4F2.toInt(),
+                textSecondary = 0xFF9C9CA1.toInt()
+            )
+            else -> SurfaceColors(
+                onDot = ContextCompat.getColor(context, R.color.dot_on),
+                offDot = ContextCompat.getColor(context, R.color.dot_off),
+                textPrimary = ContextCompat.getColor(context, R.color.text_primary),
+                textSecondary = ContextCompat.getColor(context, R.color.text_secondary)
+            )
+        }
+    }
 
     fun accentColor(context: Context): Int {
         val prefs = NothingPrefs.get(context)
@@ -53,7 +91,13 @@ object AccentTheme {
             WidgetSurface.DEFAULT -> view.setBackgroundResource(
                 if (defaultLight) R.drawable.bg_tile_light else R.drawable.bg_tile_dark
             )
-            WidgetSurface.DARK -> view.setBackgroundResource(R.drawable.bg_tile_dark)
+            WidgetSurface.DARK -> view.background = GradientDrawable(
+                GradientDrawable.Orientation.TOP_BOTTOM,
+                intArrayOf(0xFF18181B.toInt(), 0xFF0C0C0E.toInt())
+            ).apply {
+                cornerRadius = radius
+                setStroke((1 * density).toInt().coerceAtLeast(1), 0xFF232327.toInt())
+            }
             WidgetSurface.PAPER -> view.setBackgroundResource(R.drawable.bg_tile_light)
             WidgetSurface.GLASS -> {
                 val isDark = (context.resources.configuration.uiMode and
@@ -62,8 +106,8 @@ object AccentTheme {
                 view.background = GradientDrawable(
                     GradientDrawable.Orientation.TOP_BOTTOM,
                     intArrayOf(
-                        if (isDark) 0xCC1B1B1F.toInt() else 0xCCFDFDFB.toInt(),
-                        if (isDark) 0xAA0C0C0E.toInt() else 0xAAF0F0EC.toInt()
+                        if (isDark) 0xB8202026.toInt() else 0xCCFDFDFB.toInt(),
+                        if (isDark) 0x98101014.toInt() else 0xAAEBEBE6.toInt()
                     )
                 ).apply {
                     cornerRadius = radius

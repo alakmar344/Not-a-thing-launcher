@@ -53,6 +53,14 @@ class WeatherDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        titlePaint.color = sc.textPrimary
+        textPaint.color = sc.textSecondary
+        invalidate()
+    }
+
     private val moonPath = Path()
     private val biteRect = Path()
     private var moonKeyX = Float.NaN
@@ -85,6 +93,12 @@ class WeatherDotsView @JvmOverloads constructor(
     var hourlyTemps: List<Int> = emptyList()
         set(value) { field = value; invalidate() }
 
+    var hourlyRainProbs: List<Int> = emptyList()
+        set(value) { field = value; invalidate() }
+
+    var windKmh: Int = 0
+        set(value) { field = value; invalidate() }
+
     init {
         conditionUpper = condition.uppercase()
         conditionKey = condition.uppercase(Locale.US)
@@ -98,15 +112,23 @@ class WeatherDotsView @JvmOverloads constructor(
             condition = context.getString(R.string.weather_unavailable)
             highLow = context.getString(R.string.weather_tap_refresh)
             hourlyTemps = emptyList()
+            hourlyRainProbs = emptyList()
+            windKmh = 0
             contentDescription = condition
             return
         }
         city = weather.city
         temperature = "${weather.temperature}\u00B0"
         condition = weather.condition
-        highLow = "H:${weather.high}\u00B0  L:${weather.low}\u00B0"
+        windKmh = weather.windKmh
+        highLow = if (weather.windKmh > 0) {
+            "H:${weather.high}\u00B0  L:${weather.low}\u00B0  ·  ${weather.windKmh}KM/H"
+        } else {
+            "H:${weather.high}\u00B0  L:${weather.low}\u00B0"
+        }
         isDay = weather.isDay
         hourlyTemps = weather.hourlyTemps
+        hourlyRainProbs = weather.hourlyRainProbs
         contentDescription = "${weather.city}, ${weather.temperature}\u00B0, ${weather.condition}"
     }
 
@@ -187,8 +209,11 @@ class WeatherDotsView @JvmOverloads constructor(
             val cx = left + idx * stepX
             val norm = (t - minT).toFloat() / span.toFloat()
             val cy = bottom - norm * (bottom - top)
-            // Subtle baseline dot + live curve dot (accent at peak / current)
-            canvas.drawCircle(cx, bottom + 3f * density, 1f * density, offPaint)
+            // Subtle baseline dot + optional rain probability indicator + live curve dot
+            val rainPct = hourlyRainProbs.getOrNull(idx) ?: 0
+            val basePaint = if (rainPct >= 25) accentPaint else offPaint
+            val baseR = if (rainPct >= 50) 1.5f * density else if (rainPct >= 25) 1.2f * density else 1f * density
+            canvas.drawCircle(cx, bottom + 3f * density, baseR, basePaint)
             val paint = if (idx == 0 || t == maxT) accentPaint else onPaint
             canvas.drawCircle(cx, cy, if (idx == 0) dotR * 1.3f else dotR, paint)
         }

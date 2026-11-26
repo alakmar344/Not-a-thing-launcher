@@ -25,17 +25,18 @@ class WeatherWidget(context: Context) : NothingWidget(context) {
         val prefs = NothingPrefs.get(ctx)
         val root = LayoutInflater.from(ctx).inflate(R.layout.widget_weather, host, false)
         val weatherView = root.findViewById<WeatherDotsView>(R.id.weatherView)
-        weatherView.accentColor = AccentTheme.accentColor(ctx)
+        fun bindWeather(w: WeatherRepository.Weather?) {
+            AccentTheme.applyWidgetSurface(root, ctx, "weather", defaultLight = false)
+            weatherView.accentColor = AccentTheme.accentColor(ctx)
+            weatherView.applySurfaceColors(AccentTheme.surfaceColors(ctx, "weather", defaultLight = false))
+            weatherView.bind(w)
+        }
         val listener: (WeatherRepository.Weather?) -> Unit = { weather ->
-            if (root.isAttachedToWindow) {
-                weatherView.accentColor = AccentTheme.accentColor(ctx)
-                weatherView.bind(weather)
-            }
+            if (root.isAttachedToWindow) bindWeather(weather)
         }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
-                weatherView.accentColor = AccentTheme.accentColor(ctx)
-                weatherView.bind(WeatherRepository.addListener(prefs, listener))
+                bindWeather(WeatherRepository.addListener(prefs, listener))
                 WeatherRepository.refresh(ctx, prefs) { }
             }
 
@@ -43,7 +44,7 @@ class WeatherWidget(context: Context) : NothingWidget(context) {
                 WeatherRepository.removeListener(listener)
             }
         })
-        weatherView.bind(WeatherRepository.cached(prefs))
+        bindWeather(WeatherRepository.cached(prefs))
         root.setOnClickListener {
             com.nothinglauncher.Tactile.tick(it)
             WeatherRepository.refresh(ctx, prefs, force = true) { }

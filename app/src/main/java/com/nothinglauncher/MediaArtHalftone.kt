@@ -65,6 +65,12 @@ class MediaArtDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        invalidate()
+    }
+
     var matrix: ByteArray? = null
         set(value) {
             if (field?.contentEquals(value ?: byteArrayOf()) == true && value != null) return

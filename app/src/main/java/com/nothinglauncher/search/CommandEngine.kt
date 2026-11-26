@@ -6,23 +6,29 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.nothinglauncher.DeskHudActivity
+import com.nothinglauncher.FocusTimerRepository
 import com.nothinglauncher.HardwareControlRepository
 import com.nothinglauncher.Intents
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
+import com.nothinglauncher.SetupBackupManager
 import com.nothinglauncher.settings.NothingSettingsActivity
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
+import java.util.UUID
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.random.Random
 
 /**
  * 100% offline Command Bar engine + fuzzy/acronym app matcher.
@@ -78,6 +84,26 @@ object CommandEngine {
             ) { ctx -> copyToClipboard(ctx, timeText) }
         }
 
+        evalColor(q)?.let { (title, sub, copy) ->
+            out += CommandResult(
+                kind = Kind.ANSWER,
+                badge = "HEX",
+                title = title,
+                subtitle = sub,
+                copyValue = copy
+            ) { ctx -> copyToClipboard(ctx, copy) }
+        }
+
+        evalUtility(q)?.let { (badge, title, sub, copy) ->
+            out += CommandResult(
+                kind = Kind.ANSWER,
+                badge = badge,
+                title = title,
+                subtitle = sub,
+                copyValue = copy
+            ) { ctx -> copyToClipboard(ctx, copy) }
+        }
+
         evalQuickAction(context, q)?.let { out += it }
         evalContacts(context, q, out)
 
@@ -105,7 +131,85 @@ object CommandEngine {
 
     private fun evalQuickAction(context: Context, q: String): CommandResult? {
         val low = q.lowercase(Locale.US)
+        val timerMatch = TIMER_CMD_RE.matchEntire(low)
+        if (timerMatch != null) {
+            val mins = timerMatch.groupValues[1].toIntOrNull()?.coerceIn(1, 180) ?: 25
+            return CommandResult(
+                Kind.ACTION, "TIMER",
+                "Start ${mins}m Focus Timer",
+                "Syncs across Home widget & Essential Space"
+            ) { ctx ->
+                val p = NothingPrefs.get(ctx)
+                p.timerStopwatchMode = false
+                p.timerDurationMs = mins * 60_000L
+                p.timerRemainingMs = p.timerDurationMs
+                p.timerRunning = false
+                FocusTimerRepository.toggleStartPause(ctx)
+                Toast.makeText(ctx, "${mins}m Focus Timer started", Toast.LENGTH_SHORT).show()
+            }
+        }
+        if (low.startsWith("note ") && q.length > 5) {
+            val noteBody = q.substring(5).trim()
+            if (noteBody.isNotEmpty()) {
+                return CommandResult(
+                    Kind.ACTION, "NOTE",
+                    "Save to Essential Note",
+                    noteBody
+                ) { ctx ->
+                    NothingPrefs.get(ctx).essentialNote = noteBody
+                    Toast.makeText(ctx, "Saved to Essential Note", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        if (low.startsWith("preset ")) {
+            val target = low.removePrefix("preset ").trim()
+            val preset = when {
+                target.startsWith("tele") -> SetupBackupManager.Preset.TELEMETRY
+                target.startsWith("mono") -> SetupBackupManager.Preset.MONOLITH
+                target.startsWith("comm") -> SetupBackupManager.Preset.COMMAND
+                target.startsWith("stud") -> SetupBackupManager.Preset.STUDIO
+                else -> null
+            }
+            if (preset != null) {
+                return CommandResult(
+                    Kind.ACTION, "PRESET",
+                    "Apply ${context.getString(preset.titleRes)}",
+                    context.getString(preset.subtitleRes)
+                ) { ctx ->
+                    SetupBackupManager.applyPreset(ctx, preset)
+                    Toast.makeText(ctx, "${ctx.getString(preset.titleRes)} applied", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
         return when {
+            low == "desk" || low == "standby" || low == "hud" || low == "desk hud" -> CommandResult(
+                Kind.ACTION, "HUD",
+                "Open Glyph Desk HUD",
+                "Full-screen StandBy clock, weather & focus cockpit"
+            ) { DeskHudActivity.launch(it) }
+            low == "stopwatch" || low == "sw" -> CommandResult(
+                Kind.ACTION, "TIMER",
+                "Start Stopwatch",
+                "Counts up in Focus Timer & Essential Space"
+            ) { ctx ->
+                val p = NothingPrefs.get(ctx)
+                p.timerStopwatchMode = true
+                FocusTimerRepository.reset(ctx)
+                FocusTimerRepository.toggleStartPause(ctx)
+                Toast.makeText(ctx, "Stopwatch started", Toast.LENGTH_SHORT).show()
+            }
+            low == "pause timer" || low == "stop timer" -> CommandResult(
+                Kind.ACTION, "TIMER",
+                "Pause Focus Timer",
+                "Keeps remaining focus progress"
+            ) { ctx ->
+                if (NothingPrefs.get(ctx).timerRunning) FocusTimerRepository.toggleStartPause(ctx)
+            }
+            low == "reset timer" -> CommandResult(
+                Kind.ACTION, "TIMER",
+                "Reset Focus Timer",
+                "Resets countdown/stopwatch"
+            ) { FocusTimerRepository.reset(it) }
             low == "torch" || low == "flashlight" || low == "flash" -> CommandResult(
                 Kind.ACTION, "CMD",
                 if (HardwareControlRepository.torchOn) "Turn Flashlight Off" else "Turn Flashlight On",
@@ -133,6 +237,15 @@ object CommandEngine {
             low == "bt" || low == "bluetooth" -> CommandResult(
                 Kind.ACTION, "SYS", "Open Bluetooth Settings", "Connected devices"
             ) { Intents.start(it, Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }
+            low == "battery" -> CommandResult(
+                Kind.ACTION, "SYS", "Open Battery Usage", "Power & charging status"
+            ) { Intents.openBatterySettings(it) }
+            low == "storage" -> CommandResult(
+                Kind.ACTION, "SYS", "Open Storage Settings", "Free space & files"
+            ) { Intents.start(it, Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)) }
+            low == "display" -> CommandResult(
+                Kind.ACTION, "SYS", "Open Display Settings", "Brightness, dark mode & refresh rate"
+            ) { Intents.start(it, Intent(Settings.ACTION_DISPLAY_SETTINGS)) }
             low == "wallpaper" || low == "wall" -> CommandResult(
                 Kind.ACTION, "SYS", "Choose Wallpaper", "System wallpaper picker"
             ) { Intents.openWallpaperPicker(it) }
@@ -142,6 +255,57 @@ object CommandEngine {
             else -> null
         }
     }
+
+    private val TIMER_CMD_RE = Regex("""^timer\s+(\d{1,3})\s*(?:m|min|mins|minutes)?$""")
+    private val HEX_COLOR_RE = Regex("""^#([0-9a-fA-F]{6}|[0-9a-fA-F]{8})$""")
+    private val RGB_COLOR_RE = Regex("""^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$""", RegexOption.IGNORE_CASE)
+    private val DICE_RE = Regex("""^roll\s+(\d*)d(\d+)$""", RegexOption.IGNORE_CASE)
+
+    internal fun evalColor(q: String): Triple<String, String, String>? {
+        HEX_COLOR_RE.matchEntire(q.trim())?.let { m ->
+            val raw = m.groupValues[1].uppercase(Locale.US)
+            val color = Color.parseColor("#$raw")
+            val rgb = "rgb(${Color.red(color)}, ${Color.green(color)}, ${Color.blue(color)})"
+            return Triple("#$raw", "$rgb · Tap to copy", rgb)
+        }
+        RGB_COLOR_RE.matchEntire(q.trim())?.let { m ->
+            val r = m.groupValues[1].toIntOrNull()?.coerceIn(0, 255) ?: return null
+            val g = m.groupValues[2].toIntOrNull()?.coerceIn(0, 255) ?: return null
+            val b = m.groupValues[3].toIntOrNull()?.coerceIn(0, 255) ?: return null
+            val hex = String.format(Locale.US, "#%02X%02X%02X", r, g, b)
+            return Triple(hex, "RGB($r, $g, $b) · Tap to copy", hex)
+        }
+        return null
+    }
+
+    internal fun evalUtility(q: String): List4? {
+        val low = q.trim().lowercase(Locale.US)
+        if (low == "uuid") {
+            val u = UUID.randomUUID().toString()
+            return List4("DEV", u, "Random UUID · Tap to copy", u)
+        }
+        if (low == "flip" || low == "flip coin" || low == "coin") {
+            val side = if (Random.nextBoolean()) "HEADS" else "TAILS"
+            return List4("RNG", side, "Coin flip · Tap to copy", side)
+        }
+        if (low.startsWith("pass")) {
+            val len = low.removePrefix("pass").trim().toIntOrNull()?.coerceIn(8, 32) ?: 16
+            val chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"
+            val pw = (1..len).map { chars[Random.nextInt(chars.length)] }.joinToString("")
+            return List4("KEY", pw, "${len}-char password · Tap to copy", pw)
+        }
+        DICE_RE.matchEntire(low)?.let { m ->
+            val count = (m.groupValues[1].toIntOrNull() ?: 1).coerceIn(1, 10)
+            val sides = (m.groupValues[2].toIntOrNull() ?: 6).coerceIn(2, 1000)
+            val rolls = List(count) { Random.nextInt(1, sides + 1) }
+            val sum = rolls.sum()
+            val detail = if (count == 1) "d$sides · Tap to copy" else "${rolls.joinToString(" + ")} (${count}d$sides)"
+            return List4("RNG", sum.toString(), detail, sum.toString())
+        }
+        return null
+    }
+
+    internal data class List4(val badge: String, val title: String, val subtitle: String, val copy: String)
 
     private fun evalContacts(context: Context, q: String, out: MutableList<CommandResult>) {
         if (q.length < 2) return

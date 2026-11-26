@@ -35,6 +35,14 @@ class SecondsTickerView @JvmOverloads constructor(
         get() = nowPaint.color
         set(value) { nowPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        pastPaint.color = sc.textSecondary
+        futurePaint.color = sc.offDot
+        markPaint.color = sc.textPrimary
+        markPaint.alpha = 90
+        invalidate()
+    }
+
     var previewSecond: Int? = null
         set(value) { field = value; updateRunning(); invalidate() }
 

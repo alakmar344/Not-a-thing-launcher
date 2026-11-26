@@ -70,6 +70,13 @@ class BatteryDotsView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        labelPaint.color = sc.textSecondary
+        invalidate()
+    }
+
     private var pulse = 1f
     private var pulseAnimator: ValueAnimator? = null
 

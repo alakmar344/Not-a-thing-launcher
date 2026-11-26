@@ -66,17 +66,27 @@ class BatteryCalendarWidget(context: Context) : NothingWidget(context) {
 
         fun bindCalendar() {
             val freshAccent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(battery, ctx, "battery", defaultLight = true)
+            AccentTheme.applyWidgetSurface(calendar, ctx, "calendar", defaultLight = false)
+            val calColors = AccentTheme.surfaceColors(ctx, "calendar", defaultLight = false)
+            val batColors = AccentTheme.surfaceColors(ctx, "battery", defaultLight = true)
             batteryView.accentColor = freshAccent
+            batteryView.applySurfaceColors(batColors)
             AccentTheme.tintDot(calDot, ctx)
             val now = Calendar.getInstance()
-            calendar.findViewById<TextView>(R.id.calMonth).text =
-                DateFormat.format("MMM", now).toString().uppercase(Locale.getDefault())
-            calendar.findViewById<DotMatrixView>(R.id.calDay).text =
-                now.get(Calendar.DAY_OF_MONTH).toString()
-            calendar.findViewById<TextView>(R.id.calWeekday).text = DateFormat.format("EEEE", now)
+            val monthTv = calendar.findViewById<TextView>(R.id.calMonth)
+            val dayDots = calendar.findViewById<DotMatrixView>(R.id.calDay)
+            val weekdayTv = calendar.findViewById<TextView>(R.id.calWeekday)
+            monthTv.setTextColor(calColors.textPrimary)
+            dayDots.dotColor = calColors.onDot
+            weekdayTv.setTextColor(calColors.textPrimary)
+            monthTv.text = DateFormat.format("MMM", now).toString().uppercase(Locale.getDefault())
+            dayDots.text = now.get(Calendar.DAY_OF_MONTH).toString()
+            weekdayTv.text = DateFormat.format("EEEE", now)
             val alarm = (ctx.getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.nextAlarmClock
             val alarmRow = calendar.findViewById<View>(R.id.calAlarmRow)
             val alarmText = calendar.findViewById<TextView>(R.id.calAlarm)
+            alarmText.setTextColor(calColors.textSecondary)
             alarmRow.isVisible = alarm != null
             if (alarm != null) {
                 val pattern = if (DateFormat.is24HourFormat(ctx)) "EEE HH:mm" else "EEE h:mm a"
