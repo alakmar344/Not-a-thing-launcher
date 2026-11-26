@@ -11,6 +11,7 @@
         android:id="@+id/entryColumn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
         android:orientation="vertical"
         android:paddingStart="20dp"
         android:paddingTop="24dp"
@@ -24,7 +25,7 @@
             app:dmDotColor="@color/dot_on"
             app:dmDotScale="0.42"
             app:dmGravity="start"
-            app:dmText="NOT A THING 13" />
+            app:dmText="NOT A THING 14" />
 
         <TextView
             android:id="@+id/entrySubtitle"
@@ -137,6 +138,18 @@
                 android:background="@drawable/bg_pill"
                 android:gravity="center"
                 android:text="@string/nt_backup_export"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/entryDeskBtn"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_pill"
+                android:gravity="center"
+                android:text="@string/nt_desk_short"
                 android:textColor="@color/text_primary" />
         </LinearLayout>
 

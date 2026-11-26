@@ -56,6 +56,23 @@
                         android:text="@string/essential_subtitle" />
                 </LinearLayout>
 
+                <TextView
+                    android:id="@+id/essentialDeskBtn"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="34dp"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_pill_white"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="@drawable/fg_ripple_pill"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:text="@string/nt_desk_short"
+                    android:textColor="@color/pill_active_text"
+                    android:textSize="9.5sp" />
+
                 <ImageView
                     android:id="@+id/essentialCloseBtn"
                     style="@style/Widget.Nothing.IconButton"

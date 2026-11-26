@@ -2,12 +2,12 @@
 <!-- Copy of Launcher3's all_apps_content.xml (all ids kept) plus the v10 drawer header. -->
 <merge xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Not a Thing: v10 "APPS 026" header above the stock search box. -->
+    <!-- Not a Thing: v14 drawer header above the stock search box (wrap_content so recents strip is visible). -->
     <include
         android:id="@+id/nt_drawer_header"
         layout="@layout/nt_drawer_header"
         android:layout_width="match_parent"
-        android:layout_height="64dp" />
+        android:layout_height="wrap_content" />
 
 
     <include

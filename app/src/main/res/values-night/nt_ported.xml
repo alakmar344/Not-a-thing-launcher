@@ -13,6 +13,7 @@
     <color name="nothing_white">#FFFFFF</color>
     <color name="paper">#EFEFEC</color>
     <color name="paper_dot_off">#D5D5D1</color>
+    <color name="tile_light_stroke">#D8D8D2</color>
     <color name="pill_active_bg">#FFFFFF</color>
     <color name="pill_active_text">#0B0B0C</color>
     <color name="ripple_dark">#14000000</color>

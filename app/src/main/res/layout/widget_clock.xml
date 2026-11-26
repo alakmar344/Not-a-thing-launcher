@@ -2,14 +2,17 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@drawable/bg_tile_dark"
     android:clickable="true"
     android:contentDescription="@string/clock_widget"
     android:focusable="true"
     android:foreground="@drawable/fg_ripple_tile"
     android:orientation="vertical"
-    android:padding="@dimen/tile_padding">
+    android:paddingStart="@dimen/tile_padding"
+    android:paddingTop="14dp"
+    android:paddingEnd="@dimen/tile_padding"
+    android:paddingBottom="14dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -30,21 +33,24 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
             android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="@string/local_time" />
 
         <TextView
             android:id="@+id/clockMeridiem"
             style="@style/Text.Label"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:background="@drawable/fg_ripple_pill"
+            android:layout_height="22dp"
+            android:background="@drawable/bg_pill_outline"
             android:clickable="true"
             android:focusable="true"
-            android:paddingStart="6dp"
-            android:paddingTop="2dp"
-            android:paddingEnd="6dp"
-            android:paddingBottom="2dp"
+            android:foreground="@drawable/fg_ripple_pill"
+            android:gravity="center"
+            android:paddingStart="9dp"
+            android:paddingEnd="9dp"
             android:textColor="@color/text_primary"
+            android:textSize="9sp"
             android:text="@string/format_24h" />
     </LinearLayout>
 
@@ -52,8 +58,8 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:minHeight="60dp"
-        android:layout_marginTop="10dp">
+        android:minHeight="52dp"
+        android:layout_marginTop="8dp">
 
         <com.nothinglauncher.DotMatrixClockView
             android:id="@+id/clock"
@@ -80,7 +86,7 @@
             app:dmDotColor="@color/dot_on"
             app:dmDotScale="0.38"
             app:dmGlow="true"
-            app:dmGravity="start"
+            app:dmGravity="center"
             app:dmOffColor="@color/dot_off"
             app:dmPanel="true" />
     </FrameLayout>
@@ -89,16 +95,16 @@
         android:id="@+id/secondsTicker"
         android:layout_width="match_parent"
         android:layout_height="8dp"
-        android:layout_marginTop="8dp" />
+        android:layout_marginTop="6dp" />
 
     <TextView
         android:id="@+id/clockDate"
         style="@style/Text.Body"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:ellipsize="end"
         android:maxLines="1"
         android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
+        android:textSize="13sp" />
 </LinearLayout>

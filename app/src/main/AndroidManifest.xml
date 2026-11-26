@@ -119,6 +119,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name="com.nothinglauncher.DeskHudActivity"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize"
+            android:exported="false"
+            android:label="@string/nt_desk_title"
+            android:resizeableActivity="true"
+            android:theme="@style/Theme.NothingLauncher.Desk" />
+
         <service
             android:name="com.nothinglauncher.NothingLockAccessibilityService"
             android:exported="false"

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.nothinglauncher.SquareFrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@drawable/bg_tile_dark"
     android:clickable="true"
     android:contentDescription="@string/calendar_widget"
@@ -13,7 +13,10 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:padding="@dimen/tile_padding">
+        android:paddingStart="@dimen/tile_padding"
+        android:paddingTop="16dp"
+        android:paddingEnd="@dimen/tile_padding"
+        android:paddingBottom="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -40,12 +43,13 @@
             android:id="@+id/calDay"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="10dp"
             android:layout_marginBottom="8dp"
             android:layout_weight="1"
             app:dmDotColor="@color/dot_on"
-            app:dmDotScale="0.4"
-            app:dmGravity="start" />
+            app:dmDotScale="0.38"
+            app:dmGravity="start"
+            app:dmMaxPitchDp="7.5dp" />
 
         <TextView
             android:id="@+id/calWeekday"
@@ -55,17 +59,20 @@
             android:ellipsize="end"
             android:fontFamily="@font/space_grotesk_medium"
             android:maxLines="1"
-            android:textSize="16sp" />
+            android:textColor="@color/text_primary"
+            android:textSize="15sp" />
 
         <LinearLayout
             android:id="@+id/calAlarmRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="4dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:visibility="gone">
 
             <ImageView
+                android:id="@+id/calAlarmIcon"
                 android:layout_width="12dp"
                 android:layout_height="12dp"
                 android:importantForAccessibility="no"
@@ -81,7 +88,8 @@
                 android:layout_weight="1"
                 android:ellipsize="end"
                 android:maxLines="1"
+                android:textColor="@color/text_secondary"
                 android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
-</com.nothinglauncher.SquareFrameLayout>
+</FrameLayout>
