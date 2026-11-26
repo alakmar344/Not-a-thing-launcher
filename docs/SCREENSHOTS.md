@@ -1,7 +1,8 @@
 # Screenshots
 
 All screenshots below are generated deterministically by the Paparazzi (layoutlib) tests in
-[`app/src/test/java/com/nothinglauncher/ScreensTest.kt`](../app/src/test/java/com/nothinglauncher/ScreensTest.kt) —
+[`app/src/test/java/com/nothinglauncher/ScreensTest.kt`](../app/src/test/java/com/nothinglauncher/ScreensTest.kt)
+and [`app/src/test/java/com/nothinglauncher/BigScreenScreensTest.kt`](../app/src/test/java/com/nothinglauncher/BigScreenScreensTest.kt) —
 no emulator or device involved. Regenerate them with:
 
 ```bash
@@ -9,21 +10,26 @@ no emulator or device involved. Regenerate them with:
 ```
 
 Output lands in `app/src/test/snapshots/images/`, named `com.nothinglauncher_<TestClass>_<name>.png`.
-CI (`.github/workflows/build.yml`) records them on every build and uploads them as an artifact,
-and `testDebugUnitTest` fails the build if a layout changes without re-recording.
+CI (`.github/workflows/build.yml`) runs `recordPaparazziDebug` on every push/PR and uploads them
+as an artifact; `testDebugUnitTest` fails the build if a layout changes without re-recording.
 
 > **Host note:** On Windows hosts where Application Control blocks `libicuuc_stubdata.dll`,
 > `recordPaparazziDebug` / Paparazzi `Renderer.prepare` cannot load layoutlib native binaries
 > locally; non-Paparazzi unit and Robolectric tests (`VisualTierTest`, `LauncherRuntimeTest`,
-> `V13FeaturesTest`) still execute normally.
+> `V13FeaturesTest`, `V14FeaturesTest`) still execute normally.
 
 ## Dark mode (`ScreensDarkTest`)
 
 | | |
 |---|---|
 | ![Home, monochrome icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png) Home — monochrome icons | ![Home, colour icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeColor.png) Home — colour icons |
+| ![Home Lite](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeLite.png) Home — Lite tier | ![Clock power-on](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_clockPowerOn.png) Clock power-on scan |
 | ![Drawer](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_drawer.png) App drawer | ![Customize sheet](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_customizeSheet.png) Customize sheet |
 | ![Settings](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_settings.png) Settings | |
+
+New v14 Paparazzi test targets generated during CI `recordPaparazziDebug`:
+- `ScreensDarkTest` / `ScreensLightTest`: `widgetsShowcase`, `deskHudGlyph`
+- `BigScreenScreensTest` (`PIXEL_C` tablet `w600dp`+ landscape): `tabletBentoHome`, `tabletDeskHudCockpit`, `tabletEssentialSpace`
 
 ## Light mode (`ScreensLightTest`)
 

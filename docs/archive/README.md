@@ -23,3 +23,6 @@ and [`../FEATURES.md`](../FEATURES.md) instead.
 | `RELEASE_V12.md` | Release notes, v12 (Launcher3-based release prior to v13) |
 | `ARCHITECTURE.v12.md` | Architecture reference as of v12 |
 | `FEATURES.v12.md` | Feature catalog as of v12 |
+| `RELEASE_V13.md` | Release notes, v13 (Essential Space, Command Search, 11 widgets) |
+| `ARCHITECTURE.v13.md` | Architecture reference as of v13 |
+| `FEATURES.v13.md` | Feature catalog as of v13 |
