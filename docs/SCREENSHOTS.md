@@ -18,24 +18,30 @@ as an artifact; `testDebugUnitTest` fails the build if a layout changes without 
 > locally; non-Paparazzi unit and Robolectric tests (`VisualTierTest`, `LauncherRuntimeTest`,
 > `V13FeaturesTest`, `V14FeaturesTest`) still execute normally.
 
+## Big-Screen Studio (`BigScreenScreensTest`, `PIXEL_C`)
+
+| | |
+|---|---|
+| ![Tablet Bento Home](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletBentoHome.png) Tablet Bento Studio Home | ![Tablet Desk HUD Cockpit](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletDeskHudCockpit.png) Glyph Desk HUD Cockpit |
+| ![Tablet Essential Space](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletEssentialSpace.png) 2-Column Essential Space | |
+
 ## Dark mode (`ScreensDarkTest`)
 
 | | |
 |---|---|
 | ![Home, monochrome icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png) Home — monochrome icons | ![Home, colour icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeColor.png) Home — colour icons |
 | ![Home Lite](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeLite.png) Home — Lite tier | ![Clock power-on](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_clockPowerOn.png) Clock power-on scan |
+| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_widgetsShowcase.png) Weather, Media, Timer & Habit widgets | ![Desk HUD Glyph stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_deskHudGlyph.png) Glyph Desk HUD — procedural LED stage |
 | ![Drawer](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_drawer.png) App drawer | ![Customize sheet](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_customizeSheet.png) Customize sheet |
 | ![Settings](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_settings.png) Settings | |
-
-New v14 Paparazzi test targets generated during CI `recordPaparazziDebug`:
-- `ScreensDarkTest` / `ScreensLightTest`: `widgetsShowcase`, `deskHudGlyph`
-- `BigScreenScreensTest` (`PIXEL_C` tablet `w600dp`+ landscape): `tabletBentoHome`, `tabletDeskHudCockpit`, `tabletEssentialSpace`
 
 ## Light mode (`ScreensLightTest`)
 
 | | |
 |---|---|
 | ![Home, monochrome icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeMono.png) Home — monochrome icons | ![Home, colour icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeColor.png) Home — colour icons |
+| ![Home Lite](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeLite.png) Home — Lite tier | ![Clock power-on](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_clockPowerOn.png) Clock power-on scan |
+| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_widgetsShowcase.png) Weather, Media, Timer & Habit widgets | ![Desk HUD Glyph stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_deskHudGlyph.png) Glyph Desk HUD — procedural LED stage |
 | ![Drawer](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_drawer.png) App drawer | ![Customize sheet](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_customizeSheet.png) Customize sheet |
 | ![Settings](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_settings.png) Settings | |
 
