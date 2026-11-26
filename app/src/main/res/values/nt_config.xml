@@ -18,6 +18,7 @@
         <item>com.nothinglauncher.widgets.CompassStepWidget</item>
         <item>com.nothinglauncher.widgets.SmartFolderWidget</item>
         <item>com.nothinglauncher.widgets.DeskBriefingWidget</item>
+        <item>com.nothinglauncher.widgets.KineticMatrixWidget</item>
     </string-array>
 
     <!-- Every app icon and label is rendered by the Not a Thing icon factory. -->

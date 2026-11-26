@@ -69,6 +69,14 @@ FORCE = {
     "drop_target_hover_button_color_dark": "@color/nothing_red",
     "drop_target_hover_text_color_light": "@color/nothing_white",
     "drop_target_hover_text_color_dark": "@color/nothing_white",
+    # Concrete pre-API-31 fallbacks: AOSP values/ uses ?android:attr/colorAccent (TYPE_ATTRIBUTE 0x2),
+    # which throws Resources$NotFoundException inside Scrim/ArrowTipView on Android 11 / OEM ROMs.
+    "wallpaper_popup_scrim": "@color/nt_neutral1_900",
+    "work_turn_on_stroke": "@color/nt_accent1_600",
+    "arrow_tip_view_bg": "@color/nt_neutral1_900",
+    "arrow_tip_view_content": "@color/nt_neutral1_0",
+    "button_bg": "@color/nt_neutral1_900",
+    "button_text": "@color/nt_neutral1_0",
 }
 
 SYSTEM_REF = re.compile(r"@android:color/system_(accent1|accent2|accent3|neutral1|neutral2)_(\d+)")

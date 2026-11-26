@@ -451,6 +451,22 @@
                             android:text="@string/timer_label" />
 
                         <TextView
+                            android:id="@+id/deskSoundscapeBtn"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="24dp"
+                            android:layout_marginEnd="8dp"
+                            android:background="@drawable/bg_pill_outline"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingStart="8dp"
+                            android:paddingEnd="8dp"
+                            android:text="@string/nt_sound_off"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="9sp" />
+
+                        <TextView
                             android:id="@+id/deskTimerAction"
                             style="@style/Text.Label"
                             android:layout_width="wrap_content"

@@ -17,6 +17,7 @@ import com.nothinglauncher.widgets.DeskBriefingWidget
 import com.nothinglauncher.widgets.EssentialNoteWidget
 import com.nothinglauncher.widgets.FocusTimerWidget
 import com.nothinglauncher.widgets.HabitMatrixWidget
+import com.nothinglauncher.widgets.KineticMatrixWidget
 import com.nothinglauncher.widgets.MediaWidget
 import com.nothinglauncher.widgets.NothingWidget
 import com.nothinglauncher.widgets.QuickTogglesWidget
@@ -190,13 +191,14 @@ class V13FeaturesTest {
     }
 
     @Test
-    fun allTwelveCustomWidgetsPreservedAndCreateViews() {
+    fun allThirteenCustomWidgetsPreservedAndCreateViews() {
         val arr = context.resources.getStringArray(R.array.custom_widget_providers).toList()
         assertEquals(ClockWidget::class.java.name, arr[0])
         assertEquals(BatteryCalendarWidget::class.java.name, arr[1])
         assertEquals(WeatherWidget::class.java.name, arr[2])
         assertEquals(MediaWidget::class.java.name, arr[3])
-        assertEquals(12, arr.size)
+        assertEquals(13, arr.size)
+        assertEquals(KineticMatrixWidget::class.java.name, arr.last())
 
         val widgets = listOf(
             ClockWidget(context),
@@ -210,7 +212,8 @@ class V13FeaturesTest {
             VitalsWidget(context),
             CompassStepWidget(context),
             SmartFolderWidget(context),
-            DeskBriefingWidget(context)
+            DeskBriefingWidget(context),
+            KineticMatrixWidget(context)
         )
         val host = AppWidgetHostView(context)
         widgets.forEach { widget ->

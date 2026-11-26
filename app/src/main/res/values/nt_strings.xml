@@ -276,4 +276,26 @@
     <string name="nt_cat_web">WEB &amp; NAVIGATION</string>
     <string name="nt_cat_games">GAMES</string>
     <string name="nt_cat_utils">UTILITIES &amp; SYSTEM</string>
+
+    <!-- v14 Phone-First Wow Features: StandBy Screensaver, Kinetic Matrix, Digest & Soundscapes -->
+    <string name="nt_dream_label">Nothing StandBy Clock</string>
+    <string name="nt_setting_dream">StandBy screensaver</string>
+    <string name="nt_setting_dream_sub">Auto dot-matrix clock &amp; telemetry while charging</string>
+    <string name="element_kinetic">Kinetic Matrix</string>
+    <string name="element_kinetic_sub">Tilt physics LED beads, tap-to-seed Game of Life &amp; Dot Snake.</string>
+    <string name="nt_kinetic_gravity">GRAVITY</string>
+    <string name="nt_kinetic_life">LIFE</string>
+    <string name="nt_kinetic_snake">SNAKE</string>
+    <string name="nt_kinetic_hint_gravity">TILT PHONE · TOUCH TO ATTRACT</string>
+    <string name="nt_kinetic_hint_life">TAP CELLS TO SEED LIFE</string>
+    <string name="nt_kinetic_hint_snake">TAP EDGES TO STEER · SCORE %d</string>
+    <string name="nt_digest_title">ESSENTIAL DIGEST</string>
+    <string name="nt_digest_empty">INBOX CLEAR · ZERO UNREAD</string>
+    <string name="nt_digest_grant">ENABLE NOTIFICATION DIGEST</string>
+    <string name="nt_digest_grant_sub">On-device priority summary · 100% offline</string>
+    <string name="nt_digest_shielded">FOCUS SHIELD ACTIVE · %d QUIET</string>
+    <string name="nt_sound_off">NOISE: OFF</string>
+    <string name="nt_sound_brown">BROWN</string>
+    <string name="nt_sound_rain">RAIN</string>
+    <string name="nt_sound_40hz">40HZ</string>
 </resources>

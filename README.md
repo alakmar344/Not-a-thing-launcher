@@ -3,7 +3,7 @@
 [![Build and Release APK](https://github.com/alakmar344/Not-a-thing-launcher/actions/workflows/build.yml/badge.svg)](https://github.com/alakmar344/Not-a-thing-launcher/actions/workflows/build.yml)
 [![Latest Release](https://img.shields.io/github/v/release/alakmar344/Not-a-thing-launcher?label=Latest%20Release&color=d71921)](https://github.com/alakmar344/Not-a-thing-launcher/releases/latest)
 
-A Nothing OS–inspired Android home screen built for both phones and big screens (tablets, foldables, and docked displays): monochrome, dot-matrix, tactile — with hardware phosphor accents used where something needs your attention.
+A Nothing OS–inspired Android home screen built for phones first and adaptive on big screens (tablets, foldables, and docked displays): monochrome, dot-matrix, tactile — with hardware phosphor accents used where something needs your attention.
 
 Under the hood it is **stock AOSP Launcher3** (`android-14.0.0_r75`) with the Not a Thing experience layered on top, so workspaces, folders, drag & drop, widget resizing, and app shortcuts follow stock Android cleanly.
 
@@ -18,10 +18,10 @@ Under the hood it is **stock AOSP Launcher3** (`android-14.0.0_r75`) with the No
 
 ## What you get in v14
 
-- **Big-Screen Telemetry Studio (`w600dp`+):** Dual-column 2×2 home bento grid (6+ columns), 2-column Bento Essential Space with Habit Pegboard & Now Playing media deck, 2-column Bento Settings with a live **Studio 14** dot-matrix clock preview, 2×2 preset studio hub, multi-column drawer lists (`1/2/3` columns), and 2-column Command Search cards.
-- **4-Stage Glyph Desk HUD (`DeskHudActivity`):** Full-screen ambient dashboard with persistent **COCKPIT**, **CLOCK** theatre, **FOCUS** zen Pomodoro dial, and procedural audio- & timer-reactive **GLYPH** LED matrix (`GlyphMatrixCanvasView`), 1-tap Habit check-in, Keep-Awake, OLED pixel shift, and hardware keyboard shortcuts (`1–4`, `Tab`/`M`, `C`, `F`, `H`, `Space`).
-- **12 dot-matrix widgets & Per-Widget Surfaces:** All v13 widgets plus **Desk Briefing (`DeskBriefingWidget`)** with live Focus Timer toggle, hover-free per-widget finish customization (**Default**, **Obsidian Dark**, **Bone Paper**, **Frosted Glass**), **Essential Stack** Max Icon mode (1 giant icon or 2×2 stack), and 12h rain-probability + wind speed telemetry in `WeatherWidget`.
-- **Smart Drawer Categories & Keyboard Search:** Instant **GRID ↔ LIST ↔ CATS** (`AppCategorizer`) drawer switching, press `/` or Search on Home to launch Command Search (`timer`, `note`, `preset`, hex color inspect, UUID/dice/coin utilities, calculator, converters, fuzzy/acronym apps), recent apps strip, and biometric Hidden Vault.
+- **Android StandBy Screensaver (`NothingDreamService`) & 4-Stage Glyph Desk HUD (`DeskHudActivity`):** Turn any charging or docked phone into a dark OLED clock console (`NothingDreamService`) with burn-in pixel shift, weather, battery, and notification digest — or open the 4-stage Desk HUD (**COCKPIT**, **CLOCK** theatre, **FOCUS** Pomodoro studio, and procedural **GLYPH** LED matrix reactive to music, soundscapes, timer progress, and touch ripples).
+- **13 Dot-Matrix Widgets & Kinetic Matrix Playground:** All v13 elements plus **Kinetic Matrix (`KineticMatrixWidget`)** (accelerometer tilt-driven `GRAVITY` LED beads, tap-to-seed Conway's `LIFE`, and playable home-screen Dot `SNAKE`), **Desk Briefing (`DeskBriefingWidget`)**, **Essential Stack** Max Icon mode, 12h rain/wind telemetry in `WeatherWidget`, and per-widget surfaces (**Default**, **Obsidian Dark**, **Bone Paper**, **Frosted Glass**).
+- **On-Device Notification Digest & Procedural Focus Soundscapes:** Swipe right into `-1` Essential Space for an offline priority-grouped **Essential Digest** (`NotificationDigestRepository` powered by AOSP `NotificationListener`, with Focus Shield when Focus Mode is on) and zero-asset `AudioTrack` focus soundscapes (`FocusSoundEngine`: **BROWN**, **RAIN**, **40HZ**).
+- **Big-Screen Studio (`w600dp`+), Smart Drawer & Android 8–11 Compatibility Fix:** Dual-column Bento studio layouts on tablets/foldables, instant **GRID ↔ LIST ↔ CATS** drawer switching (`AppCategorizer`), `/` Command Search utilities, and concrete pre-API-31 `wallpaper_popup_scrim` theme overrides fixing Android 11 crashes (Issue `#32`).
 
 Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).
 
@@ -55,7 +55,7 @@ run non-Paparazzi unit/Robolectric tests such as `VisualTierTest`, `LauncherRunt
 | | |
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Source layout, AOSP extension points, v14 subsystems, and R8 reflection contract |
-| [`docs/FEATURES.md`](docs/FEATURES.md) | Complete guide to Big-Screen Studio, Desk HUD, 12 widgets, Essential Space, Search, and Settings |
+| [`docs/FEATURES.md`](docs/FEATURES.md) | Complete guide to StandBy Screensaver, Kinetic Matrix, Digest, Soundscapes, Desk HUD, 13 widgets, Big-Screen Studio & Settings |
 | [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | Visual golden tests (phone & tablet) and host notes |
 | [`docs/RELEASING.md`](docs/RELEASING.md) | How builds are published and installed as updates; signing |
 | [`CHANGELOG.md`](CHANGELOG.md) | Release history through v14 |
@@ -66,7 +66,7 @@ run non-Paparazzi unit/Robolectric tests such as `VisualTierTest`, `LauncherRunt
 
 | Path | What it is |
 |---|---|
-| `app/` | The Not a Thing app (`com.nothinglauncher`): theme, `-1` overlay, Desk HUD, 12 widgets, search, drawer, vault, settings |
+| `app/` | The Not a Thing app (`com.nothinglauncher`): theme, `-1` overlay, StandBy Dream, Desk HUD, 13 widgets, search, drawer, vault, settings |
 | `launcher3/`, `iconloader/`, `animationlib/` | Gradle modules compiling upstream AOSP sources (`launcher3/src` holds stand-ins and `src_ui_overrides`) |
 | `third_party/aosp/` | Unmodified AOSP Launcher3 + SystemUI libraries (`android-14.0.0_r75`) |
 | `tools/` | Generators for Launcher3's flags and theme; R8 release-reflection verification |

@@ -80,6 +80,13 @@ object Intents {
         Intent(Settings.ACTION_SETTINGS)
     )
 
+    fun openDreamSettings(context: Context, source: View? = null) = startOrToast(
+        context, source,
+        Intent(Settings.ACTION_DREAM_SETTINGS),
+        Intent(Settings.ACTION_DISPLAY_SETTINGS),
+        Intent(Settings.ACTION_SETTINGS)
+    )
+
     @Suppress("WrongConstant", "PrivateApi")
     fun expandNotifications(context: Context): Boolean = try {
         val sb = context.getSystemService("statusbar")

@@ -283,6 +283,14 @@ class NothingPrefs private constructor(context: Context) {
         get() = getInt(K_DESK_MODE, 0).coerceIn(0, 3)
         set(value) = putInt(K_DESK_MODE, value.coerceIn(0, 3))
 
+    var kineticMode: Int
+        get() = getInt(K_KINETIC_MODE, 0).coerceIn(0, 2)
+        set(value) = putInt(K_KINETIC_MODE, value.coerceIn(0, 2))
+
+    var soundscapePreset: Int
+        get() = getInt(K_SOUNDSCAPE_PRESET, 1).coerceIn(1, 3)
+        set(value) = putInt(K_SOUNDSCAPE_PRESET, value.coerceIn(1, 3))
+
     fun allWidgetSurfaces(): Map<String, String> = parseStringMap(getStr(K_WIDGET_SURFACES))
 
     fun exportToJson(): String = JSONObject().apply {
@@ -318,6 +326,8 @@ class NothingPrefs private constructor(context: Context) {
         put("deskKeepAwake", deskKeepAwake)
         put("deskBurnInShift", deskBurnInShift)
         put("deskMode", deskMode)
+        put("kineticMode", kineticMode)
+        put("soundscapePreset", soundscapePreset)
     }.toString(2)
 
     fun importFromJson(raw: String): Boolean {
@@ -388,6 +398,8 @@ class NothingPrefs private constructor(context: Context) {
         if (o.has("deskKeepAwake")) deskKeepAwake = o.optBoolean("deskKeepAwake", deskKeepAwake)
         if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)
         if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode)
+        if (o.has("kineticMode")) kineticMode = o.optInt("kineticMode", kineticMode)
+        if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset)
             true
         } catch (_: Exception) {
             false
@@ -462,6 +474,8 @@ class NothingPrefs private constructor(context: Context) {
         private const val K_FOLDER_TITLE = "v13_folder_title"
         private const val K_FOLDER_APPS = "v13_folder_apps"
         private const val K_WIDGET_SURFACES = "v13_widget_surfaces"
+        private const val K_KINETIC_MODE = "v14_kinetic_mode"
+        private const val K_SOUNDSCAPE_PRESET = "v14_soundscape_preset"
 
         @Volatile private var instance: NothingPrefs? = null
 
