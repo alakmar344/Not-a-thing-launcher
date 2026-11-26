@@ -38,6 +38,7 @@ class CompassStepWidget(context: Context) : NothingWidget(context) {
         var stepBaseline = -1
         var registered = false
 
+        lateinit var cardRoot: View
         lateinit var dot: View
         lateinit var label: TextView
         lateinit var ring: DotRingGaugeView
@@ -50,8 +51,13 @@ class CompassStepWidget(context: Context) : NothingWidget(context) {
 
         fun bind() {
             val accent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(cardRoot, ctx, "compass", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "compass", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
+            label.setTextColor(sc.textSecondary)
+            footer.setTextColor(sc.textSecondary)
             ring.accentColor = accent
+            ring.applySurfaceColors(sc)
             if (!stepMode) {
                 label.setText(R.string.compass_label)
                 val d = ((azimuth % 360f) + 360f) % 360f
@@ -137,14 +143,14 @@ class CompassStepWidget(context: Context) : NothingWidget(context) {
             }
         }
 
-        val root = LayoutInflater.from(ctx).inflate(R.layout.widget_vitals, wrapper, false)
-        wrapper.addView(root)
-        dot = root.findViewById(R.id.vitalsDot)
-        label = root.findViewById(R.id.vitalsLabel)
-        ring = root.findViewById(R.id.vitalsRing)
-        footer = root.findViewById(R.id.vitalsFooter)
+        cardRoot = LayoutInflater.from(ctx).inflate(R.layout.widget_vitals, wrapper, false)
+        wrapper.addView(cardRoot)
+        dot = cardRoot.findViewById(R.id.vitalsDot)
+        label = cardRoot.findViewById(R.id.vitalsLabel)
+        ring = cardRoot.findViewById(R.id.vitalsRing)
+        footer = cardRoot.findViewById(R.id.vitalsFooter)
 
-        root.setOnClickListener {
+        cardRoot.setOnClickListener {
             Tactile.tick(it)
             stepMode = !stepMode
             bind()

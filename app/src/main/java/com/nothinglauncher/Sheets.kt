@@ -23,8 +23,9 @@ object Sheets {
         dialog.setContentView(content)
         dialog.setCanceledOnTouchOutside(true)
         dialog.window?.apply {
-            setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.WRAP_CONTENT)
-            setGravity(Gravity.BOTTOM)
+            val width = BigScreenUi.sheetWindowWidthPx(context)
+            setLayout(width, WindowManager.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL)
             // Rich tier on Android 12+: frosted glass behind the sheet instead of a flat dim,
             // when the device (and Battery Saver / the user) allow cross-window blur.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&

@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Big-screen / tablet / unfolded foldable 2-column Bento Command Deck for -1 Essential Space -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/essentialRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/essentialScroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:overScrollMode="never"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/essentialColumn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="28dp"
+            android:paddingTop="24dp"
+            android:paddingEnd="28dp"
+            android:paddingBottom="40dp">
+
+            <!-- Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <com.nothinglauncher.DotMatrixView
+                        android:id="@+id/essentialHeaderDots"
+                        android:layout_width="wrap_content"
+                        android:layout_height="24dp"
+                        app:dmDotColor="@color/dot_on"
+                        app:dmDotScale="0.42"
+                        app:dmGravity="start"
+                        app:dmText="ESSENTIAL" />
+
+                    <TextView
+                        android:id="@+id/essentialGreeting"
+                        style="@style/Text.Label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="@string/essential_subtitle" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/essentialDeskBtn"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="38dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="@drawable/bg_pill_white"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="@drawable/fg_ripple_pill"
+                    android:gravity="center"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/nt_desk_launch"
+                    android:textColor="@color/pill_active_text"
+                    android:textSize="10sp" />
+
+                <ImageView
+                    android:id="@+id/essentialCloseBtn"
+                    style="@style/Widget.Nothing.IconButton"
+                    android:contentDescription="@string/back"
+                    android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+
+            <!-- 2-Column Bento Deck -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:baselineAligned="false"
+                android:orientation="horizontal">
+
+                <!-- Left Bento Column: Briefing + Hardware Switchboard + Vitals -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/essentialBriefingCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_tile_dark"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/essentialBriefingDot"
+                                android:layout_width="6dp"
+                                android:layout_height="6dp"
+                                android:background="@drawable/dot_red" />
+
+                            <TextView
+                                android:id="@+id/essentialBriefingLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/essential_briefing" />
+
+                            <TextView
+                                android:id="@+id/essentialWeatherPill"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textColor="@color/text_primary" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/essentialBriefingHeadline"
+                            style="@style/Text.Title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="12dp"
+                            android:textSize="24sp" />
+
+                        <TextView
+                            android:id="@+id/essentialBriefingSub"
+                            style="@style/Text.Body.Secondary"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp" />
+                    </LinearLayout>
+
+                    <!-- Hardware Switchboard 2x2 Grid -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:id="@+id/spaceTorchBtn"
+                            android:layout_width="0dp"
+                            android:layout_height="88dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_tile_dark"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_tile"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:id="@+id/spaceTorchIcon"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_flashlight"
+                                android:tint="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/spaceTorchLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/toggle_torch" />
+                        </LinearLayout>
+
+                        <Space android:layout_width="10dp" android:layout_height="1dp" />
+
+                        <LinearLayout
+                            android:id="@+id/spaceFocusBtn"
+                            android:layout_width="0dp"
+                            android:layout_height="88dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_tile_dark"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_tile"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:id="@+id/spaceFocusIcon"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_focus"
+                                android:tint="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/spaceFocusLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/toggle_focus" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:id="@+id/spaceCaffeineBtn"
+                            android:layout_width="0dp"
+                            android:layout_height="88dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_tile_dark"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_tile"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:id="@+id/spaceCaffeineIcon"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_caffeine"
+                                android:tint="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/spaceCaffeineLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/toggle_caffeine" />
+                        </LinearLayout>
+
+                        <Space android:layout_width="10dp" android:layout_height="1dp" />
+
+                        <LinearLayout
+                            android:id="@+id/spaceSoundBtn"
+                            android:layout_width="0dp"
+                            android:layout_height="88dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_tile_dark"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_tile"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:padding="10dp">
+
+                            <ImageView
+                                android:id="@+id/spaceSoundIcon"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:importantForAccessibility="no"
+                                android:src="@drawable/ic_volume"
+                                android:tint="@color/text_primary" />
+
+                            <TextView
+                                android:id="@+id/spaceSoundLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="@string/toggle_sound" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- System Vitals -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_tile_dark"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <TextView
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/vitals_label" />
+
+                        <TextView
+                            android:id="@+id/spaceVitalsText"
+                            style="@style/Text.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:fontFamily="@font/space_mono_regular"
+                            android:lineSpacingExtra="4dp"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <!-- Habit Matrix Check-in Card -->
+                    <LinearLayout
+                        android:id="@+id/spaceHabitCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_tile_dark"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/spaceHabitDot"
+                                android:layout_width="6dp"
+                                android:layout_height="6dp"
+                                android:background="@drawable/dot_red" />
+
+                            <TextView
+                                android:id="@+id/spaceHabitTitle"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:ellipsize="end"
+                                android:maxLines="1" />
+
+                            <TextView
+                                android:id="@+id/spaceHabitStreak"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginEnd="10dp"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:id="@+id/spaceHabitToggle"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="28dp"
+                                android:background="@drawable/bg_pill_outline"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="@drawable/fg_ripple_pill"
+                                android:gravity="center"
+                                android:paddingStart="12dp"
+                                android:paddingEnd="12dp"
+                                android:text="@string/habit_log"
+                                android:textSize="9.5sp" />
+                        </LinearLayout>
+
+                        <com.nothinglauncher.widgets.HabitPegboardView
+                            android:id="@+id/spaceHabitGrid"
+                            android:layout_width="match_parent"
+                            android:layout_height="68dp"
+                            android:layout_marginTop="10dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <Space android:layout_width="16dp" android:layout_height="1dp" />
+
+                <!-- Right Bento Column: Quick Capture + Voice Memos + Live Focus Timer -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/spaceCaptureCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_tile_dark"
+                        android:orientation="vertical"
+                        android:padding="20dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/spaceRecDot"
+                                android:layout_width="6dp"
+                                android:layout_height="6dp"
+                                android:background="@drawable/dot_red" />
+
+                            <TextView
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/essential_capture" />
+
+                            <TextView
+                                android:id="@+id/spaceVoiceBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:background="@drawable/bg_pill_outline"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:foreground="@drawable/fg_ripple_pill"
+                                android:gravity="center"
+                                android:paddingStart="14dp"
+                                android:paddingEnd="14dp"
+                                android:text="@string/memo_record"
+                                android:textColor="@color/text_primary" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/spaceNoteBody"
+                            style="@style/Text.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="14dp"
+                            android:background="@drawable/fg_ripple_card"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:fontFamily="@font/space_mono_regular"
+                            android:lineSpacingExtra="5dp"
+                            android:minHeight="84dp"
+                            android:paddingTop="4dp"
+                            android:paddingBottom="4dp"
+                            android:text="@string/note_empty_hint"
+                            android:textSize="13.5sp" />
+
+                        <LinearLayout
+                            android:id="@+id/spaceMemoRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone">
+
+                            <ImageView
+                                android:id="@+id/spaceMemoPlay"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="@drawable/bg_pill_white"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:padding="7dp"
+                                android:src="@drawable/ic_play"
+                                android:tint="@color/pill_active_text" />
+
+                            <TextView
+                                android:id="@+id/spaceMemoLabel"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/text_primary" />
+
+                            <ImageView
+                                android:id="@+id/spaceMemoDelete"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="@drawable/fg_ripple_oval"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:padding="7dp"
+                                android:src="@drawable/ic_trash"
+                                android:tint="@color/text_secondary" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <!-- Focus Timer Card -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_tile_dark"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:padding="20dp">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/spaceTimerMode"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="@string/timer_label" />
+
+                            <com.nothinglauncher.DotMatrixView
+                                android:id="@+id/spaceTimerDots"
+                                android:layout_width="wrap_content"
+                                android:layout_height="32dp"
+                                android:layout_marginTop="8dp"
+                                app:dmDotColor="@color/dot_on"
+                                app:dmDotScale="0.4"
+                                app:dmGravity="start"
+                                app:dmText="25:00" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/spaceTimerReset"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:layout_marginEnd="8dp"
+                            android:background="@drawable/bg_pill_outline"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_pill"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:text="@string/timer_reset"
+                            android:textColor="@color/text_secondary" />
+
+                        <TextView
+                            android:id="@+id/spaceTimerToggle"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_pill_white"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:foreground="@drawable/fg_ripple_pill"
+                            android:gravity="center"
+                            android:paddingStart="16dp"
+                            android:paddingEnd="16dp"
+                            android:text="@string/timer_start"
+                            android:textColor="@color/pill_active_text" />
+                    </LinearLayout>
+
+                    <!-- Now Playing Media Deck Card -->
+                    <LinearLayout
+                        android:id="@+id/spaceMediaCard"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:background="@drawable/bg_tile_dark"
+                        android:orientation="vertical"
+                        android:padding="18dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:id="@+id/spaceMediaDot"
+                                android:layout_width="6dp"
+                                android:layout_height="6dp"
+                                android:background="@drawable/dot_red" />
+
+                            <TextView
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:layout_weight="1"
+                                android:text="@string/media_label" />
+
+                            <TextView
+                                android:id="@+id/spaceMediaRoute"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textSize="9sp"
+                                android:visibility="gone" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <com.nothinglauncher.MediaArtDotsView
+                                android:id="@+id/spaceMediaArt"
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:layout_marginEnd="12dp"
+                                android:visibility="gone" />
+
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:orientation="vertical">
+
+                                <TextView
+                                    android:id="@+id/spaceMediaTitle"
+                                    style="@style/Text.Body"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/space_mono_bold"
+                                    android:maxLines="1"
+                                    android:textSize="13sp" />
+
+                                <TextView
+                                    android:id="@+id/spaceMediaArtist"
+                                    style="@style/Text.Body.Secondary"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginTop="2dp"
+                                    android:ellipsize="end"
+                                    android:fontFamily="@font/space_mono_regular"
+                                    android:maxLines="1"
+                                    android:textSize="10sp" />
+
+                                <com.nothinglauncher.MediaDotsView
+                                    android:id="@+id/spaceMediaBars"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="18dp"
+                                    android:layout_marginTop="6dp" />
+                            </LinearLayout>
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:id="@+id/spaceMediaPrev"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="@drawable/fg_ripple_oval"
+                                android:padding="6dp"
+                                android:src="@drawable/ic_skip_previous"
+                                android:tint="@color/text_secondary" />
+
+                            <ImageView
+                                android:id="@+id/spaceMediaPlayPause"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:layout_marginStart="20dp"
+                                android:layout_marginEnd="20dp"
+                                android:background="@drawable/bg_pill_white"
+                                android:padding="7dp"
+                                android:src="@drawable/ic_pause"
+                                android:tint="@color/pill_active_text" />
+
+                            <ImageView
+                                android:id="@+id/spaceMediaNext"
+                                android:layout_width="32dp"
+                                android:layout_height="32dp"
+                                android:background="@drawable/fg_ripple_oval"
+                                android:padding="6dp"
+                                android:src="@drawable/ic_skip_next"
+                                android:tint="@color/text_secondary" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</FrameLayout>

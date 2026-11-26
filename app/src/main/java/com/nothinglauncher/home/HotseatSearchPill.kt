@@ -7,6 +7,7 @@ import android.widget.LinearLayout
 import androidx.core.view.isVisible
 import com.android.launcher3.Launcher
 import com.android.launcher3.LauncherState
+import com.nothinglauncher.BigScreenUi
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.Tactile
@@ -65,8 +66,25 @@ class HotseatSearchPill @JvmOverloads constructor(
             super.onMeasure(widthMeasureSpec, heightMeasureSpec)
             return
         }
+        val offeredWidth = MeasureSpec.getSize(widthMeasureSpec)
+        val offeredMode = MeasureSpec.getMode(widthMeasureSpec)
+        // On tablets/landscape with inline QSB, Launcher3 already supplies the exact slot width.
+        if (dp.isQsbInline && offeredWidth > 0) {
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+            return
+        }
         val inset = dp.workspacePadding.left + dp.cellLayoutPaddingPx.left
-        val width = (dp.widthPx - 2 * inset).coerceAtLeast(0)
+        val rawWidth = if (offeredMode == MeasureSpec.EXACTLY && offeredWidth > 0) {
+            offeredWidth
+        } else {
+            (dp.widthPx - 2 * inset).coerceAtLeast(0)
+        }
+        val density = resources.displayMetrics.density
+        val width = if (BigScreenUi.isLargeScreen(context)) {
+            minOf(rawWidth, (580f * density).toInt())
+        } else {
+            rawWidth
+        }
         super.onMeasure(
             MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
             heightMeasureSpec

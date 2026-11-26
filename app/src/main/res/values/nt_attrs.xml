@@ -10,6 +10,7 @@
         <attr name="dmPanelPadRows" format="integer" />
         <attr name="dmDotScale" format="float" />
         <attr name="dmLetterSpacing" format="integer" />
+        <attr name="dmMaxPitchDp" format="dimension" />
         <attr name="dmGlow" format="boolean" />
         <attr name="dmGravity" format="enum">
             <enum name="start" value="0" />

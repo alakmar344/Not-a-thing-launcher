@@ -7,22 +7,30 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.View
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
 import com.android.launcher3.InvariantDeviceProfile
 import com.android.launcher3.LauncherFiles
 import com.android.launcher3.LauncherPrefs
 import com.nothinglauncher.AccentTheme
+import com.nothinglauncher.BigScreenUi
+import com.nothinglauncher.DeskHudActivity
 import com.nothinglauncher.DotGridDrawable
+import com.nothinglauncher.DotMatrixClockView
+import com.nothinglauncher.DotMatrixView
 import com.nothinglauncher.Intents
 import com.nothinglauncher.LauncherEntryActivity
 import com.nothinglauncher.MediaSessionRepository
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
+import com.nothinglauncher.SecondsTickerView
 import com.nothinglauncher.SettingsUi
 import com.nothinglauncher.SetupBackupManager
 import com.nothinglauncher.Sheets
@@ -31,23 +39,24 @@ import com.nothinglauncher.WeatherRepository
 import com.nothinglauncher.databinding.ActivitySettingsBinding
 import com.nothinglauncher.databinding.ItemSettingRowBinding
 import com.nothinglauncher.drawer.HiddenVaultSheet
+import com.nothinglauncher.home.CustomizeSheet
 import com.nothinglauncher.icons.IconPackManager
 import com.nothinglauncher.icons.NothingIconLogic
 import com.nothinglauncher.perf.VisualTier
 
 /**
- * The v10 settings screen, wired to stock Launcher3 where Launcher3 owns the behaviour (grid,
- * icon style, notification dots, new-app icons, rotation) and to [NothingPrefs] for the
- * Not a Thing layer (backdrop, LED clock, weather).
+ * Unified Not a Thing settings screen:
+ * - Phone: single clean vertical column with NothingSwitch & SettingsUi cards.
+ * - Tablets / unfolded foldables (w680dp+): centered 2-column Bento studio with a live
+ *   telemetry & Desk HUD preview card.
  */
 class NothingSettingsActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySettingsBinding
     private val prefs by lazy { NothingPrefs.get(this) }
     private var dialog: Dialog? = null
-    private val statusRows = mutableListOf<Pair<ItemSettingRowBinding, () -> CharSequence>>()
+    private val statusRefreshers = mutableListOf<() -> Unit>()
 
-    /** Launcher3's own preference file (same keys as its stock settings screen). */
     private val launcherPrefs by lazy {
         getSharedPreferences(LauncherFiles.SHARED_PREFERENCES_KEY, MODE_PRIVATE)
     }
@@ -59,11 +68,10 @@ class NothingSettingsActivity : AppCompatActivity() {
         setContentView(binding.root)
         binding.settingsRoot.background = DotGridDrawable.forTier(this)
         binding.backButton.setOnClickListener { finish() }
+
         val density = resources.displayMetrics.density
-        // Edge-to-edge is enforced from targetSdk 35 and can't be opted out of from 36, so the
-        // side insets matter too: in landscape the 3-button nav bar and a display cutout sit on
-        // the left/right edge, and without these the rows would run underneath them.
         val column = binding.settingsColumn
+        BigScreenUi.applyMaxWidth(column, 1040)
         val baseLeft = column.paddingLeft
         val baseRight = column.paddingRight
         ViewCompat.setOnApplyWindowInsetsListener(binding.settingsRoot) { _, insets ->
@@ -78,21 +86,19 @@ class NothingSettingsActivity : AppCompatActivity() {
             )
             insets
         }
-        build()
-        buildV13Sections()
+
+        buildUnifiedSettings()
         if (savedInstanceState == null && VisualTier.effects(this).entranceMotion &&
             VisualTier.motionAllowed(this)
         ) {
             SettingsUi.playEntrance(binding.settingsList)
+            if (binding.settingsListRight.isVisible) SettingsUi.playEntrance(binding.settingsListRight)
         }
     }
 
-    private val v13StatusRefreshers = mutableListOf<() -> Unit>()
-
     override fun onResume() {
         super.onResume()
-        refreshStatus()
-        v13StatusRefreshers.forEach { it() }
+        refreshAll()
     }
 
     @Deprecated("Deprecated in Java")
@@ -102,97 +108,28 @@ class NothingSettingsActivity : AppCompatActivity() {
         super.onActivityResult(requestCode, resultCode, data)
     }
 
-    private fun buildV13Sections() {
-        val d = resources.displayMetrics.density
-        var insertAt = (binding.settingsList.childCount - 2).coerceAtLeast(0)
+    override fun onDestroy() {
+        dialog?.dismiss()
+        super.onDestroy()
+    }
 
-        fun addSection(titleRes: Int): android.widget.LinearLayout {
-            val header = android.widget.TextView(this, null, 0, R.style.Text_Label).apply {
-                setText(titleRes)
-                setPadding(
-                    (6 * d).toInt(),
-                    (22 * d).toInt(),
-                    (6 * d).toInt(),
-                    (10 * d).toInt()
-                )
-            }
-            val card = android.widget.LinearLayout(this).apply {
-                orientation = android.widget.LinearLayout.VERTICAL
-                setBackgroundResource(R.drawable.bg_tile_dark)
-                clipToOutline = true
-            }
-            val list = binding.settingsList
-            list.addView(header, insertAt++)
-            list.addView(card, insertAt++)
-            return card
-        }
+    private fun refreshAll() {
+        statusRefreshers.forEach { it() }
+    }
 
-        fun addDivider(card: android.widget.LinearLayout) {
-            card.addView(android.view.View(this).apply {
-                layoutParams = android.widget.LinearLayout.LayoutParams(
-                    android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-                    (1 * d).toInt().coerceAtLeast(1)
-                ).apply { marginStart = (18 * d).toInt() }
-                setBackgroundColor(getColor(R.color.hairline))
-            })
-        }
+    private fun buildUnifiedSettings() {
+        val leftList = binding.settingsList
+        val rightList = binding.settingsListRight
+        leftList.removeAllViews()
+        rightList.removeAllViews()
+        statusRefreshers.clear()
 
-        fun addChoice(
-            card: android.widget.LinearLayout,
-            titleRes: Int,
-            subProvider: () -> String,
-            onClick: () -> Unit
-        ) {
-            if (card.childCount > 0) addDivider(card)
-            val row = ItemSettingRowBinding.inflate(layoutInflater, card, false)
-            row.rowTitle.setText(titleRes)
-            fun updateSub() {
-                row.rowSubtitle.text = subProvider()
-                row.rowSubtitle.visibility = android.view.View.VISIBLE
-            }
-            updateSub()
-            v13StatusRefreshers += ::updateSub
-            Tactile.press(row.root)
-            row.root.setOnClickListener {
-                Tactile.tick(row.root)
-                onClick()
-            }
-            card.addView(row.root)
-        }
+        val twoColumns = BigScreenUi.isLargeScreen(this)
+        binding.settingsColGap.isVisible = twoColumns
+        rightList.isVisible = twoColumns
+        val secondaryCol = if (twoColumns) rightList else leftList
 
-        fun addSwitch(
-            card: android.widget.LinearLayout,
-            titleRes: Int,
-            subRes: Int?,
-            getter: () -> Boolean,
-            setter: (Boolean) -> Unit
-        ) {
-            if (card.childCount > 0) addDivider(card)
-            val row = ItemSettingRowBinding.inflate(layoutInflater, card, false)
-            row.rowTitle.setText(titleRes)
-            if (subRes != null) {
-                row.rowSubtitle.setText(subRes)
-                row.rowSubtitle.visibility = android.view.View.VISIBLE
-            } else {
-                row.rowSubtitle.visibility = android.view.View.GONE
-            }
-            val sw = androidx.appcompat.widget.SwitchCompat(this).apply {
-                isChecked = getter()
-                isClickable = false
-                isFocusable = false
-            }
-            row.rowTrailing.addView(sw)
-            v13StatusRefreshers += { sw.isChecked = getter() }
-            Tactile.press(row.root)
-            row.root.setOnClickListener {
-                val next = !getter()
-                setter(next)
-                sw.isChecked = next
-                Tactile.tick(row.root)
-                v13StatusRefreshers.forEach { it() }
-            }
-            card.addView(row.root)
-        }
+        fun accent() = AccentTheme.accentColor(this)
 
         fun pickChoice(titleRes: Int, labels: List<String>, selected: Int, onPick: (Int) -> Unit) {
             dialog?.dismiss()
@@ -201,7 +138,7 @@ class NothingSettingsActivity : AppCompatActivity() {
                 .setSingleChoiceItems(labels.toTypedArray(), selected) { dlg, which ->
                     dlg.dismiss()
                     onPick(which)
-                    v13StatusRefreshers.forEach { it() }
+                    refreshAll()
                 }
                 .setNegativeButton(android.R.string.cancel, null)
                 .show()
@@ -213,6 +150,7 @@ class NothingSettingsActivity : AppCompatActivity() {
                 NothingPrefs.GestureAction.NOTIFICATIONS -> R.string.nt_gesture_notifications
                 NothingPrefs.GestureAction.SEARCH -> R.string.nt_gesture_search
                 NothingPrefs.GestureAction.ESSENTIAL_SPACE -> R.string.nt_gesture_essential
+                NothingPrefs.GestureAction.DESK_HUD -> R.string.nt_gesture_desk
                 NothingPrefs.GestureAction.LOCK_SCREEN -> R.string.nt_gesture_lock
                 NothingPrefs.GestureAction.CUSTOMIZE -> R.string.nt_gesture_customize
                 NothingPrefs.GestureAction.VAULT -> R.string.nt_gesture_vault
@@ -221,214 +159,57 @@ class NothingSettingsActivity : AppCompatActivity() {
 
         fun pickGesture(titleRes: Int, current: () -> NothingPrefs.GestureAction, assign: (NothingPrefs.GestureAction) -> Unit) {
             val all = NothingPrefs.GestureAction.entries
-            val labels = all.map(::gestureLabel)
-            pickChoice(titleRes, labels, all.indexOf(current())) { assign(all[it]) }
+            pickChoice(titleRes, all.map(::gestureLabel), all.indexOf(current()).coerceAtLeast(0)) { assign(all[it]) }
         }
 
-        // 1. Personality & Physics
-        val lookCard = addSection(R.string.nt_section_personalize)
-        addChoice(lookCard, R.string.nt_setting_accent, { getString(prefs.accentPalette.labelRes) }) {
-            val entries = AccentTheme.Palette.entries
-            pickChoice(
-                R.string.nt_setting_accent,
-                entries.map { getString(it.labelRes) },
-                entries.indexOf(prefs.accentPalette)
-            ) { idx ->
-                prefs.accentPalette = entries[idx]
+        fun dynamicRow(
+            card: LinearLayout,
+            title: String,
+            trailingIcon: Int = R.drawable.ic_chevron_right,
+            subProvider: () -> String,
+            onClick: () -> Unit
+        ): ItemSettingRowBinding {
+            val b = SettingsUi.actionRow(card, title, subProvider(), trailingIcon = trailingIcon) {
+                Tactile.tick(card)
+                onClick()
             }
-        }
-        addChoice(lookCard, R.string.nt_setting_icon_style, {
-            getString(
-                when (prefs.iconStyle) {
-                    NothingPrefs.IconStyle.MONO -> R.string.nt_icon_mono
-                    NothingPrefs.IconStyle.COLOR -> R.string.nt_icon_color
-                    NothingPrefs.IconStyle.DOTS -> R.string.nt_icon_dots
-                }
-            )
-        }) {
-            val styles = NothingPrefs.IconStyle.entries
-            val labels = listOf(
-                getString(R.string.nt_icon_mono),
-                getString(R.string.nt_icon_color),
-                getString(R.string.nt_icon_dots)
-            )
-            pickChoice(R.string.nt_setting_icon_style, labels, styles.indexOf(prefs.iconStyle)) { idx ->
-                NothingIconLogic.applyStyle(this, styles[idx])
+            statusRefreshers += {
+                b.rowSubtitle.text = subProvider()
+                b.rowSubtitle.isVisible = true
             }
-        }
-        addChoice(lookCard, R.string.nt_setting_icon_pack, {
-            val pkg = prefs.iconPackPackage
-            if (pkg.isBlank()) getString(R.string.nt_icon_pack_system)
-            else IconPackManager.listInstalledPacks(this).firstOrNull { it.packageName == pkg }?.label ?: pkg
-        }) {
-            val packs = IconPackManager.listInstalledPacks(this)
-            val labels = listOf(getString(R.string.nt_icon_pack_system)) + packs.map { it.label }
-            val currentIdx = if (prefs.iconPackPackage.isBlank()) 0
-            else (packs.indexOfFirst { it.packageName == prefs.iconPackPackage } + 1).coerceAtLeast(0)
-            pickChoice(R.string.nt_setting_icon_pack, labels, currentIdx) { idx ->
-                prefs.iconPackPackage = if (idx == 0) "" else packs[idx - 1].packageName
-                NothingIconLogic.refreshAll(this)
-            }
-        }
-        addSwitch(
-            lookCard,
-            R.string.nt_setting_night_dim,
-            R.string.nt_setting_night_dim_sub,
-            { prefs.nightDimDots },
-            {
-                prefs.nightDimDots = it
-                binding.settingsRoot.background = DotGridDrawable.forTier(this)
-            }
-        )
-        addSwitch(
-            lookCard,
-            R.string.nt_setting_tactile_sound,
-            null,
-            { prefs.tactileSound },
-            { prefs.tactileSound = it }
-        )
-
-        // 2. Gestures & Home Cleanliness
-        val gestureCard = addSection(R.string.nt_section_gestures)
-        addSwitch(
-            gestureCard,
-            R.string.nt_setting_hide_labels,
-            null,
-            { prefs.hideHomeLabels },
-            { prefs.hideHomeLabels = it }
-        )
-        addSwitch(
-            gestureCard,
-            R.string.nt_setting_search_pill,
-            null,
-            { prefs.showSearchPill },
-            { prefs.showSearchPill = it }
-        )
-        addChoice(gestureCard, R.string.nt_setting_drawer_mode, {
-            getString(
-                if (prefs.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST)
-                    R.string.drawer_mode_list else R.string.drawer_mode_grid
-            )
-        }) {
-            val modes = listOf(NothingPrefs.DrawerLayoutMode.GRID, NothingPrefs.DrawerLayoutMode.LIST)
-            val labels = listOf(getString(R.string.drawer_mode_grid), getString(R.string.drawer_mode_list))
-            pickChoice(R.string.nt_setting_drawer_mode, labels, modes.indexOf(prefs.drawerLayoutMode).coerceAtLeast(0)) {
-                prefs.drawerLayoutMode = modes[it]
-            }
-        }
-        addSwitch(
-            gestureCard,
-            R.string.nt_setting_drawer_recents,
-            null,
-            { prefs.showDrawerRecents },
-            { prefs.showDrawerRecents = it }
-        )
-        addChoice(gestureCard, R.string.nt_setting_gesture_down, { gestureLabel(prefs.swipeDownAction) }) {
-            pickGesture(R.string.nt_setting_gesture_down, { prefs.swipeDownAction }) { prefs.swipeDownAction = it }
-        }
-        addChoice(gestureCard, R.string.nt_setting_gesture_dtap, { gestureLabel(prefs.doubleTapAction) }) {
-            pickGesture(R.string.nt_setting_gesture_dtap, { prefs.doubleTapAction }) { prefs.doubleTapAction = it }
-        }
-        addChoice(gestureCard, R.string.nt_setting_gesture_pinch, { gestureLabel(prefs.pinchAction) }) {
-            pickGesture(R.string.nt_setting_gesture_pinch, { prefs.pinchAction }) { prefs.pinchAction = it }
+            return b
         }
 
-        // 3. Essential Space & Privacy
-        val essentialCard = addSection(R.string.nt_section_essential)
-        addSwitch(
-            essentialCard,
-            R.string.nt_setting_focus_mode,
-            R.string.nt_setting_focus_mode_sub,
-            { prefs.focusMode },
-            { prefs.focusMode = it }
-        )
-        addChoice(essentialCard, R.string.nt_setting_world_zone, { prefs.worldClockZoneId }) {
-            val zones = listOf(
-                "UTC",
-                "America/New_York",
-                "America/Los_Angeles",
-                "Europe/London",
-                "Europe/Berlin",
-                "Asia/Dubai",
-                "Asia/Kolkata",
-                "Asia/Tokyo",
-                "Australia/Sydney"
-            )
-            pickChoice(R.string.nt_setting_world_zone, zones, zones.indexOf(prefs.worldClockZoneId)) {
-                prefs.worldClockZoneId = zones[it]
-            }
-        }
-        addChoice(essentialCard, R.string.nt_setting_habit_title, { prefs.habitTitle }) {
-            val pad = (20 * d).toInt()
-            val input = android.widget.EditText(this).apply {
-                setText(prefs.habitTitle)
-                setSelection(text?.length ?: 0)
-                setHint(R.string.habit_rename_hint)
-                setSingleLine(true)
-            }
-            val box = android.widget.FrameLayout(this).apply {
-                setPadding(pad, (8 * d).toInt(), pad, (8 * d).toInt())
-                addView(input)
-            }
-            android.app.AlertDialog.Builder(this)
-                .setTitle(R.string.habit_rename_title)
-                .setView(box)
-                .setPositiveButton(android.R.string.ok) { _, _ ->
-                    prefs.habitTitle = input.text?.toString()?.trim().orEmpty()
-                    v13StatusRefreshers.forEach { it() }
-                }
-                .setNegativeButton(android.R.string.cancel, null)
-                .show()
-        }
-        addChoice(essentialCard, R.string.nt_setting_open_vault, {
-            val n = prefs.hiddenPackages.size
-            if (n == 0) getString(R.string.nt_setting_open_vault_sub) else "$n hidden"
-        }) {
-            HiddenVaultSheet.showVaultDialog(this) { v13StatusRefreshers.forEach { it() } }
+        // --- Live Bento Studio Hero (Right Column top on Tablets / Foldables) ---
+        if (twoColumns) {
+            addStudioHeroCard(rightList)
         }
 
-        // 4. Presets, Backup & Hub
-        val hubCard = addSection(R.string.nt_section_setup_backup)
-        addChoice(hubCard, R.string.nt_setting_open_hub, { getString(R.string.nt_setting_open_hub_sub) }) {
-            startActivity(Intent(this, LauncherEntryActivity::class.java))
-        }
-        addChoice(hubCard, R.string.nt_presets_title, { getString(R.string.nt_presets_short) }) {
-            SetupBackupManager.showPresetsSheet(this) { recreate() }
-        }
-        addChoice(hubCard, R.string.nt_backup_export, { "JSON" }) {
-            SetupBackupManager.launchExport(this)
-        }
-        addChoice(hubCard, R.string.nt_backup_import, { ".nothing.json" }) {
-            SetupBackupManager.launchImport(this)
-        }
-    }
-
-    override fun onDestroy() {
-        dialog?.dismiss()
-        super.onDestroy()
-    }
-
-    private fun build() {
-        val list = binding.settingsList
-        list.removeAllViews()
-        statusRows.clear()
-        val accent = ContextCompat.getColor(this, R.color.nothing_red)
-
-        SettingsUi.section(list, getString(R.string.section_home), accent)
-        SettingsUi.card(list).also { card ->
+        // 1. HOME
+        SettingsUi.section(leftList, getString(R.string.section_home), accent())
+        SettingsUi.card(leftList).also { card ->
             val grids = listOf("3_by_3", "4_by_4", "5_by_5")
-            val current = grids.indexOf(InvariantDeviceProfile.getCurrentGridName(this))
-            // Phone grids only; tablets use their own (e.g. 6×5) grid, which is left alone.
+            val currentGridName = InvariantDeviceProfile.getCurrentGridName(this)
+            val current = grids.indexOf(currentGridName)
             if (current >= 0) {
                 SettingsUi.choiceRow(
                     card, getString(R.string.nt_setting_grid), getString(R.string.nt_setting_grid_sub),
                     listOf("3 × 3", "4 × 4", "5 × 5"), current
                 ) { InvariantDeviceProfile.INSTANCE.get(this).setCurrentGrid(this, grids[it]) }
+            } else {
+                SettingsUi.infoRow(
+                    card,
+                    getString(R.string.nt_setting_big_bento),
+                    "${currentGridName.replace("_by_", " × ")} · ${getString(R.string.nt_setting_big_bento_sub)}"
+                )
             }
             SettingsUi.switchRow(
                 card, getString(R.string.setting_seconds), getString(R.string.setting_seconds_sub),
                 prefs.showSeconds
-            ) { prefs.showSeconds = it }
+            ) {
+                prefs.showSeconds = it
+                refreshAll()
+            }
             SettingsUi.switchRow(
                 card, getString(R.string.nt_setting_add_new), getString(R.string.nt_setting_add_new_sub),
                 launcherPrefs.getBoolean(KEY_ADD_ICON, true)
@@ -439,22 +220,61 @@ class NothingSettingsActivity : AppCompatActivity() {
             ) { LauncherPrefs.get(this).put(LauncherPrefs.ALLOW_ROTATION.to(it)) }
         }
 
-        SettingsUi.section(list, getString(R.string.section_look), accent)
-        SettingsUi.card(list).also { card ->
-            SettingsUi.choiceRow(
-                card, getString(R.string.setting_icons), getString(R.string.setting_icons_sub),
-                listOf(getString(R.string.icons_mono), getString(R.string.icons_color)),
-                if (LauncherPrefs.get(this).get(LauncherPrefs.THEMED_ICONS)) 0 else 1
-            ) {
-                // Launcher3 re-renders every icon when this switch changes.
-                LauncherPrefs.get(this).put(LauncherPrefs.THEMED_ICONS.to(it == 0))
+        // 2. LOOK & PHYSICS (Unified — single Icon aesthetic control, zero duplication)
+        SettingsUi.section(leftList, getString(R.string.nt_section_personalize), accent())
+        SettingsUi.card(leftList).also { card ->
+            dynamicRow(card, getString(R.string.nt_setting_accent), subProvider = {
+                getString(prefs.accentPalette.labelRes)
+            }) {
+                val entries = AccentTheme.Palette.entries
+                pickChoice(
+                    R.string.nt_setting_accent,
+                    entries.map { getString(it.labelRes) },
+                    entries.indexOf(prefs.accentPalette)
+                ) { idx ->
+                    prefs.accentPalette = entries[idx]
+                    binding.settingsRoot.background = DotGridDrawable.forTier(this)
+                    recreate()
+                }
             }
+
+            val iconStyles = NothingPrefs.IconStyle.entries
+            SettingsUi.choiceRow(
+                card,
+                getString(R.string.nt_setting_icon_style),
+                getString(R.string.setting_icons_sub),
+                listOf(
+                    getString(R.string.icons_mono),
+                    getString(R.string.icons_color),
+                    getString(R.string.icons_dots)
+                ),
+                iconStyles.indexOf(prefs.iconStyle).coerceAtLeast(0)
+            ) { idx ->
+                NothingIconLogic.applyStyle(this, iconStyles[idx])
+            }
+
+            dynamicRow(card, getString(R.string.nt_setting_icon_pack), subProvider = {
+                val pkg = prefs.iconPackPackage
+                if (pkg.isBlank()) getString(R.string.nt_icon_pack_system)
+                else IconPackManager.listInstalledPacks(this).firstOrNull { it.packageName == pkg }?.label ?: pkg
+            }) {
+                val packs = IconPackManager.listInstalledPacks(this)
+                val labels = listOf(getString(R.string.nt_icon_pack_system)) + packs.map { it.label }
+                val idx = if (prefs.iconPackPackage.isBlank()) 0
+                else (packs.indexOfFirst { it.packageName == prefs.iconPackPackage } + 1).coerceAtLeast(0)
+                pickChoice(R.string.nt_setting_icon_pack, labels, idx) { picked ->
+                    prefs.iconPackPackage = if (picked == 0) "" else packs[picked - 1].packageName
+                    NothingIconLogic.refreshAll(this)
+                }
+            }
+
             SettingsUi.choiceRow(
                 card, getString(R.string.setting_background), getString(R.string.setting_background_sub),
                 listOf(getString(R.string.bg_dots), getString(R.string.bg_black), getString(R.string.bg_wallpaper)),
                 prefs.background.ordinal
             ) { prefs.background = NothingPrefs.Background.entries[it] }
-            lateinit var qualityRow: com.nothinglauncher.databinding.ItemSettingRowBinding
+
+            lateinit var qualityRow: ItemSettingRowBinding
             qualityRow = SettingsUi.choiceRow(
                 card, getString(R.string.setting_quality), qualitySubtitle(),
                 listOf(getString(R.string.quality_auto), getString(R.string.quality_lite), getString(R.string.quality_full)),
@@ -462,52 +282,288 @@ class NothingSettingsActivity : AppCompatActivity() {
             ) {
                 val choice = NothingPrefs.VisualQuality.entries[it]
                 prefs.visualQuality = choice
-                // Choosing Auto again is the way back from a low-memory downgrade.
                 if (choice == NothingPrefs.VisualQuality.AUTO) prefs.memoryPressureSeen = false
                 VisualTier.invalidate()
                 qualityRow.rowSubtitle.text = qualitySubtitle()
-                // This screen's own backdrop follows at once; home rebuilds when shown again.
                 binding.settingsRoot.background = DotGridDrawable.forTier(this)
             }
+
+            SettingsUi.actionRow(
+                card,
+                getString(R.string.nt_setting_widget_surfaces),
+                getString(R.string.nt_setting_widget_surfaces_sub)
+            ) {
+                CustomizeSheet.showWidgetSurfacesSheet(this)
+            }
+
+            SettingsUi.switchRow(
+                card, getString(R.string.nt_setting_night_dim), getString(R.string.nt_setting_night_dim_sub),
+                prefs.nightDimDots
+            ) {
+                prefs.nightDimDots = it
+                binding.settingsRoot.background = DotGridDrawable.forTier(this)
+            }
+
+            SettingsUi.switchRow(
+                card, getString(R.string.nt_setting_tactile_sound), null,
+                prefs.tactileSound
+            ) { prefs.tactileSound = it }
+
             SettingsUi.actionRow(card, getString(R.string.nt_choose_wallpaper), null, trailingIcon = R.drawable.ic_wallpaper) {
                 Intents.openWallpaperPicker(this)
             }
         }
 
-        SettingsUi.section(list, getString(R.string.setting_capabilities), accent)
-        SettingsUi.card(list).also { card ->
-            statusRows += SettingsUi.actionRow(
-                card, getString(R.string.setting_notification_access), null, trailingIcon = R.drawable.ic_play
-            ) { Intents.openNotificationAccess(this) } to {
+        // 3. GESTURES & HOME CLEANLINESS
+        SettingsUi.section(leftList, getString(R.string.nt_section_gestures), accent())
+        SettingsUi.card(leftList).also { card ->
+            SettingsUi.switchRow(card, getString(R.string.nt_setting_hide_labels), null, prefs.hideHomeLabels) {
+                prefs.hideHomeLabels = it
+            }
+            SettingsUi.switchRow(card, getString(R.string.nt_setting_search_pill), null, prefs.showSearchPill) {
+                prefs.showSearchPill = it
+            }
+            val modes = listOf(
+                NothingPrefs.DrawerLayoutMode.GRID,
+                NothingPrefs.DrawerLayoutMode.LIST,
+                NothingPrefs.DrawerLayoutMode.CATEGORIES
+            )
+            SettingsUi.choiceRow(
+                card, getString(R.string.nt_setting_drawer_mode), null,
+                listOf(
+                    getString(R.string.drawer_mode_grid),
+                    getString(R.string.drawer_mode_list),
+                    getString(R.string.drawer_mode_cats)
+                ),
+                modes.indexOf(prefs.drawerLayoutMode).coerceAtLeast(0)
+            ) { prefs.drawerLayoutMode = modes[it] }
+
+            SettingsUi.switchRow(card, getString(R.string.nt_setting_drawer_recents), null, prefs.showDrawerRecents) {
+                prefs.showDrawerRecents = it
+            }
+            dynamicRow(card, getString(R.string.nt_setting_gesture_down), subProvider = { gestureLabel(prefs.swipeDownAction) }) {
+                pickGesture(R.string.nt_setting_gesture_down, { prefs.swipeDownAction }) { prefs.swipeDownAction = it }
+            }
+            dynamicRow(card, getString(R.string.nt_setting_gesture_dtap), subProvider = { gestureLabel(prefs.doubleTapAction) }) {
+                pickGesture(R.string.nt_setting_gesture_dtap, { prefs.doubleTapAction }) { prefs.doubleTapAction = it }
+            }
+            dynamicRow(card, getString(R.string.nt_setting_gesture_pinch), subProvider = { gestureLabel(prefs.pinchAction) }) {
+                pickGesture(R.string.nt_setting_gesture_pinch, { prefs.pinchAction }) { prefs.pinchAction = it }
+            }
+        }
+
+        // 4. ESSENTIAL SPACE, DESK HUD & PRIVACY
+        SettingsUi.section(secondaryCol, getString(R.string.nt_section_essential), accent())
+        SettingsUi.card(secondaryCol).also { card ->
+            SettingsUi.actionRow(card, getString(R.string.nt_setting_desk_hud), getString(R.string.nt_setting_desk_hud_sub)) {
+                DeskHudActivity.launch(this)
+            }
+            SettingsUi.switchRow(card, getString(R.string.nt_setting_focus_mode), getString(R.string.nt_setting_focus_mode_sub), prefs.focusMode) {
+                prefs.focusMode = it
+                binding.settingsRoot.background = DotGridDrawable.forTier(this)
+            }
+            SettingsUi.switchRow(card, getString(R.string.nt_desk_keep_awake), getString(R.string.nt_desk_subtitle), prefs.deskKeepAwake) {
+                prefs.deskKeepAwake = it
+            }
+            dynamicRow(card, getString(R.string.nt_setting_world_zone), subProvider = { prefs.worldClockZoneId }) {
+                val zones = listOf(
+                    "UTC", "America/New_York", "America/Los_Angeles", "Europe/London",
+                    "Europe/Berlin", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
+                )
+                pickChoice(R.string.nt_setting_world_zone, zones, zones.indexOf(prefs.worldClockZoneId)) {
+                    prefs.worldClockZoneId = zones[it]
+                }
+            }
+            dynamicRow(card, getString(R.string.nt_setting_habit_title), subProvider = { prefs.habitTitle }) {
+                Sheets.showTextInput(
+                    this,
+                    getString(R.string.habit_rename_title),
+                    getString(R.string.habit_rename_hint),
+                    prefs.habitTitle,
+                    maxLength = 20
+                ) { updated ->
+                    if (updated.isNotBlank()) prefs.habitTitle = updated.uppercase()
+                    refreshAll()
+                }
+            }
+            dynamicRow(card, getString(R.string.nt_setting_open_vault), subProvider = {
+                val n = prefs.hiddenPackages.size
+                if (n == 0) getString(R.string.nt_setting_open_vault_sub) else "$n hidden"
+            }) {
+                HiddenVaultSheet.showVaultDialog(this) { refreshAll() }
+            }
+        }
+
+        // 5. PERMISSIONS & CAPABILITIES
+        SettingsUi.section(secondaryCol, getString(R.string.setting_capabilities), accent())
+        SettingsUi.card(secondaryCol).also { card ->
+            dynamicRow(card, getString(R.string.setting_notification_access), trailingIcon = R.drawable.ic_play, subProvider = {
                 getString(
                     if (MediaSessionRepository.hasNotificationAccess(this)) R.string.setting_notification_on
                     else R.string.setting_notification_off
                 )
-            }
-            statusRows += SettingsUi.actionRow(
-                card, getString(R.string.setting_weather_city), null, trailingIcon = R.drawable.ic_globe
-            ) { showWeatherCityEditor() } to {
+            }) { Intents.openNotificationAccess(this) }
+
+            dynamicRow(card, getString(R.string.setting_weather_city), trailingIcon = R.drawable.ic_globe, subProvider = {
                 val city = prefs.weatherCity.trim()
                 if (city.isEmpty()) getString(R.string.setting_weather_auto)
                 else getString(R.string.setting_weather_manual, city)
+            }) { showWeatherCityEditor() }
+        }
+
+        // 6. PRESETS, BACKUP & HUB
+        SettingsUi.section(secondaryCol, getString(R.string.nt_section_setup_backup), accent())
+        SettingsUi.card(secondaryCol).also { card ->
+            SettingsUi.actionRow(card, getString(R.string.nt_setting_open_hub), getString(R.string.nt_setting_open_hub_sub)) {
+                startActivity(Intent(this, LauncherEntryActivity::class.java))
+            }
+            SettingsUi.actionRow(card, getString(R.string.nt_presets_title), getString(R.string.nt_presets_short)) {
+                SetupBackupManager.showPresetsSheet(this) { recreate() }
+            }
+            SettingsUi.actionRow(card, getString(R.string.nt_backup_export), "JSON", trailingIcon = R.drawable.ic_backup) {
+                SetupBackupManager.launchExport(this)
+            }
+            SettingsUi.actionRow(card, getString(R.string.nt_backup_import), ".nothing.json", trailingIcon = R.drawable.ic_backup) {
+                SetupBackupManager.launchImport(this)
             }
         }
 
-        SettingsUi.section(list, getString(R.string.section_system), accent)
-        SettingsUi.card(list).also { card ->
-            statusRows += SettingsUi.actionRow(
-                card, getString(R.string.setting_default), null, trailingIcon = R.drawable.ic_home
-            ) { requestDefaultHome() } to {
+        // 7. SYSTEM
+        SettingsUi.section(secondaryCol, getString(R.string.section_system), accent())
+        SettingsUi.card(secondaryCol).also { card ->
+            dynamicRow(card, getString(R.string.setting_default), trailingIcon = R.drawable.ic_home, subProvider = {
                 getString(if (isDefaultHome()) R.string.setting_default_on else R.string.setting_default_off)
-            }
-            SettingsUi.actionRow(
-                card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)
-            ) {
+            }) { requestDefaultHome() }
+
+            SettingsUi.actionRow(card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)) {
                 Intents.start(this, Intent(this, com.android.launcher3.settings.SettingsActivity::class.java))
             }
-            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName()))
+            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "14" }))
         }
-        refreshStatus()
+        refreshAll()
+    }
+
+    private fun addStudioHeroCard(parent: LinearLayout) {
+        val d = resources.displayMetrics.density
+        val pad = (18 * d).toInt()
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_card)
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = (20 * d).toInt() }
+        }
+
+        val headerRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val titleMatrix = DotMatrixView(this).apply {
+            text = "STUDIO 14"
+            dotColor = getColor(R.color.dot_on)
+            accentIndices = setOf(7, 8)
+            dotScale = 0.40f
+            layoutParams = LinearLayout.LayoutParams(0, (20 * d).toInt(), 1f)
+        }
+        val palettePill = TextView(this).apply {
+            textSize = 9.5f
+            isAllCaps = true
+            letterSpacing = 0.08f
+            setTextColor(getColor(R.color.text_primary))
+            setBackgroundResource(R.drawable.bg_pill_outline)
+            gravity = android.view.Gravity.CENTER
+            setPadding((10 * d).toInt(), (4 * d).toInt(), (10 * d).toInt(), (4 * d).toInt())
+        }
+        headerRow.addView(titleMatrix)
+        headerRow.addView(palettePill)
+        card.addView(headerRow)
+
+        val previewTile = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundResource(R.drawable.bg_tile_dark)
+            setPadding((14 * d).toInt(), (12 * d).toInt(), (14 * d).toInt(), (12 * d).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = (12 * d).toInt() }
+        }
+        val liveClock = DotMatrixClockView(this).apply {
+            previewTime = 10 to 9
+            dotScale = 0.41f
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (68 * d).toInt())
+        }
+        val liveSeconds = SecondsTickerView(this).apply {
+            previewSecond = 37
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                (7 * d).toInt()
+            ).apply { topMargin = (6 * d).toInt() }
+        }
+        previewTile.addView(liveClock)
+        previewTile.addView(liveSeconds)
+        card.addView(previewTile)
+
+        card.addView(TextView(this).apply {
+            setText(R.string.nt_setting_big_bento_sub)
+            textSize = 12.5f
+            setTextColor(getColor(R.color.text_secondary))
+            setPadding(0, (10 * d).toInt(), 0, (12 * d).toInt())
+        })
+
+        val actionsRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val enterDesk = TextView(this).apply {
+            setText(R.string.nt_desk_launch)
+            textSize = 10.5f
+            setTextColor(getColor(R.color.pill_active_text))
+            setBackgroundResource(R.drawable.bg_pill_white)
+            gravity = android.view.Gravity.CENTER
+            setPadding((14 * d).toInt(), (8 * d).toInt(), (14 * d).toInt(), (8 * d).toInt())
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            Tactile.press(this)
+            setOnClickListener {
+                Tactile.confirm(it)
+                DeskHudActivity.launch(this@NothingSettingsActivity)
+            }
+        }
+        val surfacesBtn = TextView(this).apply {
+            setText(R.string.nt_setting_widget_surfaces)
+            textSize = 10.5f
+            isAllCaps = true
+            setTextColor(getColor(R.color.text_primary))
+            setBackgroundResource(R.drawable.bg_pill_outline)
+            gravity = android.view.Gravity.CENTER
+            setPadding((14 * d).toInt(), (8 * d).toInt(), (14 * d).toInt(), (8 * d).toInt())
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = (8 * d).toInt() }
+            Tactile.press(this)
+            setOnClickListener {
+                Tactile.tick(it)
+                CustomizeSheet.showWidgetSurfacesSheet(this@NothingSettingsActivity)
+            }
+        }
+        actionsRow.addView(enterDesk)
+        actionsRow.addView(surfacesBtn)
+        card.addView(actionsRow)
+
+        fun syncPreview() {
+            val ac = AccentTheme.accentColor(this@NothingSettingsActivity)
+            titleMatrix.accentColor = ac
+            liveClock.accentColor = ac
+            liveClock.glow = VisualTier.effects(this@NothingSettingsActivity).dotGlow
+            liveSeconds.accentColor = ac
+            liveSeconds.isVisible = prefs.showSeconds
+            palettePill.text = getString(prefs.accentPalette.labelRes)
+        }
+        syncPreview()
+        statusRefreshers += ::syncPreview
+        parent.addView(card)
     }
 
     private fun qualitySubtitle(): String = when (prefs.visualQuality) {
@@ -532,13 +588,6 @@ class NothingSettingsActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshStatus() {
-        statusRows.forEach { (row, status) ->
-            row.rowSubtitle.text = status()
-            row.rowSubtitle.visibility = android.view.View.VISIBLE
-        }
-    }
-
     private fun showWeatherCityEditor() {
         dialog?.dismiss()
         dialog = Sheets.showTextInput(
@@ -549,7 +598,7 @@ class NothingSettingsActivity : AppCompatActivity() {
             maxLength = 64
         ) { city ->
             WeatherRepository.setCity(this, prefs, city) { }
-            refreshStatus()
+            refreshAll()
         }
     }
 

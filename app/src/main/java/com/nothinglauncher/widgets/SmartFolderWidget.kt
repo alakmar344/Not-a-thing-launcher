@@ -4,13 +4,20 @@ import android.appwidget.AppWidgetHostView
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.LauncherActivityInfo
 import android.content.pm.LauncherApps
 import android.os.Process
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.core.view.isVisible
+import androidx.core.widget.NestedScrollView
 import com.nothinglauncher.AccentTheme
+import com.nothinglauncher.DotMatrixView
 import com.nothinglauncher.IconFactory
 import com.nothinglauncher.Intents
 import com.nothinglauncher.NothingPrefs
@@ -20,9 +27,10 @@ import com.nothinglauncher.Tactile
 import com.nothinglauncher.icons.NothingIconLogic
 
 /**
- * Interactive 2x2 Smart Folder / Max App Card:
- * Displays up to 4 directly-tappable circular Nothing icons in a 2x2 square tile (or 1 giant
- * Max Icon if a single app is configured). Tap header to rename; tap empty slot/title to cycle preset.
+ * Interactive 2x2 Essential Stack / Max Icon Card:
+ * - Pick 1 app -> displays a giant 68dp centered Nothing Max Icon + label.
+ * - Pick 2..4 apps -> displays a 2x2 directly-tappable circular Nothing icon stack.
+ * - Tap header to rename; tap gear icon (or long-press title) to pick apps.
  */
 class SmartFolderWidget(context: Context) : NothingWidget(context) {
     override val labelRes = R.string.element_folder
@@ -39,6 +47,11 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
         val root = LayoutInflater.from(ctx).inflate(R.layout.widget_smart_folder, host, false)
         val dot = root.findViewById<View>(R.id.sfDot)
         val title = root.findViewById<TextView>(R.id.sfTitle)
+        val editBtn = root.findViewById<View>(R.id.sfEditBtn)
+        val maxContainer = root.findViewById<View>(R.id.sfMaxContainer)
+        val maxIcon = root.findViewById<ImageView>(R.id.sfMaxIcon)
+        val maxLabel = root.findViewById<TextView>(R.id.sfMaxLabel)
+        val gridContainer = root.findViewById<View>(R.id.sfGridContainer)
         val slots = listOf<ImageView>(
             root.findViewById(R.id.sfApp0),
             root.findViewById(R.id.sfApp1),
@@ -60,14 +73,54 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
             }
         }
 
+        fun loadActivityInfo(la: LauncherApps?, cn: ComponentName): LauncherActivityInfo? = try {
+            la?.getActivityList(cn.packageName, Process.myUserHandle())
+                ?.firstOrNull { it.componentName == cn }
+        } catch (_: Throwable) {
+            null
+        }
+
+        fun launchComponent(v: View, cn: ComponentName) {
+            Tactile.confirm(v)
+            prefs.recordAppLaunch(cn.flattenToString())
+            val launch = Intent(Intent.ACTION_MAIN)
+                .addCategory(Intent.CATEGORY_LAUNCHER)
+                .setComponent(cn)
+            Intents.start(ctx, launch, v)
+        }
+
         fun bind() {
+            AccentTheme.applyWidgetSurface(root, ctx, "folder", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "folder", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
+            title.setTextColor(sc.textPrimary)
             title.text = prefs.quickFolderTitle
             val configured = prefs.quickFolderApps.mapNotNull { ComponentName.unflattenFromString(it) }
-            val components = if (configured.isNotEmpty()) configured else resolveDefaultApps()
-            val iconSize = (42 * ctx.resources.displayMetrics.density).toInt()
             val style = NothingIconLogic.currentStyle(ctx)
             val la = try { ctx.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null }
+
+            if (configured.size == 1) {
+                // Single-app Max Icon hero mode
+                val cn = configured.first()
+                maxContainer.isVisible = true
+                gridContainer.isVisible = false
+                val info = loadActivityInfo(la, cn)
+                val iconSize = (68 * ctx.resources.displayMetrics.density).toInt()
+                val raw = info?.getBadgedIcon(0) ?: try { ctx.packageManager.getActivityIcon(cn) } catch (_: Throwable) { null }
+                if (raw != null) maxIcon.setImageDrawable(IconFactory.render(ctx.resources, raw, style, iconSize))
+                else maxIcon.setImageResource(R.drawable.nt_ic_apps)
+                val label = prefs.customAppLabels[cn.flattenToString()] ?: info?.label ?: cn.packageName
+                maxLabel.text = label
+                maxLabel.setTextColor(sc.textPrimary)
+                Tactile.press(maxContainer, 0.94f)
+                maxContainer.setOnClickListener { launchComponent(it, cn) }
+                return
+            }
+
+            maxContainer.isVisible = false
+            gridContainer.isVisible = true
+            val components = if (configured.isNotEmpty()) configured else resolveDefaultApps()
+            val iconSize = (42 * ctx.resources.displayMetrics.density).toInt()
 
             slots.forEachIndexed { i, iv ->
                 val cn = components.getOrNull(i)
@@ -76,34 +129,106 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
                     iv.setOnClickListener(null)
                 } else {
                     iv.visibility = View.VISIBLE
-                    val info = try {
-                        la?.getActivityList(cn.packageName, Process.myUserHandle())
-                            ?.firstOrNull { it.componentName == cn }
-                    } catch (_: Throwable) {
-                        null
-                    }
-                    val raw = info?.getBadgedIcon(0) ?: try {
-                        ctx.packageManager.getActivityIcon(cn)
-                    } catch (_: Throwable) {
-                        null
-                    }
-                    if (raw != null) {
-                        iv.setImageDrawable(IconFactory.render(ctx.resources, raw, style, iconSize))
-                    } else {
-                        iv.setImageResource(R.drawable.nt_ic_apps)
-                    }
-                    iv.contentDescription = info?.label ?: cn.packageName
+                    val info = loadActivityInfo(la, cn)
+                    val raw = info?.getBadgedIcon(0) ?: try { ctx.packageManager.getActivityIcon(cn) } catch (_: Throwable) { null }
+                    if (raw != null) iv.setImageDrawable(IconFactory.render(ctx.resources, raw, style, iconSize))
+                    else iv.setImageResource(R.drawable.nt_ic_apps)
+                    iv.contentDescription = prefs.customAppLabels[cn.flattenToString()] ?: info?.label ?: cn.packageName
                     Tactile.press(iv, 0.92f)
-                    iv.setOnClickListener {
-                        Tactile.confirm(it)
-                        prefs.recordAppLaunch(cn.flattenToString())
-                        val launch = Intent(Intent.ACTION_MAIN)
-                            .addCategory(Intent.CATEGORY_LAUNCHER)
-                            .setComponent(cn)
-                        Intents.start(ctx, launch, it)
-                    }
+                    iv.setOnClickListener { launchComponent(it, cn) }
                 }
             }
+        }
+
+        fun showAppPicker() {
+            val la = try { ctx.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null } ?: return
+            val allApps = try {
+                la.getActivityList(null, Process.myUserHandle())
+                    .filter { it.applicationInfo.packageName != ctx.packageName }
+                    .sortedBy { it.label.toString().lowercase() }
+            } catch (_: Throwable) {
+                emptyList()
+            }
+            val selected = prefs.quickFolderApps.toMutableList()
+            val d = ctx.resources.displayMetrics.density
+            val pad = (16 * d).toInt()
+            val sheet = LinearLayout(ctx).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundResource(R.drawable.bg_sheet)
+                setPadding(pad, (14 * d).toInt(), pad, pad)
+            }
+            sheet.addView(DotMatrixView(ctx).apply {
+                text = ctx.getString(R.string.nt_folder_pick_title)
+                dotColor = ctx.getColor(R.color.dot_on)
+                dotScale = 0.40f
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, (18 * d).toInt())
+            })
+            sheet.addView(TextView(ctx).apply {
+                setText(R.string.nt_folder_pick_sub)
+                textSize = 12f
+                setTextColor(ctx.getColor(R.color.text_secondary))
+                setPadding(0, (6 * d).toInt(), 0, (10 * d).toInt())
+            })
+            val scroll = NestedScrollView(ctx).apply {
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (300 * d).toInt())
+            }
+            val list = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            scroll.addView(list)
+            sheet.addView(scroll)
+            val dlg = Sheets.create(ctx, sheet)
+            val style = NothingIconLogic.currentStyle(ctx)
+            val iconPx = (30 * d).toInt()
+            val accent = AccentTheme.accentColor(ctx)
+
+            fun renderRows() {
+                list.removeAllViews()
+                allApps.forEach { info ->
+                    val flat = info.componentName.flattenToString()
+                    val isPicked = selected.contains(flat)
+                    val row = LinearLayout(ctx).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        setPadding((10 * d).toInt(), (8 * d).toInt(), (10 * d).toInt(), (8 * d).toInt())
+                        setBackgroundResource(if (isPicked) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { bottomMargin = (6 * d).toInt() }
+                    }
+                    row.addView(ImageView(ctx).apply {
+                        setImageDrawable(IconFactory.render(ctx.resources, info.getBadgedIcon(0), style, iconPx))
+                    }, LinearLayout.LayoutParams(iconPx, iconPx))
+                    row.addView(TextView(ctx).apply {
+                        text = prefs.customAppLabels[flat] ?: info.label
+                        textSize = 13.5f
+                        setTextColor(ctx.getColor(if (isPicked) R.color.ink else R.color.text_primary))
+                        setPadding((12 * d).toInt(), 0, (8 * d).toInt(), 0)
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    })
+                    if (isPicked) {
+                        row.addView(TextView(ctx).apply {
+                            text = "#${selected.indexOf(flat) + 1}"
+                            textSize = 11f
+                            setTextColor(accent)
+                        })
+                    }
+                    row.setOnClickListener {
+                        Tactile.tick(it)
+                        if (isPicked) selected.remove(flat)
+                        else if (selected.size < 4) selected.add(flat)
+                        else {
+                            selected.removeAt(0)
+                            selected.add(flat)
+                        }
+                        prefs.quickFolderApps = selected
+                        renderRows()
+                        bind()
+                    }
+                    list.addView(row)
+                }
+            }
+            renderRows()
+            Sheets.showSafely(ctx, dlg)
         }
 
         title.setOnClickListener {
@@ -119,10 +244,23 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
                 bind()
             }
         }
+        editBtn.setOnClickListener {
+            Tactile.tick(it)
+            showAppPicker()
+        }
 
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) bind()
+        }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(v: View) = bind()
-            override fun onViewDetachedFromWindow(v: View) {}
+            override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
+                bind()
+            }
+
+            override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
+            }
         })
         bind()
         return root

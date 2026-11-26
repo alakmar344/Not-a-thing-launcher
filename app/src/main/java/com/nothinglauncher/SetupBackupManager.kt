@@ -22,7 +22,7 @@ object SetupBackupManager {
         val titleRes: Int,
         val subtitleRes: Int
     ) {
-        TELEMETRY("telemetry", R.string.nt_preset_telemetry, R.string.nt_preset_telemetry_sub),
+        TELEMETRY("telemetry", R.string.nt_preset_telemetry_v14, R.string.nt_preset_telemetry_sub),
         MONOLITH("monolith", R.string.nt_preset_monolith, R.string.nt_preset_monolith_sub),
         COMMAND("command", R.string.nt_preset_command, R.string.nt_preset_command_sub),
         STUDIO("studio", R.string.nt_preset_studio, R.string.nt_preset_studio_sub)
@@ -90,7 +90,7 @@ object SetupBackupManager {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "application/json"
-            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v13-setup.nothing.json")
+            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v14-setup.nothing.json")
         }
         try {
             @Suppress("DEPRECATION")

@@ -31,19 +31,36 @@ open class DotMatrixView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
-    private var raster: DotFont.Raster = DotFont.rasterize("")
+    private var rasterLines: List<DotFont.Raster> = listOf(DotFont.rasterize(""))
+    private var lineCharOffsets: IntArray = intArrayOf(0)
+    private var maxCols: Int = 0
 
     var text: String = ""
         set(value) {
             if (field == value) return
-            val newRaster = DotFont.rasterize(value, letterSpacingCols)
-            val widthChanged = newRaster.columns != raster.columns
             field = value
-            raster = newRaster
-            contentDescription = value
-            if (widthChanged) requestLayout()
+            rebuildRaster()
+            contentDescription = value.replace('\n', ' ')
+            requestLayout()
             invalidate()
         }
+
+    var maxPitchDp: Float = 0f
+        set(value) { field = value.coerceAtLeast(0f); requestLayout(); invalidate() }
+
+    private fun rebuildRaster() {
+        val parts = text.split('\n')
+        val list = parts.map { DotFont.rasterizeCached(it, letterSpacingCols) }
+        val offsets = IntArray(list.size)
+        var acc = 0
+        for (i in parts.indices) {
+            offsets[i] = acc
+            acc += parts[i].length + 1 // +1 for '\n'
+        }
+        rasterLines = list
+        lineCharOffsets = offsets
+        maxCols = list.maxOfOrNull { it.columns } ?: 0
+    }
 
     var dotColor: Int
         get() = onPaint.color
@@ -70,7 +87,7 @@ open class DotMatrixView @JvmOverloads constructor(
     var letterSpacingCols: Int = 1
         set(value) {
             field = value.coerceAtLeast(0)
-            raster = DotFont.rasterize(text, field)
+            rebuildRaster()
             requestLayout(); invalidate()
         }
 
@@ -147,6 +164,7 @@ open class DotMatrixView @JvmOverloads constructor(
             panelPadRows = a.getInt(R.styleable.DotMatrixView_dmPanelPadRows, 1)
             dotScale = a.getFloat(R.styleable.DotMatrixView_dmDotScale, 0.36f)
             letterSpacingCols = a.getInt(R.styleable.DotMatrixView_dmLetterSpacing, 1)
+            maxPitchDp = a.getDimension(R.styleable.DotMatrixView_dmMaxPitchDp, 0f) / density
             glow = a.getBoolean(R.styleable.DotMatrixView_dmGlow, false)
             gravityMode = a.getInt(R.styleable.DotMatrixView_dmGravity, 1)
             text = a.getString(R.styleable.DotMatrixView_dmText) ?: ""
@@ -155,23 +173,31 @@ open class DotMatrixView @JvmOverloads constructor(
         importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_YES
     }
 
-    private val rows: Int get() = if (panel) DotFont.ROWS + panelPadRows * 2 else DotFont.ROWS
+    private val lineGapRows: Int get() = 2
+    private val textRows: Int
+        get() {
+            val n = rasterLines.size.coerceAtLeast(1)
+            return n * DotFont.ROWS + (n - 1) * lineGapRows
+        }
+    private val rows: Int get() = if (panel) textRows + panelPadRows * 2 else textRows
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         val defaultPitch = 6f * density
+        val cappedDefaultPitch = if (maxPitchDp > 0f) min(defaultPitch, maxPitchDp * density) else defaultPitch
         val hMode = MeasureSpec.getMode(heightMeasureSpec)
         val hSize = MeasureSpec.getSize(heightMeasureSpec)
         // The measured height includes padding; an EXACTLY/AT_MOST spec must never be exceeded.
         val padV = paddingTop + paddingBottom
-        val desiredHeight = (rows * defaultPitch).toInt() + padV
+        val desiredHeight = (rows * cappedDefaultPitch).toInt() + padV
         val height = when (hMode) {
             MeasureSpec.EXACTLY -> hSize
             MeasureSpec.AT_MOST -> min(hSize, desiredHeight)
             else -> desiredHeight
         }
-        val pitch = max(0, height - padV) / rows.toFloat()
+        var pitch = max(0, height - padV) / rows.toFloat()
+        if (maxPitchDp > 0f) pitch = min(pitch, maxPitchDp * density)
         val extraCols = if (panel) 2 else 0
-        val desiredWidth = ((raster.columns + extraCols) * pitch).toInt() + paddingLeft + paddingRight
+        val desiredWidth = ((maxCols + extraCols) * pitch).toInt() + paddingLeft + paddingRight
         val wMode = MeasureSpec.getMode(widthMeasureSpec)
         val wSize = MeasureSpec.getSize(widthMeasureSpec)
         val width = when (wMode) {
@@ -187,10 +213,11 @@ open class DotMatrixView @JvmOverloads constructor(
         val availW = (width - paddingLeft - paddingRight).toFloat()
         val availH = (height - paddingTop - paddingBottom).toFloat()
         if (availW <= 0f || availH <= 0f) return
-        val cols = raster.columns
+        val cols = maxCols
         val extraCols = if (panel) 2 else 0
         var pitch = availH / rows
         if (cols + extraCols > 0) pitch = min(pitch, availW / (cols + extraCols))
+        if (maxPitchDp > 0f) pitch = min(pitch, maxPitchDp * density)
         if (pitch <= 0f) return
         val radius = pitch * dotScale
 
@@ -198,20 +225,29 @@ open class DotMatrixView @JvmOverloads constructor(
             val gridCols = max(floor(availW / pitch).toInt(), cols)
             val x0 = paddingLeft + (availW - gridCols * pitch) / 2f
             val y0 = paddingTop + (availH - rows * pitch) / 2f
-            val textStart = when (gravityMode) {
-                0 -> min(1, gridCols - cols)
-                2 -> max(0, gridCols - cols - 1)
-                else -> (gridCols - cols) / 2
-            }
             for (row in 0 until rows) {
                 val cy = y0 + (row + 0.5f) * pitch
                 val tr = row - panelPadRows
+                val lineIdx = if (tr >= 0) tr / (DotFont.ROWS + lineGapRows) else -1
+                val rowInLine = if (tr >= 0) tr % (DotFont.ROWS + lineGapRows) else -1
+                val rLine = if (lineIdx in rasterLines.indices && rowInLine in 0 until DotFont.ROWS) rasterLines[lineIdx] else null
+                val lineCols = rLine?.columns ?: 0
+                val textStart = when (gravityMode) {
+                    0 -> min(1, gridCols - lineCols)
+                    2 -> max(0, gridCols - lineCols - 1)
+                    else -> (gridCols - lineCols) / 2
+                }
+                val charOffset = if (lineIdx in lineCharOffsets.indices) lineCharOffsets[lineIdx] else 0
                 for (col in 0 until gridCols) {
                     val cx = x0 + (col + 0.5f) * pitch
                     val tc = col - textStart
-                    val lit = tr in 0 until DotFont.ROWS && tc in 0 until cols && raster.lit[tr][tc]
+                    val lit = rLine != null && tc in 0 until lineCols && rLine.lit[rowInLine][tc]
+                    val charIdx = if (lit) {
+                        val rawIdx = rLine!!.charIndexAtColumn[tc]
+                        if (rawIdx >= 0) charOffset + rawIdx else -1
+                    } else -1
                     when (scanState(col / gridCols.toFloat())) {
-                        0 -> drawDot(canvas, cx, cy, radius, lit, if (lit) raster.charIndexAtColumn[tc] else -1)
+                        0 -> drawDot(canvas, cx, cy, radius, lit, charIdx)
                         1 -> drawDot(canvas, cx, cy, radius, false, -1)
                         else -> drawScanDot(canvas, cx, cy, radius, lit)
                     }
@@ -219,23 +255,31 @@ open class DotMatrixView @JvmOverloads constructor(
             }
         } else {
             if (cols == 0) return
-            val textW = cols * pitch
-            val x0 = paddingLeft + when (gravityMode) {
-                0 -> 0f
-                2 -> availW - textW
-                else -> (availW - textW) / 2f
-            }
-            val y0 = paddingTop + (availH - DotFont.ROWS * pitch) / 2f
-            for (row in 0 until DotFont.ROWS) {
-                val cy = y0 + (row + 0.5f) * pitch
-                for (col in 0 until cols) {
-                    val lit = raster.lit[row][col]
-                    if (!lit && offColor == 0) continue
-                    val cx = x0 + (col + 0.5f) * pitch
-                    when (scanState(col / cols.toFloat())) {
-                        0 -> drawDot(canvas, cx, cy, radius, lit, raster.charIndexAtColumn[col])
-                        1 -> drawDot(canvas, cx, cy, radius, false, -1)
-                        else -> drawScanDot(canvas, cx, cy, radius, lit)
+            val y0 = paddingTop + (availH - textRows * pitch) / 2f
+            rasterLines.forEachIndexed { lineIdx, rLine ->
+                val lineCols = rLine.columns
+                if (lineCols == 0) return@forEachIndexed
+                val textW = lineCols * pitch
+                val x0 = paddingLeft + when (gravityMode) {
+                    0 -> 0f
+                    2 -> availW - textW
+                    else -> (availW - textW) / 2f
+                }
+                val lineY0 = y0 + lineIdx * (DotFont.ROWS + lineGapRows) * pitch
+                val charOffset = lineCharOffsets[lineIdx]
+                for (row in 0 until DotFont.ROWS) {
+                    val cy = lineY0 + (row + 0.5f) * pitch
+                    for (col in 0 until lineCols) {
+                        val lit = rLine.lit[row][col]
+                        if (!lit && offColor == 0) continue
+                        val cx = x0 + (col + 0.5f) * pitch
+                        val rawIdx = rLine.charIndexAtColumn[col]
+                        val charIdx = if (rawIdx >= 0) charOffset + rawIdx else -1
+                        when (scanState(col / cols.toFloat())) {
+                            0 -> drawDot(canvas, cx, cy, radius, lit, charIdx)
+                            1 -> drawDot(canvas, cx, cy, radius, false, -1)
+                            else -> drawScanDot(canvas, cx, cy, radius, lit)
+                        }
                     }
                 }
             }

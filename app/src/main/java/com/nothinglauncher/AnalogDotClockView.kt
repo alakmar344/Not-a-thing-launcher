@@ -29,6 +29,12 @@ class AnalogDotClockView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        invalidate()
+    }
+
     private var running = false
     private val ticker = object : Runnable {
         override fun run() {

@@ -39,9 +39,14 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
         fun bind() {
             val state = FocusTimerRepository.snapshot(ctx)
             val accent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(root, ctx, "timer", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "timer", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
             dot.alpha = if (state.running) 1f else 0.45f
+            modeLabel.setTextColor(sc.textSecondary)
+            resetBtn.setTextColor(sc.textPrimary)
             ring.accentColor = accent
+            ring.applySurfaceColors(sc)
             ring.highlightActive = state.running
             ring.progress01 = state.progress01
             ring.centerText = state.display
@@ -110,6 +115,13 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
             FocusTimerRepository.toggleStartPause(ctx)
             bind()
             updateTicker()
+        }
+        ring.setOnLongClickListener {
+            Tactile.tick(it)
+            FocusTimerRepository.toggleMode(ctx)
+            bind()
+            updateTicker()
+            true
         }
         modeLabel.setOnClickListener {
             Tactile.tick(it)

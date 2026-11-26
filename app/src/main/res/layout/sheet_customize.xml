@@ -7,6 +7,7 @@
     android:padding="12dp">
 
     <LinearLayout
+        android:id="@+id/customizeCard"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@drawable/bg_sheet"
@@ -26,7 +27,7 @@
             android:layout_width="wrap_content"
             android:layout_height="18dp"
             android:layout_marginStart="6dp"
-            android:layout_marginTop="18dp"
+            android:layout_marginTop="16dp"
             app:dmDotColor="@color/dot_on"
             app:dmDotScale="0.42"
             app:dmText="CUSTOMIZE" />
@@ -34,14 +35,14 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:orientation="horizontal">
 
             <include
                 android:id="@+id/tileWallpaper"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="100dp"
+                android:layout_height="96dp"
                 android:layout_weight="1" />
 
             <Space
@@ -52,7 +53,7 @@
                 android:id="@+id/tileWidgets"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="100dp"
+                android:layout_height="96dp"
                 android:layout_weight="1" />
 
             <Space
@@ -63,8 +64,98 @@
                 android:id="@+id/tileSettings"
                 layout="@layout/item_sheet_tile"
                 android:layout_width="0dp"
-                android:layout_height="100dp"
+                android:layout_height="96dp"
                 android:layout_weight="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/customizeQuickRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/chipEssential"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_tile_dark"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/fg_ripple_tile"
+                android:gravity="center"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/essential_short"
+                android:textColor="@color/text_primary"
+                android:textSize="9.5sp" />
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <TextView
+                android:id="@+id/chipDeskHud"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_tile_dark"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/fg_ripple_tile"
+                android:gravity="center"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/nt_desk_short"
+                android:textColor="@color/text_primary"
+                android:textSize="9.5sp" />
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <TextView
+                android:id="@+id/chipPresets"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_tile_dark"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/fg_ripple_tile"
+                android:gravity="center"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/nt_presets_short"
+                android:textColor="@color/text_primary"
+                android:textSize="9.5sp" />
+
+            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+            <TextView
+                android:id="@+id/chipVault"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_tile_dark"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="@drawable/fg_ripple_tile"
+                android:gravity="center"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:paddingStart="6dp"
+                android:paddingEnd="6dp"
+                android:text="@string/vault_short"
+                android:textColor="@color/text_primary"
+                android:textSize="9.5sp" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

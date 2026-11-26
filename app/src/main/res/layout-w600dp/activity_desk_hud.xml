@@ -1,0 +1,710 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Big-screen / tablet / foldable 2-column Bento Cockpit + 4-stage Desk HUD -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/deskRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/deskCanvas"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="22dp">
+
+        <!-- Top Status + Mode Strip -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <View
+                android:id="@+id/deskAccentDot"
+                android:layout_width="7dp"
+                android:layout_height="7dp"
+                android:background="@drawable/dot_red" />
+
+            <TextView
+                style="@style/Text.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/nt_desk_title"
+                android:textColor="@color/text_primary"
+                android:textSize="12sp" />
+
+            <!-- Mode Selector Pills -->
+            <LinearLayout
+                android:id="@+id/deskModeBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/deskModeCockpit"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_pill_white"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/nt_desk_mode_cockpit"
+                    android:textColor="@color/pill_active_text"
+                    android:textSize="9sp" />
+
+                <Space android:layout_width="6dp" android:layout_height="1dp" />
+
+                <TextView
+                    android:id="@+id/deskModeClock"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_pill_outline"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/nt_desk_mode_clock"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp" />
+
+                <Space android:layout_width="6dp" android:layout_height="1dp" />
+
+                <TextView
+                    android:id="@+id/deskModeFocus"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_pill_outline"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/nt_desk_mode_focus"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp" />
+
+                <Space android:layout_width="6dp" android:layout_height="1dp" />
+
+                <TextView
+                    android:id="@+id/deskModeGlyph"
+                    style="@style/Text.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="28dp"
+                    android:background="@drawable/bg_pill_outline"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="10dp"
+                    android:paddingEnd="10dp"
+                    android:text="@string/nt_desk_mode_glyph"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="9sp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/deskNextBanner"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_marginEnd="14dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="1"
+                android:textColor="@color/text_secondary"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/deskAwakeBtn"
+                style="@style/Text.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="@drawable/bg_pill_white"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="@string/nt_desk_keep_awake"
+                android:textColor="@color/pill_active_text"
+                android:textSize="10sp" />
+
+            <TextView
+                android:id="@+id/deskExitBtn"
+                style="@style/Text.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/bg_pill_outline"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:paddingStart="14dp"
+                android:paddingEnd="14dp"
+                android:text="@string/nt_desk_exit"
+                android:textColor="@color/text_primary"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- Dual-Column Bento Cockpit / Full Clock / Focus Zen Stage -->
+        <LinearLayout
+            android:id="@+id/deskCockpitStage"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1"
+            android:baselineAligned="false"
+            android:orientation="horizontal">
+
+            <!-- Left Column (58%): Hero Clock + Battery & Quick Switchboard -->
+            <LinearLayout
+                android:id="@+id/deskLeftCol"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1.35"
+                android:orientation="vertical">
+
+                <LinearLayout
+                    android:id="@+id/deskClockCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1.5"
+                    android:background="@drawable/bg_tile_dark"
+                    android:orientation="vertical"
+                    android:padding="22dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/deskDate"
+                            style="@style/Text.Body"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:ellipsize="end"
+                            android:maxLines="1"
+                            android:textColor="@color/text_primary"
+                            android:textSize="17sp" />
+
+                        <TextView
+                            android:id="@+id/deskClockModePill"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="26dp"
+                            android:background="@drawable/bg_pill_outline"
+                            android:clickable="true"
+                            android:focusable="true"
+                            android:gravity="center"
+                            android:paddingStart="12dp"
+                            android:paddingEnd="12dp"
+                            android:textColor="@color/text_primary"
+                            android:textSize="10sp" />
+                    </LinearLayout>
+
+                    <FrameLayout
+                        android:id="@+id/deskClockFrame"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="14dp"
+                        android:layout_weight="1">
+
+                        <com.nothinglauncher.DotMatrixClockView
+                            android:id="@+id/deskClock"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            app:dmDotColor="@color/dot_on"
+                            app:dmDotScale="0.41"
+                            app:dmGlow="true"
+                            app:dmOffColor="@color/dot_off"
+                            app:dmPanel="true"
+                            app:dmPanelPadRows="1" />
+
+                        <com.nothinglauncher.AnalogDotClockView
+                            android:id="@+id/deskClockAnalog"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:visibility="gone" />
+
+                        <com.nothinglauncher.DotMatrixView
+                            android:id="@+id/deskClockWord"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:visibility="gone"
+                            app:dmDotColor="@color/dot_on"
+                            app:dmDotScale="0.38"
+                            app:dmGlow="true"
+                            app:dmGravity="center"
+                            app:dmOffColor="@color/dot_off"
+                            app:dmPanel="true" />
+                    </FrameLayout>
+
+                    <com.nothinglauncher.SecondsTickerView
+                        android:id="@+id/deskSeconds"
+                        android:layout_width="match_parent"
+                        android:layout_height="10dp"
+                        android:layout_marginTop="12dp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/deskLeftBottomRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_weight="1"
+                    android:orientation="horizontal">
+
+                    <FrameLayout
+                        android:id="@+id/deskBatteryCard"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tile_light">
+
+                        <com.nothinglauncher.BatteryDotsView
+                            android:id="@+id/deskBattery"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:padding="16dp" />
+
+                        <ImageView
+                            android:id="@+id/deskBatteryBolt"
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="top|end"
+                            android:layout_margin="18dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_bolt"
+                            android:tint="@color/ink"
+                            android:visibility="gone" />
+                    </FrameLayout>
+
+                    <Space
+                        android:id="@+id/deskMidSpacer"
+                        android:layout_width="14dp"
+                        android:layout_height="1dp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1.35"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:id="@+id/deskTogglesRow"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:id="@+id/deskTorchBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_tile_dark"
+                                android:ellipsize="end"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="@string/toggle_torch"
+                                android:textSize="9.5sp" />
+
+                            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+                            <TextView
+                                android:id="@+id/deskFocusBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_tile_dark"
+                                android:ellipsize="end"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="@string/toggle_focus"
+                                android:textSize="9.5sp" />
+
+                            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+                            <TextView
+                                android:id="@+id/deskSoundBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_tile_dark"
+                                android:ellipsize="end"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="@string/toggle_sound"
+                                android:textSize="9.5sp" />
+
+                            <Space android:layout_width="8dp" android:layout_height="1dp" />
+
+                            <TextView
+                                android:id="@+id/deskHabitBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="0dp"
+                                android:layout_height="52dp"
+                                android:layout_weight="1"
+                                android:background="@drawable/bg_tile_dark"
+                                android:clickable="true"
+                                android:ellipsize="end"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:maxLines="1"
+                                android:text="@string/habit_log"
+                                android:textSize="9.5sp" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/deskNotePreview"
+                            style="@style/Text.Body"
+                            android:layout_width="match_parent"
+                            android:layout_height="0dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_weight="1"
+                            android:background="@drawable/bg_tile_dark"
+                            android:ellipsize="end"
+                            android:fontFamily="@font/space_mono_regular"
+                            android:maxLines="6"
+                            android:padding="16dp"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+
+            <Space
+                android:id="@+id/deskColSpacer"
+                android:layout_width="16dp"
+                android:layout_height="1dp" />
+
+            <!-- Right Column (42%): Weather Sparkline + Focus Pomodoro Ring + Media Deck -->
+            <LinearLayout
+                android:id="@+id/deskRightCol"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:id="@+id/deskWeatherCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="0.85"
+                    android:background="@drawable/bg_tile_dark">
+
+                    <com.nothinglauncher.WeatherDotsView
+                        android:id="@+id/deskWeather"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:id="@+id/deskTimerCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="14dp"
+                    android:layout_weight="1.05"
+                    android:background="@drawable/bg_tile_dark"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/deskTimerDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/dot_red" />
+
+                        <TextView
+                            android:id="@+id/deskTimerMode"
+                            style="@style/Text.Label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/timer_label" />
+
+                        <TextView
+                            android:id="@+id/deskTimerAction"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_primary" />
+                    </LinearLayout>
+
+                    <com.nothinglauncher.DotRingGaugeView
+                        android:id="@+id/deskTimerRing"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_marginTop="6dp"
+                        android:layout_weight="1"
+                        android:clickable="true"
+                        android:focusable="true" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/deskMediaCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:background="@drawable/bg_tile_dark"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/deskMediaDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/dot_red" />
+
+                        <TextView
+                            style="@style/Text.Label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/media_label" />
+
+                        <TextView
+                            android:id="@+id/deskMediaRoute"
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:textSize="9sp"
+                            android:visibility="gone" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.nothinglauncher.MediaArtDotsView
+                            android:id="@+id/deskMediaArt"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_marginEnd="12dp"
+                            android:visibility="gone" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/deskMediaTitle"
+                                style="@style/Text.Body"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/space_mono_bold"
+                                android:maxLines="1"
+                                android:textSize="13sp" />
+
+                            <TextView
+                                android:id="@+id/deskMediaArtist"
+                                style="@style/Text.Body.Secondary"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:ellipsize="end"
+                                android:fontFamily="@font/space_mono_regular"
+                                android:maxLines="1"
+                                android:textSize="10sp" />
+
+                            <com.nothinglauncher.MediaDotsView
+                                android:id="@+id/deskMediaBars"
+                                android:layout_width="match_parent"
+                                android:layout_height="18dp"
+                                android:layout_marginTop="6dp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/deskMediaPrev"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:background="@drawable/fg_ripple_oval"
+                            android:padding="5dp"
+                            android:src="@drawable/ic_skip_previous"
+                            android:tint="@color/text_secondary" />
+
+                        <ImageView
+                            android:id="@+id/deskMediaPlayPause"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="20dp"
+                            android:layout_marginEnd="20dp"
+                            android:background="@drawable/bg_pill_white"
+                            android:padding="7dp"
+                            android:src="@drawable/ic_pause"
+                            android:tint="@color/pill_active_text" />
+
+                        <ImageView
+                            android:id="@+id/deskMediaNext"
+                            android:layout_width="30dp"
+                            android:layout_height="30dp"
+                            android:background="@drawable/fg_ripple_oval"
+                            android:padding="5dp"
+                            android:src="@drawable/ic_skip_next"
+                            android:tint="@color/text_secondary" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Procedural Glyph LED Matrix Stage (hidden unless GLYPH mode active) -->
+        <LinearLayout
+            android:id="@+id/deskGlyphStage"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_tile_dark"
+                android:orientation="vertical"
+                android:padding="22dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:id="@+id/deskGlyphDot"
+                        android:layout_width="7dp"
+                        android:layout_height="7dp"
+                        android:background="@drawable/dot_red" />
+
+                    <TextView
+                        style="@style/Text.Label"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/nt_desk_mode_glyph" />
+
+                    <TextView
+                        android:id="@+id/deskGlyphTime"
+                        style="@style/Text.Body"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/space_mono_bold"
+                        android:textColor="@color/text_primary"
+                        android:textSize="16sp" />
+                </LinearLayout>
+
+                <com.nothinglauncher.GlyphMatrixCanvasView
+                    android:id="@+id/deskGlyphCanvas"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    style="@style/Text.Label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:text="@string/nt_desk_glyph_hint"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/deskGlyphMediaPill"
+                    style="@style/Text.Label"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_tile_dark"
+                    android:clickable="true"
+                    android:ellipsize="end"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/media_label"
+                    android:textSize="10sp" />
+
+                <Space android:layout_width="14dp" android:layout_height="1dp" />
+
+                <TextView
+                    android:id="@+id/deskGlyphTimerPill"
+                    style="@style/Text.Label"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_tile_dark"
+                    android:clickable="true"
+                    android:ellipsize="end"
+                    android:focusable="true"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/timer_label"
+                    android:textSize="10sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

@@ -1,5 +1,6 @@
 package com.nothinglauncher.drawer
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -26,6 +27,7 @@ import com.nothinglauncher.icons.NothingIconLogic
  * stock [AllAppsGridAdapter] without modifying AOSP Launcher3.
  */
 class NothingSearchAdapterProvider(
+    private val appContext: Context,
     launcher: ActivityContext,
     private val itemLookup: (position: Int, inSearch: Boolean) -> BaseAllAppsAdapter.AdapterItem?
 ) : DefaultSearchAdapterProvider(launcher) {
@@ -33,12 +35,18 @@ class NothingSearchAdapterProvider(
     private var highlighted: View? = null
 
     override fun isViewSupported(viewType: Int): Boolean =
-        viewType == VIEW_TYPE_COMMAND || viewType == VIEW_TYPE_LIST_APP
+        viewType == VIEW_TYPE_COMMAND ||
+            viewType == VIEW_TYPE_LIST_APP ||
+            viewType == VIEW_TYPE_CATEGORY
 
-    override fun getSupportedItemsPerRowArray(): IntArray = intArrayOf(1)
+    override fun getSupportedItemsPerRowArray(): IntArray = intArrayOf(1, 2, 3)
 
-    override fun getItemsPerRow(viewType: Int, appsPerRow: Int): Int =
-        if (isViewSupported(viewType)) 1 else appsPerRow
+    override fun getItemsPerRow(viewType: Int, appsPerRow: Int): Int = when (viewType) {
+        VIEW_TYPE_LIST_APP -> com.nothinglauncher.BigScreenUi.drawerListColumns(appContext)
+        VIEW_TYPE_COMMAND -> com.nothinglauncher.BigScreenUi.searchCommandColumns(appContext)
+        VIEW_TYPE_CATEGORY -> 1
+        else -> appsPerRow
+    }
 
     override fun onCreateViewHolder(
         layoutInflater: LayoutInflater,
@@ -55,6 +63,10 @@ class NothingSearchAdapterProvider(
             Tactile.press(v, 0.985f)
             BaseAllAppsAdapter.ViewHolder(v)
         }
+        VIEW_TYPE_CATEGORY -> {
+            val v = layoutInflater.inflate(R.layout.item_drawer_category, parent, false)
+            BaseAllAppsAdapter.ViewHolder(v)
+        }
         else -> null
     }
 
@@ -63,8 +75,16 @@ class NothingSearchAdapterProvider(
         when (holder.itemViewType) {
             VIEW_TYPE_COMMAND -> bindCommand(holder.itemView, position)
             VIEW_TYPE_LIST_APP -> bindListApp(holder.itemView, position)
+            VIEW_TYPE_CATEGORY -> bindCategory(holder.itemView, position)
             else -> super.onBindView(holder, position)
         }
+    }
+
+    private fun bindCategory(view: View, position: Int) {
+        val item = itemLookup(position, false) as? NothingAllAppsContainerView.CategoryAdapterItem ?: return
+        val ctx = view.context
+        AccentTheme.tintDot(view.findViewById(R.id.catDot), ctx)
+        view.findViewById<TextView>(R.id.catTitle).text = "${item.title} · ${item.count}"
     }
 
     private fun bindCommand(view: View, position: Int) {
@@ -136,5 +156,6 @@ class NothingSearchAdapterProvider(
     companion object {
         const val VIEW_TYPE_COMMAND = 1 shl BaseAllAppsAdapter.NEXT_ID
         const val VIEW_TYPE_LIST_APP = 1 shl (BaseAllAppsAdapter.NEXT_ID + 1)
+        const val VIEW_TYPE_CATEGORY = 1 shl (BaseAllAppsAdapter.NEXT_ID + 2)
     }
 }

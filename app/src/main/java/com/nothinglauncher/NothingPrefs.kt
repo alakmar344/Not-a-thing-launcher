@@ -271,8 +271,22 @@ class NothingPrefs private constructor(context: Context) {
         putStr(K_WIDGET_SURFACES, encodeStringMap(map))
     }
 
+    var deskKeepAwake: Boolean
+        get() = getBool(K_DESK_KEEP_AWAKE, true)
+        set(value) = putBool(K_DESK_KEEP_AWAKE, value)
+
+    var deskBurnInShift: Boolean
+        get() = getBool(K_DESK_BURN_IN_SHIFT, true)
+        set(value) = putBool(K_DESK_BURN_IN_SHIFT, value)
+
+    var deskMode: Int
+        get() = getInt(K_DESK_MODE, 0).coerceIn(0, 3)
+        set(value) = putInt(K_DESK_MODE, value.coerceIn(0, 3))
+
+    fun allWidgetSurfaces(): Map<String, String> = parseStringMap(getStr(K_WIDGET_SURFACES))
+
     fun exportToJson(): String = JSONObject().apply {
-        put("version", 13)
+        put("version", 14)
         put("background", background.name)
         put("visualQuality", visualQuality.name)
         put("accentPalette", accentPalette.name)
@@ -300,6 +314,10 @@ class NothingPrefs private constructor(context: Context) {
         put("maxAppComponent", maxAppComponent)
         put("quickFolderTitle", quickFolderTitle)
         put("quickFolderApps", JSONArray(quickFolderApps))
+        put("widgetSurfaces", JSONObject(allWidgetSurfaces()))
+        put("deskKeepAwake", deskKeepAwake)
+        put("deskBurnInShift", deskBurnInShift)
+        put("deskMode", deskMode)
     }.toString(2)
 
     fun importFromJson(raw: String): Boolean {
@@ -359,6 +377,17 @@ class NothingPrefs private constructor(context: Context) {
         o.optJSONArray("quickFolderApps")?.let { arr ->
             quickFolderApps = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }
         }
+        o.optJSONObject("widgetSurfaces")?.let { obj ->
+            val m = LinkedHashMap<String, String>()
+            obj.keys().forEach { k ->
+                val v = obj.optString(k, "")
+                if (AccentTheme.WidgetSurface.entries.any { it.name == v }) m[k] = v
+            }
+            putStr(K_WIDGET_SURFACES, encodeStringMap(m))
+        }
+        if (o.has("deskKeepAwake")) deskKeepAwake = o.optBoolean("deskKeepAwake", deskKeepAwake)
+        if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)
+        if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode)
             true
         } catch (_: Exception) {
             false
@@ -380,9 +409,12 @@ class NothingPrefs private constructor(context: Context) {
 
     enum class DrawerLayoutMode { GRID, LIST, CATEGORIES }
 
-    enum class GestureAction { NONE, NOTIFICATIONS, SEARCH, ESSENTIAL_SPACE, LOCK_SCREEN, CUSTOMIZE, VAULT }
+    enum class GestureAction { NONE, NOTIFICATIONS, SEARCH, ESSENTIAL_SPACE, DESK_HUD, LOCK_SCREEN, CUSTOMIZE, VAULT }
 
     companion object {
+        private const val K_DESK_KEEP_AWAKE = "v14_desk_keep_awake"
+        private const val K_DESK_BURN_IN_SHIFT = "v14_desk_burn_in_shift"
+        private const val K_DESK_MODE = "v14_desk_mode"
         private const val FILE = "not_a_thing"
         private val NULL = Any()
         private const val K_WEATHER_CITY = "weather_city"

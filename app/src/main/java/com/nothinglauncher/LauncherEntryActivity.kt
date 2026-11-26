@@ -36,6 +36,7 @@ class LauncherEntryActivity : FragmentActivity() {
         setContentView(R.layout.activity_entry)
 
         val column = findViewById<View>(R.id.entryColumn)
+        BigScreenUi.applyMaxWidth(column, 780)
         val baseTop = column.paddingTop
         val baseBottom = column.paddingBottom
         val baseLeft = column.paddingLeft
@@ -64,6 +65,10 @@ class LauncherEntryActivity : FragmentActivity() {
         findViewById<View>(R.id.entryBackupBtn).apply {
             Tactile.press(this)
             setOnClickListener { SetupBackupManager.launchExport(this@LauncherEntryActivity) }
+        }
+        findViewById<View>(R.id.entryDeskBtn)?.apply {
+            Tactile.press(this)
+            setOnClickListener { DeskHudActivity.launch(this@LauncherEntryActivity) }
         }
         findViewById<View>(R.id.entryGoHomeBtn).apply {
             Tactile.press(this)
@@ -146,25 +151,25 @@ class LauncherEntryActivity : FragmentActivity() {
         val d = resources.displayMetrics.density
         val container = findViewById<LinearLayout>(R.id.entryPresetsContainer)
         container.removeAllViews()
-        SetupBackupManager.Preset.entries.forEachIndexed { idx, preset ->
-            val card = LinearLayout(this).apply {
+        val large = BigScreenUi.isLargeScreen(this)
+        val presets = SetupBackupManager.Preset.entries
+
+        fun makePresetCard(idx: Int, preset: SetupBackupManager.Preset): LinearLayout {
+            val isApplied = idx == appliedPresetIndex
+            return LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundResource(R.drawable.bg_tile_dark)
+                setBackgroundResource(if (isApplied) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
                 val p = (14 * d).toInt()
                 setPadding(p, p, p, p)
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { topMargin = if (idx == 0) 0 else (8 * d).toInt() }
                 addView(TextView(this@LauncherEntryActivity).apply {
                     setText(preset.titleRes)
                     textSize = 14f
-                    setTextColor(getColor(R.color.text_primary))
+                    setTextColor(getColor(if (isApplied) R.color.ink else R.color.text_primary))
                 })
                 addView(TextView(this@LauncherEntryActivity).apply {
                     setText(preset.subtitleRes)
                     textSize = 11.5f
-                    setTextColor(getColor(R.color.text_secondary))
+                    setTextColor(getColor(if (isApplied) R.color.ink_secondary else R.color.text_secondary))
                 })
                 Tactile.press(this)
                 setOnClickListener {
@@ -176,10 +181,46 @@ class LauncherEntryActivity : FragmentActivity() {
                         getString(preset.titleRes) + " applied",
                         Toast.LENGTH_SHORT
                     ).show()
+                    buildPresets()
                     refreshStatus()
                 }
             }
-            container.addView(card)
+        }
+
+        if (large) {
+            for (rowStart in presets.indices step 2) {
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = if (rowStart == 0) 0 else (8 * d).toInt() }
+                }
+                val first = makePresetCard(rowStart, presets[rowStart]).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                row.addView(first)
+                if (rowStart + 1 < presets.size) {
+                    row.addView(android.widget.Space(this).apply {
+                        layoutParams = LinearLayout.LayoutParams((8 * d).toInt(), 1)
+                    })
+                    val second = makePresetCard(rowStart + 1, presets[rowStart + 1]).apply {
+                        layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    }
+                    row.addView(second)
+                }
+                container.addView(row)
+            }
+        } else {
+            presets.forEachIndexed { idx, preset ->
+                val card = makePresetCard(idx, preset).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { topMargin = if (idx == 0) 0 else (8 * d).toInt() }
+                }
+                container.addView(card)
+            }
         }
     }
 

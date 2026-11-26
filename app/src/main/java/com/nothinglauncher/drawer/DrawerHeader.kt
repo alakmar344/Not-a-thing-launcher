@@ -52,6 +52,10 @@ class DrawerHeader @JvmOverloads constructor(
             Tactile.tick(it)
             Intents.start(context, Intent(context, NothingSettingsActivity::class.java), it)
         }
+        findViewById<View>(R.id.drawerDesk)?.setOnClickListener {
+            Tactile.confirm(it)
+            com.nothinglauncher.DeskHudActivity.launch(context)
+        }
         findViewById<View>(R.id.drawerVault)?.setOnClickListener {
             Tactile.tick(it)
             val appsView = try {
@@ -64,10 +68,10 @@ class DrawerHeader @JvmOverloads constructor(
         findViewById<View>(R.id.drawerModeChip)?.setOnClickListener {
             Tactile.tick(it)
             val prefs = NothingPrefs.get(context)
-            prefs.drawerLayoutMode = if (prefs.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.GRID) {
-                NothingPrefs.DrawerLayoutMode.LIST
-            } else {
-                NothingPrefs.DrawerLayoutMode.GRID
+            prefs.drawerLayoutMode = when (prefs.drawerLayoutMode) {
+                NothingPrefs.DrawerLayoutMode.GRID -> NothingPrefs.DrawerLayoutMode.LIST
+                NothingPrefs.DrawerLayoutMode.LIST -> NothingPrefs.DrawerLayoutMode.CATEGORIES
+                NothingPrefs.DrawerLayoutMode.CATEGORIES -> NothingPrefs.DrawerLayoutMode.GRID
             }
             bindModeChip()
             try {
@@ -110,8 +114,12 @@ class DrawerHeader @JvmOverloads constructor(
 
     private fun bindModeChip() {
         val chip = findViewById<TextView>(R.id.drawerModeChip) ?: return
-        val isList = NothingPrefs.get(context).drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST
-        chip.setText(if (isList) R.string.drawer_mode_list else R.string.drawer_mode_grid)
+        val resId = when (NothingPrefs.get(context).drawerLayoutMode) {
+            NothingPrefs.DrawerLayoutMode.GRID -> R.string.drawer_mode_grid
+            NothingPrefs.DrawerLayoutMode.LIST -> R.string.drawer_mode_list
+            NothingPrefs.DrawerLayoutMode.CATEGORIES -> R.string.drawer_mode_cats
+        }
+        chip.setText(resId)
     }
 
     private fun updateCount() {

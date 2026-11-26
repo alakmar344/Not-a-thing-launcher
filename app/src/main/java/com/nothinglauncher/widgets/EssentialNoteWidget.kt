@@ -39,10 +39,12 @@ class EssentialNoteWidget(context: Context) : NothingWidget(context) {
         val memoText = root.findViewById<TextView>(R.id.noteWidgetMemoText)
 
         fun bind() {
+            AccentTheme.applyWidgetSurface(root, ctx, "note", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "note", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
             val txt = prefs.essentialNote
             body.text = if (txt.isBlank()) ctx.getString(R.string.note_empty_hint) else txt
-            body.setTextColor(ctx.getColor(if (txt.isBlank()) R.color.text_secondary else R.color.text_primary))
+            body.setTextColor(if (txt.isBlank()) sc.textSecondary else sc.textPrimary)
 
             val latest = VoiceMemoRepository.listMemos(ctx).firstOrNull()
             memoChip.isVisible = latest != null

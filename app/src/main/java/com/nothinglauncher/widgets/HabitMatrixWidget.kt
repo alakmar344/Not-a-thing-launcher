@@ -42,36 +42,26 @@ class HabitMatrixWidget(context: Context) : NothingWidget(context) {
         val grid = root.findViewById<HabitPegboardView>(R.id.habitGrid)
         val toggleBtn = root.findViewById<TextView>(R.id.habitToggle)
 
-        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-
-        fun todayKey(): String = fmt.format(Calendar.getInstance().time)
-
-        fun computeStreak(dates: Set<String>): Int {
-            val cal = Calendar.getInstance()
-            var streak = 0
-            if (!dates.contains(fmt.format(cal.time))) {
-                cal.add(Calendar.DAY_OF_YEAR, -1)
-            }
-            while (dates.contains(fmt.format(cal.time))) {
-                streak++
-                cal.add(Calendar.DAY_OF_YEAR, -1)
-            }
-            return streak
-        }
+        fun todayKey(): String = Companion.todayKey()
 
         fun bind() {
             val accent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(root, ctx, "habit", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "habit", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
             grid.accentColor = accent
+            grid.applySurfaceColors(sc)
+            title.setTextColor(sc.textPrimary)
+            streakTv.setTextColor(sc.textSecondary)
             title.text = prefs.habitTitle.uppercase(Locale.getDefault())
             val dates = prefs.habitDates
             val streak = computeStreak(dates)
-            streakTv.text = "${streak}D STREAK"
+            streakTv.text = "${streak}D"
             val doneToday = dates.contains(todayKey())
             toggleBtn.setText(if (doneToday) R.string.habit_done else R.string.habit_log)
             toggleBtn.setBackgroundResource(if (doneToday) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
             toggleBtn.setTextColor(
-                ctx.getColor(if (doneToday) R.color.pill_active_text else R.color.text_primary)
+                if (doneToday) ctx.getColor(R.color.pill_active_text) else sc.textPrimary
             )
             grid.completedDates = dates
         }
@@ -92,10 +82,7 @@ class HabitMatrixWidget(context: Context) : NothingWidget(context) {
 
         val logClick = View.OnClickListener {
             Tactile.confirm(it)
-            val key = todayKey()
-            val next = prefs.habitDates.toMutableSet()
-            if (key in next) next.remove(key) else next.add(key)
-            prefs.habitDates = next
+            toggleToday(prefs)
             bind()
         }
         toggleBtn.setOnClickListener(logClick)
@@ -103,6 +90,42 @@ class HabitMatrixWidget(context: Context) : NothingWidget(context) {
 
         bind()
         return root
+    }
+
+    companion object {
+        fun todayKey(): String =
+            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+
+        fun isDoneToday(prefs: NothingPrefs): Boolean =
+            prefs.habitDates.contains(todayKey())
+
+        fun toggleToday(prefs: NothingPrefs): Boolean {
+            val key = todayKey()
+            val next = prefs.habitDates.toMutableSet()
+            val added = if (key in next) {
+                next.remove(key)
+                false
+            } else {
+                next.add(key)
+                true
+            }
+            prefs.habitDates = next
+            return added
+        }
+
+        fun computeStreak(dates: Set<String>): Int {
+            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val cal = Calendar.getInstance()
+            var streak = 0
+            if (!dates.contains(fmt.format(cal.time))) {
+                cal.add(Calendar.DAY_OF_YEAR, -1)
+            }
+            while (dates.contains(fmt.format(cal.time))) {
+                streak++
+                cal.add(Calendar.DAY_OF_YEAR, -1)
+            }
+            return streak
+        }
     }
 }
 
@@ -118,6 +141,12 @@ class HabitPegboardView @JvmOverloads constructor(
     var accentColor: Int
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
+
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        invalidate()
+    }
 
     var completedDates: Set<String> = emptySet()
         set(value) { field = value; invalidate() }

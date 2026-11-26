@@ -55,6 +55,13 @@ class DotRingGaugeView @JvmOverloads constructor(
         get() = accentPaint.color
         set(value) { accentPaint.color = value; invalidate() }
 
+    fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
+        onPaint.color = sc.onDot
+        offPaint.color = sc.offDot
+        labelPaint.color = sc.textSecondary
+        invalidate()
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val size = min(width - paddingLeft - paddingRight, height - paddingTop - paddingBottom).toFloat()
@@ -111,7 +118,10 @@ class DotRingGaugeView @JvmOverloads constructor(
             }
         }
         if (subtitle.isNotBlank()) {
-            canvas.drawText(subtitle, cx, y0 + textH + 14f * density, labelPaint)
+            val maxSubW = (ringR * 1.48f).coerceAtLeast(1f)
+            val fit = labelPaint.breakText(subtitle, true, maxSubW, null)
+            val drawn = if (fit < subtitle.length && fit > 1) subtitle.substring(0, fit - 1) + "\u2026" else subtitle
+            canvas.drawText(drawn, cx, y0 + textH + 14f * density, labelPaint)
         }
     }
 }

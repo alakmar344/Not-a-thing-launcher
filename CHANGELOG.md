@@ -6,6 +6,27 @@ dates.
 
 ## [Unreleased]
 
+## [14] — Big-Screen Studio, 4-Stage Glyph Desk HUD & Layout Polish
+
+### Added
+- **Archive:** Preserved v13 documentation under `docs/archive/` (`ARCHITECTURE.v13.md`, `FEATURES.v13.md`, `RELEASE_V13.md`).
+- **Big-Screen Telemetry Studio (`BigScreenUi` & `w600dp`+ layouts):** Responsive breakpoints (`w600dp` / `w680dp` / `w900dp`), dual-column `placeDefaultTiles()` Bento layout on 6+ column workspaces, centered tablet bottom sheets (`540dp` max width), 2-column presets grid in `LauncherEntryActivity` with active preset highlight, multi-column drawer list (`1/2/3` columns), and 2-column Command Search cards.
+- **4-Stage Glyph Desk HUD (`DeskHudActivity`, `GlyphMatrixCanvasView`):** Added a 4-stage mode switcher bar (**COCKPIT**, **CLOCK** StandBy theatre, **FOCUS** Zen Pomodoro studio, and **GLYPH** procedural LED matrix canvas reactive to audio playback, Focus Timer progress, and touch ripples), 1-tap Habit check-in toggle (`deskHabitBtn`), hardware keyboard navigation (`1–4`, `Tab`/`M`, `C`, `F`, `H`, `Space`), persisted `deskMode` preference, and `@style/Theme.NothingLauncher.Desk` (AppCompat-compatible day/night theme).
+- **12th Widget — Desk Briefing (`DeskBriefingWidget`):** Greeting, cached weather, calendar/alarm briefing, interactive Focus Timer pill, and 1-tap **ENTER DESK HUD** button (`widget_desk_briefing.xml`).
+- **2-Column Bento Essential Space & Settings Studio:** Extended `layout-w600dp/essential_space_overlay.xml` + `EssentialSpaceOverlay` with live Habit Matrix check-in pegboard (`HabitPegboardView`) and Now Playing Media Deck (`MediaArtDotsView`, `MediaDotsView`, transport buttons); upgraded `NothingSettingsActivity` Studio 14 card with a live preview `DotMatrixClockView` + `SecondsTickerView` and **Widget surfaces** action.
+- **Per-Widget Surfaces & Essential Stack Max Icon:** Added per-widget surface finishes (**Default**, **Obsidian Dark**, **Bone Paper**, **Frosted Glass** via `AccentTheme.WidgetSurface` + `CustomizeSheet.showWidgetSurfacesSheet` + `.nothing.json` export/import) and 1-app Max Icon mode inside `SmartFolderWidget`.
+- **Smart Drawer Categories & Hardware Keyboard Search:** Added **GRID ↔ LIST ↔ CATS** (`DrawerLayoutMode.CATEGORIES` + `AppCategorizer`), `/` / Search key shortcut on Home (`NothingLauncher.onKeyUp`), plus CommandEngine hex color inspection and quick utilities (`uuid`, `dice`, `coin`, palette).
+- **Weather Telemetry & Tests:** Added hourly rain probability baseline and wind speed (`KM/H`) to `WeatherDotsView`, added [`V14FeaturesTest.kt`](app/src/test/java/com/nothinglauncher/V14FeaturesTest.kt) (9 Robolectric/view tests) and [`BigScreenScreensTest.kt`](app/src/test/java/com/nothinglauncher/BigScreenScreensTest.kt) (`PIXEL_C` tablet Paparazzi targets), expanded [`ScreensTest.kt`](app/src/test/java/com/nothinglauncher/ScreensTest.kt) with `widgetsShowcase` and `deskHudGlyph`, and updated `V13FeaturesTest` to cover all 12 custom widgets.
+
+### Changed
+- Bumped `versionName` to `"14"` in `app/build.gradle`.
+- Updated `docs/ARCHITECTURE.md`, `docs/FEATURES.md`, `docs/SCREENSHOTS.md`, and `README.md` for v14.
+
+### Fixed
+- **Paparazzi & Layout Fixes:** Fixed dim/unlit clock colons (`previewTime`/`previewSecond` in `ScreensTest`), bottom clipping of `clockDate` on 2-row clock tiles (`widget_clock.xml` `match_parent`), orphan calendar alarm icon visibility (`widget_calendar.xml`), light-mode Battery border visibility (`bg_tile_light.xml`) and right-edge alignment across Battery/Calendar tiles (`FrameLayout` replacing `SquareFrameLayout` in `widget_battery.xml` and `widget_calendar.xml`), Settings vertical rhythm so `Visual quality` fits unclipped (`activity_settings.xml`, `item_setting_section.xml`, `item_setting_row.xml`), and Drawer header sizing/spacing (`nt_drawer_header.xml`, `ScreensTest.drawer()`).
+- Fixed a boot crash (`IllegalArgumentException: The observer is null`) in `NothingAllAppsContainerView` by attaching `categorySyncObserver` after `super.<init>()` in `onFinishInflate()` / `rebindAdapters()`.
+- Fixed `DeskHudActivity` theme inheritance (`Theme.NothingLauncher.Desk` extending AppCompat-based `Theme.NothingLauncher`) and `LauncherEntryActivity` subtitle color token (`R.color.ink_secondary`).
+
 ## [13] — Essential Space, Command Search, and 11 interactive elements
 
 ### Added

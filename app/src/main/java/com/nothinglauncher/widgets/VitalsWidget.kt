@@ -39,7 +39,12 @@ class VitalsWidget(context: Context) : NothingWidget(context) {
 
         fun bind() {
             val v = HardwareControlRepository.readVitals(ctx)
+            AccentTheme.applyWidgetSurface(root, ctx, "vitals", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "vitals", defaultLight = false)
+            label.setTextColor(sc.textSecondary)
+            footer.setTextColor(sc.textSecondary)
             ring.accentColor = AccentTheme.accentColor(ctx)
+            ring.applySurfaceColors(sc)
             AccentTheme.tintDot(dot, ctx)
             when (mode) {
                 0 -> {

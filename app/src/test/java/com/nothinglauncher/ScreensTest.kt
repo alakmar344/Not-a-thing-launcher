@@ -1,5 +1,6 @@
 package com.nothinglauncher
 
+import android.appwidget.AppWidgetHostView
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.InsetDrawable
@@ -15,14 +16,17 @@ import androidx.core.content.ContextCompat
 import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.NightMode
+import com.nothinglauncher.perf.VisualTier
 import com.nothinglauncher.widgets.BatteryCalendarWidget
 import com.nothinglauncher.widgets.ClockWidget
-import android.appwidget.AppWidgetHostView
-import com.nothinglauncher.perf.VisualTier
+import com.nothinglauncher.widgets.HabitPegboardView
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 /**
  * Renders the Not a Thing surfaces from the real layouts, styles and icon factory, arranged the
@@ -103,12 +107,20 @@ abstract class ScreensTest(private val night: Boolean) {
     private fun widget(w: com.nothinglauncher.widgets.NothingWidget, heightDp: Int) =
         AppWidgetHostView(ctx).also { w.onViewCreated(it) } to LinearLayout.LayoutParams(MATCH, dp(heightDp))
 
+    private fun freezeClockWidget(root: View) {
+        root.findViewById<DotMatrixClockView>(R.id.clock)?.previewTime = 10 to 9
+        root.findViewById<SecondsTickerView>(R.id.secondsTicker)?.previewSecond = 37
+    }
+
     private fun home(style: NothingPrefs.IconStyle): View {
         val column = LinearLayout(ctx).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(36), dp(16), dp(24))
         }
-        widget(ClockWidget(ctx), 196).let { (v, lp) -> column.addView(v, lp) }
+        widget(ClockWidget(ctx), 196).let { (v, lp) ->
+            freezeClockWidget(v)
+            column.addView(v, lp)
+        }
         widget(BatteryCalendarWidget(ctx), 176).let { (v, lp) ->
             // The renderer has no battery; show a typical level like the v10 showcase.
             v.findViewById<BatteryDotsView>(R.id.battery).level = 78
@@ -158,7 +170,7 @@ abstract class ScreensTest(private val night: Boolean) {
         // Header from the overridden all_apps_content.xml, search box in the same pill style.
         val header = LayoutInflater.from(ctx).inflate(R.layout.nt_drawer_header, column, false)
         header.findViewById<TextView>(R.id.drawerCount).text = "026"
-        column.addView(header, LinearLayout.LayoutParams(MATCH, dp(64)))
+        column.addView(header, LinearLayout.LayoutParams(MATCH, ViewGroup.LayoutParams.WRAP_CONTENT))
         column.addView(TextView(ctx).apply {
             background = ContextCompat.getDrawable(ctx, R.drawable.bg_search_pill)
             gravity = Gravity.CENTER_VERTICAL
@@ -211,6 +223,92 @@ abstract class ScreensTest(private val night: Boolean) {
             SettingsUi.choiceRow(card, ctx.getString(R.string.setting_background), ctx.getString(R.string.setting_background_sub), listOf(ctx.getString(R.string.bg_dots), ctx.getString(R.string.bg_black), ctx.getString(R.string.bg_wallpaper)), 0) {}
             SettingsUi.choiceRow(card, ctx.getString(R.string.setting_quality), ctx.getString(R.string.setting_quality_sub_auto, "7.4", 8, ctx.getString(R.string.quality_tier_rich)), listOf(ctx.getString(R.string.quality_auto), ctx.getString(R.string.quality_lite), ctx.getString(R.string.quality_full)), 0) {}
         }
+        paparazzi.snapshot(root)
+    }
+
+    @Test
+    fun widgetsShowcase() {
+        val column = LinearLayout(ctx).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(36), dp(16), dp(24))
+        }
+        val weatherCard = LayoutInflater.from(ctx).inflate(R.layout.widget_weather, column, false)
+        weatherCard.findViewById<WeatherDotsView>(R.id.weatherView).bind(
+            WeatherRepository.Weather(
+                city = "LONDON",
+                temperature = 21,
+                condition = "Clear",
+                high = 24,
+                low = 14,
+                isDay = true,
+                updatedAt = 0L,
+                hourlyTemps = listOf(18, 19, 20, 21, 23, 24, 23, 21, 19, 17, 16, 15),
+                hourlyRainProbs = listOf(5, 10, 15, 45, 70, 80, 50, 25, 10, 5, 5, 5),
+                windKmh = 16
+            )
+        )
+        column.addView(weatherCard, LinearLayout.LayoutParams(MATCH, dp(148)))
+
+        val mediaCard = LayoutInflater.from(ctx).inflate(R.layout.widget_media_player, column, false)
+        mediaCard.findViewById<TextView>(R.id.mediaTitle).text = "Glyph Studio 14"
+        mediaCard.findViewById<TextView>(R.id.mediaArtist).text = "NOTHING AUDIO"
+        column.addView(mediaCard, LinearLayout.LayoutParams(MATCH, dp(156)).apply { topMargin = dp(12) })
+
+        val bottomRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+        val timerCard = LayoutInflater.from(ctx).inflate(R.layout.widget_timer, bottomRow, false)
+        timerCard.findViewById<DotRingGaugeView>(R.id.timerRing).apply {
+            progress01 = 0.72f
+            highlightActive = true
+            centerText = "18:00"
+            subtitle = ctx.getString(R.string.timer_running)
+        }
+        timerCard.findViewById<TextView>(R.id.timerActionBtn).text = "25M"
+        bottomRow.addView(timerCard, LinearLayout.LayoutParams(0, dp(180), 1f))
+        bottomRow.addView(View(ctx), LinearLayout.LayoutParams(dp(12), 1))
+
+        val habitCard = LayoutInflater.from(ctx).inflate(R.layout.widget_habit_matrix, bottomRow, false)
+        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val dates = (0 until 12).map { offset ->
+            Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.let { fmt.format(it.time) }
+        }.toSet()
+        habitCard.findViewById<TextView>(R.id.habitTitle).text = "DEEP WORK"
+        habitCard.findViewById<TextView>(R.id.habitStreak).text = "12D"
+        habitCard.findViewById<HabitPegboardView>(R.id.habitGrid).completedDates = dates
+        habitCard.findViewById<TextView>(R.id.habitToggle).apply {
+            setText(R.string.habit_done)
+            setBackgroundResource(R.drawable.bg_pill_white)
+            setTextColor(color(R.color.pill_active_text))
+        }
+        bottomRow.addView(habitCard, LinearLayout.LayoutParams(0, dp(180), 1f))
+
+        column.addView(bottomRow, LinearLayout.LayoutParams(MATCH, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
+        paparazzi.snapshot(backdrop(column))
+    }
+
+    @Test
+    fun deskHudGlyph() {
+        val root = LayoutInflater.from(ctx).inflate(R.layout.activity_desk_hud, null)
+        root.findViewById<View>(R.id.deskRoot).background = DotGridDrawable.forTier(ctx)
+        root.findViewById<View>(R.id.deskCockpitStage).visibility = View.GONE
+        root.findViewById<View>(R.id.deskGlyphStage).visibility = View.VISIBLE
+        listOf(R.id.deskModeCockpit, R.id.deskModeClock, R.id.deskModeFocus).forEach { id ->
+            root.findViewById<TextView>(id).apply {
+                setBackgroundResource(R.drawable.bg_pill_outline)
+                setTextColor(color(R.color.text_secondary))
+            }
+        }
+        root.findViewById<TextView>(R.id.deskModeGlyph).apply {
+            setBackgroundResource(R.drawable.bg_pill_white)
+            setTextColor(color(R.color.pill_active_text))
+        }
+        root.findViewById<TextView>(R.id.deskGlyphTime).text = "10:09"
+        root.findViewById<GlyphMatrixCanvasView>(R.id.deskGlyphCanvas).apply {
+            timerRunning = true
+            timerProgress01 = 0.68f
+            isAudioActive = true
+        }
+        root.findViewById<TextView>(R.id.deskGlyphMediaPill).text = "▶ GLYPH STUDIO 14"
+        root.findViewById<TextView>(R.id.deskGlyphTimerPill).text = "▶ 18:00"
         paparazzi.snapshot(root)
     }
 

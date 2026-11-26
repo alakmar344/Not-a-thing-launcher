@@ -46,9 +46,17 @@ class MediaWidget(context: Context) : NothingWidget(context) {
 
         fun apply(state: MediaSessionRepository.State) {
             val accent = AccentTheme.accentColor(ctx)
+            AccentTheme.applyWidgetSurface(root, ctx, "media", defaultLight = false)
+            val sc = AccentTheme.surfaceColors(ctx, "media", defaultLight = false)
             AccentTheme.tintDot(dot, ctx)
+            label.setTextColor(sc.textSecondary)
+            route.setTextColor(sc.textSecondary)
+            title.setTextColor(sc.textPrimary)
+            artist.setTextColor(sc.textSecondary)
             visualizer.accentColor = accent
+            visualizer.applySurfaceColors(sc)
             artView.accentColor = accent
+            artView.applySurfaceColors(sc)
 
             val canControl = state.permissionGranted && state.hasSession
             label.setText(if (state.permissionGranted) R.string.media_label else R.string.media_label_empty)
