@@ -1,8 +1,15 @@
 # Features
 
-Not a Thing Launcher v14 pairs stock **AOSP Launcher3** (`android-14.0.0_r75`) with a responsive dot-matrix operating surface tailored for phones, tablets, foldables, and docked desk displays.
+Not a Thing Launcher v14 pairs stock **AOSP Launcher3** (`android-14.0.0_r75`) with a phone-first tactile dot-matrix operating surface that also scales cleanly onto tablets, foldables, and docked desk displays.
 
 All workspace drag & drop, folder mechanics, and Android system widgets continue to work like stock Android. Historical v13, v12, and pre-v11 feature catalogs live under [`archive/`](archive/).
+
+## Phone-First Experiences
+
+- **Android System StandBy Screensaver (`NothingDreamService`):** Enable *Nothing StandBy Clock* from Settings → **StandBy screensaver** (or Android Screen saver settings) to automatically display a low-glare OLED dot-matrix clock with burn-in pixel shift, charging battery percentage, weather/alarm/media line, Notification Digest status, and a 1-tap **DESK HUD** launch button whenever your phone is docked or charging.
+- **Kinetic Matrix Widget (`KineticMatrixWidget`):** Interactive `16×10` LED dot playground right on your Home screen with three switchable modes — accelerometer tilt-driven **GRAVITY** beads + finger attract, tap-to-seed Conway's **LIFE**, and playable Dot **SNAKE**.
+- **On-Device Essential Notification Digest (`NotificationDigestRepository`):** Live inside `-1` Essential Space (`spaceDigestCard`) and StandBy Dream — groups and prioritizes active notifications on-device via AOSP `NotificationListener`, opens threads/apps in 1 tap, and shields low-priority alerts (`FOCUS SHIELD ACTIVE`) whenever Focus Mode is enabled.
+- **Procedural Focus Soundscapes (`FocusSoundEngine`):** Zero-asset stereo `AudioTrack` synthesizer built into `-1` Essential Space and the Glyph Desk HUD (`NOISE: OFF` → `BROWN` → `RAIN` → `40HZ`), synced live with Desk HUD's Glyph visual matrix pulses.
 
 ## Big-Screen Telemetry Studio (`w600dp`+)
 
@@ -31,9 +38,9 @@ Launch from Customize, Drawer Header button, Desk Briefing widget, or a home ges
 
 ## `-1` Essential Space Overlay
 
-Swipe right from Home page 0 to reveal Daily Briefing (greeting, weather pill, alarm & calendar event), Hardware Switchboard, Scratchpad Note & local `.m4a` Voice Memos, Focus Timer / Stopwatch, Device Vitals, plus Tablet Habit Matrix check-in and Now Playing Media Deck.
+Swipe right from Home page 0 to reveal Daily Briefing (greeting, weather pill, alarm & calendar event), Hardware Switchboard, Scratchpad Note & local `.m4a` Voice Memos, Focus Timer / Stopwatch + **Procedural Soundscapes**, **On-Device Essential Digest**, Device Vitals, plus Tablet Habit Matrix check-in and Now Playing Media Deck.
 
-## 12 Dot-Matrix Widgets
+## 13 Dot-Matrix Widgets
 
 Available under *Not a Thing* in `Customize → Widgets`:
 
@@ -49,6 +56,7 @@ Available under *Not a Thing* in `Customize → Widgets`:
 10. **Compass & Steps (`CompassStepWidget`)** — Visibility-gated azimuth dial & step counter.
 11. **Essential Stack (`SmartFolderWidget`)** — Single oversized Max Icon tile or 2×2 quick-launch stack.
 12. **Desk Briefing (`DeskBriefingWidget`)** — Greeting, weather, next calendar/alarm briefing, live Focus Timer pill, and 1-tap **ENTER DESK HUD** launch.
+13. **Kinetic Matrix (`KineticMatrixWidget`)** — Live `GRAVITY` tilt beads, Conway's `LIFE`, and playable Dot `SNAKE` on Home.
 
 ## Offline Command Search, 3-Mode Smart Drawer & Hidden Vault
 

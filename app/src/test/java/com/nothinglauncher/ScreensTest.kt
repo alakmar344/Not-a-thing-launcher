@@ -17,6 +17,7 @@ import app.cash.paparazzi.DeviceConfig
 import app.cash.paparazzi.Paparazzi
 import com.android.resources.NightMode
 import com.nothinglauncher.perf.VisualTier
+import com.nothinglauncher.KineticMatrixView
 import com.nothinglauncher.widgets.BatteryCalendarWidget
 import com.nothinglauncher.widgets.ClockWidget
 import com.nothinglauncher.widgets.HabitPegboardView
@@ -247,12 +248,12 @@ abstract class ScreensTest(private val night: Boolean) {
                 windKmh = 16
             )
         )
-        column.addView(weatherCard, LinearLayout.LayoutParams(MATCH, dp(148)))
+        column.addView(weatherCard, LinearLayout.LayoutParams(MATCH, dp(136)))
 
         val mediaCard = LayoutInflater.from(ctx).inflate(R.layout.widget_media_player, column, false)
         mediaCard.findViewById<TextView>(R.id.mediaTitle).text = "Glyph Studio 14"
         mediaCard.findViewById<TextView>(R.id.mediaArtist).text = "NOTHING AUDIO"
-        column.addView(mediaCard, LinearLayout.LayoutParams(MATCH, dp(156)).apply { topMargin = dp(12) })
+        column.addView(mediaCard, LinearLayout.LayoutParams(MATCH, dp(144)).apply { topMargin = dp(10) })
 
         val bottomRow = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
         val timerCard = LayoutInflater.from(ctx).inflate(R.layout.widget_timer, bottomRow, false)
@@ -263,7 +264,7 @@ abstract class ScreensTest(private val night: Boolean) {
             subtitle = ctx.getString(R.string.timer_running)
         }
         timerCard.findViewById<TextView>(R.id.timerActionBtn).text = "25M"
-        bottomRow.addView(timerCard, LinearLayout.LayoutParams(0, dp(180), 1f))
+        bottomRow.addView(timerCard, LinearLayout.LayoutParams(0, dp(164), 1f))
         bottomRow.addView(View(ctx), LinearLayout.LayoutParams(dp(12), 1))
 
         val habitCard = LayoutInflater.from(ctx).inflate(R.layout.widget_habit_matrix, bottomRow, false)
@@ -279,9 +280,25 @@ abstract class ScreensTest(private val night: Boolean) {
             setBackgroundResource(R.drawable.bg_pill_white)
             setTextColor(color(R.color.pill_active_text))
         }
-        bottomRow.addView(habitCard, LinearLayout.LayoutParams(0, dp(180), 1f))
+        bottomRow.addView(habitCard, LinearLayout.LayoutParams(0, dp(164), 1f))
 
-        column.addView(bottomRow, LinearLayout.LayoutParams(MATCH, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
+        column.addView(bottomRow, LinearLayout.LayoutParams(MATCH, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(10) })
+
+        val kineticCard = LayoutInflater.from(ctx).inflate(R.layout.widget_kinetic_matrix, column, false)
+        AccentTheme.tintDot(kineticCard.findViewById(R.id.kineticDot), ctx)
+        kineticCard.findViewById<TextView>(R.id.kineticModePill).setText(R.string.nt_kinetic_snake)
+        kineticCard.findViewById<TextView>(R.id.kineticHint).text =
+            ctx.getString(R.string.nt_kinetic_hint_snake, 4)
+        kineticCard.findViewById<KineticMatrixView>(R.id.kineticMatrix).apply {
+            mode = KineticMatrixView.Mode.SNAKE
+            snakeBody.clear()
+            listOf(3 to 4, 4 to 4, 5 to 4, 5 to 5, 6 to 5, 7 to 5, 8 to 5).forEach {
+                snakeBody.addLast(it)
+            }
+            snakeFood = 11 to 3
+            snakeScore = 4
+        }
+        column.addView(kineticCard, LinearLayout.LayoutParams(MATCH, dp(128)).apply { topMargin = dp(10) })
         paparazzi.snapshot(backdrop(column))
     }
 

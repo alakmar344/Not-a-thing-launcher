@@ -73,6 +73,10 @@ class DeskHudActivity : AppCompatActivity() {
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { weatherView.bind(it) }
     private val timerListener: () -> Unit = { bindTimer() }
     private val torchListener: (Boolean) -> Unit = { bindToggles() }
+    private val soundscapeListener: (FocusSoundEngine.Profile) -> Unit = {
+        bindSoundscape()
+        bindMedia(MediaSessionRepository.state)
+    }
 
     private val tickRunnable = object : Runnable {
         override fun run() {
@@ -167,6 +171,7 @@ class DeskHudActivity : AppCompatActivity() {
         WeatherRepository.refresh(this, prefs) { }
         FocusTimerRepository.addListener(timerListener)
         HardwareControlRepository.addTorchListener(this, torchListener)
+        FocusSoundEngine.addListener(soundscapeListener)
         bindAll()
         handler.post(tickRunnable)
     }
@@ -178,6 +183,7 @@ class DeskHudActivity : AppCompatActivity() {
         WeatherRepository.removeListener(weatherListener)
         FocusTimerRepository.removeListener(timerListener)
         HardwareControlRepository.removeTorchListener(torchListener)
+        FocusSoundEngine.removeListener(soundscapeListener)
         super.onStop()
     }
 
@@ -357,6 +363,21 @@ class DeskHudActivity : AppCompatActivity() {
             if (st.running || st.isStopwatch) FocusTimerRepository.reset(this@DeskHudActivity)
             else FocusTimerRepository.cyclePresetOrAdd(this@DeskHudActivity)
             bindTimer()
+        }
+        findViewById<View?>(R.id.deskSoundscapeBtn)?.apply {
+            Tactile.press(this)
+            setOnClickListener {
+                Tactile.confirm(it)
+                val next = FocusSoundEngine.cycle()
+                if (next != FocusSoundEngine.Profile.OFF) {
+                    prefs.soundscapePreset = next.ordinal
+                }
+                if (Mode.fromPref(prefs.deskMode) == Mode.GLYPH) {
+                    glyphCanvas.triggerRipple(0.5f, 0.5f)
+                }
+                bindSoundscape()
+                bindMedia(MediaSessionRepository.state)
+            }
         }
         findViewById<View>(R.id.deskNotePreview).setOnClickListener {
             Tactile.tick(it)
@@ -547,6 +568,7 @@ class DeskHudActivity : AppCompatActivity() {
         bindMedia(MediaSessionRepository.state)
         bindToggles()
         bindTimer()
+        bindSoundscape()
         bindNote()
     }
 
@@ -623,7 +645,7 @@ class DeskHudActivity : AppCompatActivity() {
         bars.accentColor = accent
         art.accentColor = accent
         bars.isPlaying = canControl && state.isPlaying
-        glyphCanvas.isAudioActive = canControl && state.isPlaying
+        glyphCanvas.isAudioActive = (canControl && state.isPlaying) || FocusSoundEngine.isPlaying()
 
         findViewById<TextView>(R.id.deskMediaRoute).apply {
             text = if (canControl) state.outputRoute else ""
@@ -731,6 +753,15 @@ class DeskHudActivity : AppCompatActivity() {
             text = "$prefix${st.display}"
             setTextColor(getColor(if (st.running) R.color.text_primary else R.color.text_secondary))
         }
+    }
+
+    private fun bindSoundscape() {
+        val btn = findViewById<TextView?>(R.id.deskSoundscapeBtn) ?: return
+        val profile = FocusSoundEngine.current
+        val active = profile != FocusSoundEngine.Profile.OFF
+        btn.setText(profile.labelRes)
+        btn.setBackgroundResource(if (active) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
+        btn.setTextColor(getColor(if (active) R.color.pill_active_text else R.color.text_secondary))
     }
 
     private fun bindNote() {

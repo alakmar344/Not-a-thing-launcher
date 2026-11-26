@@ -159,7 +159,8 @@ object CustomizeSheet {
             "vitals" to R.string.element_vitals,
             "compass" to R.string.element_compass,
             "folder" to R.string.element_folder,
-            "desk" to R.string.element_desk
+            "desk" to R.string.element_desk,
+            "kinetic" to R.string.element_kinetic
         )
         val surfaces = AccentTheme.WidgetSurface.entries
         val surfaceLabels = surfaces.map { context.getString(it.labelRes) }

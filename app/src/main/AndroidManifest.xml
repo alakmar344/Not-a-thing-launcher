@@ -140,5 +140,19 @@
                 android:resource="@xml/nt_accessibility_service" />
         </service>
 
+        <service
+            android:name="com.nothinglauncher.NothingDreamService"
+            android:exported="true"
+            android:label="@string/nt_dream_label"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.service.dream"
+                android:resource="@xml/nothing_dream_info" />
+        </service>
+
     </application>
 </manifest>

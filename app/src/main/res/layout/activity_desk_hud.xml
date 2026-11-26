@@ -340,6 +340,22 @@
                                 android:textSize="9.5sp" />
 
                             <TextView
+                                android:id="@+id/deskSoundscapeBtn"
+                                style="@style/Text.Label"
+                                android:layout_width="wrap_content"
+                                android:layout_height="22dp"
+                                android:layout_marginEnd="6dp"
+                                android:background="@drawable/bg_pill_outline"
+                                android:clickable="true"
+                                android:focusable="true"
+                                android:gravity="center"
+                                android:paddingStart="7dp"
+                                android:paddingEnd="7dp"
+                                android:text="@string/nt_sound_off"
+                                android:textColor="@color/text_secondary"
+                                android:textSize="8.5sp" />
+
+                            <TextView
                                 android:id="@+id/deskTimerAction"
                                 style="@style/Text.Label"
                                 android:layout_width="wrap_content"

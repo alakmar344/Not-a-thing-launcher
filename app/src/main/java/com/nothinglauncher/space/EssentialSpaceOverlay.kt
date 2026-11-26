@@ -22,6 +22,7 @@ import android.view.WindowManager
 import android.view.animation.DecelerateInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -35,6 +36,7 @@ import com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverla
 import com.nothinglauncher.AccentTheme
 import com.nothinglauncher.DotGridDrawable
 import com.nothinglauncher.DotMatrixView
+import com.nothinglauncher.FocusSoundEngine
 import com.nothinglauncher.FocusTimerRepository
 import com.nothinglauncher.HardwareControlRepository
 import com.nothinglauncher.Intents
@@ -42,6 +44,7 @@ import com.nothinglauncher.MediaArtDotsView
 import com.nothinglauncher.MediaDotsView
 import com.nothinglauncher.MediaSessionRepository
 import com.nothinglauncher.NothingPrefs
+import com.nothinglauncher.NotificationDigestRepository
 import com.nothinglauncher.R
 import com.nothinglauncher.Sheets
 import com.nothinglauncher.Tactile
@@ -91,6 +94,8 @@ class EssentialSpaceOverlay(
     private val timerListener: () -> Unit = { refreshDynamicCounters() }
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { bindBriefing() }
     private val mediaListener: (MediaSessionRepository.State) -> Unit = { bindMedia(it) }
+    private val digestListener: (NotificationDigestRepository.Snapshot) -> Unit = { bindDigest(it) }
+    private val soundscapeListener: (FocusSoundEngine.Profile) -> Unit = { bindSoundscape() }
     private var listenersRegistered = false
 
     val isShown: Boolean get() = progress > 0.01f
@@ -182,6 +187,8 @@ class EssentialSpaceOverlay(
             MediaSessionRepository.start(launcher.applicationContext)
             MediaSessionRepository.addListener(mediaListener)
         }
+        FocusSoundEngine.addListener(soundscapeListener)
+        NotificationDigestRepository.addListener(launcher, digestListener)
     }
 
     private fun unregisterListeners() {
@@ -192,6 +199,8 @@ class EssentialSpaceOverlay(
         FocusTimerRepository.removeListener(timerListener)
         WeatherRepository.removeListener(weatherListener)
         MediaSessionRepository.removeListener(mediaListener)
+        FocusSoundEngine.removeListener(soundscapeListener)
+        NotificationDigestRepository.removeListener(digestListener)
     }
 
     private fun shouldSettleOpen(p: Float, velocity: Float): Boolean {
@@ -343,6 +352,7 @@ class EssentialSpaceOverlay(
             prefs.focusMode = !prefs.focusMode
             bindHardwarePills()
             onFocusModeToggled()
+            bindDigest(NotificationDigestRepository.current(launcher))
         }
         caffeine.setOnClickListener {
             Tactile.confirm(it)
@@ -410,6 +420,17 @@ class EssentialSpaceOverlay(
             Tactile.confirm(it)
             FocusTimerRepository.toggleStartPause(launcher)
             refreshDynamicCounters()
+        }
+        view.findViewById<View?>(R.id.spaceSoundscapeBtn)?.apply {
+            Tactile.press(this)
+            setOnClickListener {
+                Tactile.confirm(it)
+                val next = FocusSoundEngine.cycle()
+                if (next != FocusSoundEngine.Profile.OFF) {
+                    prefs.soundscapePreset = next.ordinal
+                }
+                bindSoundscape()
+            }
         }
 
         // Optional Big-Screen Bento Cards (Habit Matrix Check-in + Media Deck)
@@ -514,12 +535,15 @@ class EssentialSpaceOverlay(
         val accent = AccentTheme.accentColor(launcher)
         AccentTheme.tintDot(view.findViewById(R.id.essentialBriefingDot), launcher)
         AccentTheme.tintDot(view.findViewById(R.id.spaceRecDot), launcher)
+        view.findViewById<View?>(R.id.spaceDigestDot)?.let { AccentTheme.tintDot(it, launcher) }
         view.findViewById<DotMatrixView>(R.id.spaceTimerDots).accentColor = accent
         bindBriefing()
         bindHardwarePills()
         bindNote()
         bindMemoRow()
         refreshDynamicCounters()
+        bindSoundscape()
+        bindDigest(NotificationDigestRepository.current(launcher))
         bindVitals()
         bindHabit()
         bindMedia(MediaSessionRepository.state)
@@ -708,6 +732,139 @@ class EssentialSpaceOverlay(
         listOfNotNull(playPause, prev, next).forEach {
             it.isEnabled = canControl
             it.alpha = if (canControl) 1f else 0.4f
+        }
+    }
+
+    private fun bindSoundscape() {
+        val btn = rootView?.findViewById<TextView?>(R.id.spaceSoundscapeBtn) ?: return
+        val profile = FocusSoundEngine.current
+        val active = profile != FocusSoundEngine.Profile.OFF
+        btn.setText(profile.labelRes)
+        btn.setBackgroundResource(if (active) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
+        btn.setTextColor(
+            launcher.getColor(if (active) R.color.pill_active_text else R.color.text_secondary)
+        )
+    }
+
+    private fun bindDigest(snap: NotificationDigestRepository.Snapshot) {
+        val view = rootView ?: return
+        view.findViewById<View?>(R.id.spaceDigestDot)?.let { AccentTheme.tintDot(it, launcher) }
+        val countView = view.findViewById<TextView?>(R.id.spaceDigestCount)
+        val container = view.findViewById<LinearLayout?>(R.id.spaceDigestContainer) ?: return
+        container.removeAllViews()
+
+        val prefs = NothingPrefs.get(launcher)
+        val accent = AccentTheme.accentColor(launcher)
+        val d = launcher.resources.displayMetrics.density
+
+        if (!snap.permissionGranted) {
+            countView?.text = ""
+            val row = LinearLayout(launcher).apply {
+                orientation = LinearLayout.VERTICAL
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(R.drawable.fg_ripple_card)
+                setPadding(0, (4 * d).toInt(), 0, (4 * d).toInt())
+                addView(TextView(launcher).apply {
+                    text = launcher.getString(R.string.nt_digest_grant)
+                    textSize = 11.5f
+                    setTextColor(launcher.getColor(R.color.text_primary))
+                    letterSpacing = 0.08f
+                })
+                addView(TextView(launcher).apply {
+                    text = launcher.getString(R.string.nt_digest_grant_sub)
+                    textSize = 11f
+                    setTextColor(launcher.getColor(R.color.text_secondary))
+                })
+                setOnClickListener {
+                    Tactile.tick(it)
+                    Intents.openNotificationAccess(launcher, it)
+                }
+            }
+            container.addView(row)
+            return
+        }
+
+        val visibleEntries = if (prefs.focusMode) {
+            snap.entries.filter { it.isPriority }
+        } else {
+            snap.entries
+        }
+        countView?.text = when {
+            prefs.focusMode -> launcher.getString(R.string.nt_digest_shielded, snap.totalCount)
+            snap.totalCount > 0 -> "${snap.totalCount} ACTIVE"
+            else -> "0"
+        }
+
+        if (visibleEntries.isEmpty()) {
+            container.addView(TextView(launcher).apply {
+                text = if (prefs.focusMode && snap.totalCount > 0) {
+                    launcher.getString(R.string.nt_digest_shielded, snap.totalCount)
+                } else {
+                    launcher.getString(R.string.nt_digest_empty)
+                }
+                textSize = 11.5f
+                setTextColor(launcher.getColor(R.color.text_secondary))
+            })
+            return
+        }
+
+        visibleEntries.take(4).forEachIndexed { idx, entry ->
+            val row = LinearLayout(launcher).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                isClickable = true
+                isFocusable = true
+                setBackgroundResource(R.drawable.fg_ripple_card)
+                setPadding(0, if (idx == 0) 0 else (6 * d).toInt(), 0, (6 * d).toInt())
+            }
+            val marker = View(launcher).apply {
+                background = android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = 3f * d
+                    setColor(if (entry.isPriority) accent else launcher.getColor(R.color.text_secondary))
+                }
+            }
+            row.addView(marker, LinearLayout.LayoutParams((6 * d).toInt(), (6 * d).toInt()))
+
+            val col = LinearLayout(launcher).apply {
+                orientation = LinearLayout.VERTICAL
+            }
+            val meta = if (entry.countInPkg > 1) {
+                "${entry.appLabel.uppercase(Locale.getDefault())} · ${entry.countInPkg}"
+            } else {
+                entry.appLabel.uppercase(Locale.getDefault())
+            }
+            col.addView(TextView(launcher).apply {
+                text = meta
+                textSize = 9.5f
+                letterSpacing = 0.08f
+                setTextColor(if (entry.isPriority) accent else launcher.getColor(R.color.text_secondary))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+            val body = listOf(entry.title, entry.text).filter { it.isNotBlank() }.joinToString(" — ")
+                .ifEmpty { entry.appLabel }
+            col.addView(TextView(launcher).apply {
+                text = body
+                textSize = 12f
+                setTextColor(launcher.getColor(R.color.text_primary))
+                maxLines = 1
+                ellipsize = android.text.TextUtils.TruncateAt.END
+            })
+            row.addView(col, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
+                marginStart = (10 * d).toInt()
+            })
+            row.setOnClickListener { clicked ->
+                Tactile.tick(clicked)
+                val sent = try {
+                    entry.contentIntent?.send()
+                    entry.contentIntent != null
+                } catch (_: Throwable) {
+                    false
+                }
+                if (!sent) Intents.openApp(launcher, entry.packageName, clicked)
+            }
+            container.addView(row)
         }
     }
 }

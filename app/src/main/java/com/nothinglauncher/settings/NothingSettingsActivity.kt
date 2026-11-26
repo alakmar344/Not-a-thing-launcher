@@ -358,6 +358,9 @@ class NothingSettingsActivity : AppCompatActivity() {
             SettingsUi.actionRow(card, getString(R.string.nt_setting_desk_hud), getString(R.string.nt_setting_desk_hud_sub)) {
                 DeskHudActivity.launch(this)
             }
+            SettingsUi.actionRow(card, getString(R.string.nt_setting_dream), getString(R.string.nt_setting_dream_sub)) {
+                Intents.openDreamSettings(this)
+            }
             SettingsUi.switchRow(card, getString(R.string.nt_setting_focus_mode), getString(R.string.nt_setting_focus_mode_sub), prefs.focusMode) {
                 prefs.focusMode = it
                 binding.settingsRoot.background = DotGridDrawable.forTier(this)

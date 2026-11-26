@@ -1,9 +1,13 @@
 package com.nothinglauncher
 
+import android.app.Notification
+import android.appwidget.AppWidgetHostView
 import android.content.ComponentName
 import android.content.Context
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.util.TypedValue
 import android.view.ContextThemeWrapper
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -13,10 +17,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.test.core.app.ApplicationProvider
+import com.android.launcher3.graphics.Scrim
 import com.android.launcher3.model.data.AppInfo
 import com.nothinglauncher.drawer.AppCategorizer
 import com.nothinglauncher.settings.NothingSettingsActivity
 import com.nothinglauncher.widgets.HabitMatrixWidget
+import com.nothinglauncher.widgets.KineticMatrixWidget
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -319,5 +325,194 @@ class V14FeaturesTest {
         header.layout(0, 0, header.measuredWidth, header.measuredHeight)
         val settingsBtn = header.findViewById<View>(R.id.drawerSettings)
         assertTrue("drawerSettings button must fit inside 360dp header", settingsBtn.right <= headerW && settingsBtn.width > 0)
+    }
+
+    @Test
+    @Config(sdk = [30])
+    fun api30Android11ResolvesScrimAndTipColorsWithoutAttributeCrash() {
+        val ctx = ApplicationProvider.getApplicationContext<Context>()
+        val colorIds = listOf(
+            com.android.launcher3.R.color.wallpaper_popup_scrim,
+            com.android.launcher3.R.color.work_turn_on_stroke,
+            com.android.launcher3.R.color.arrow_tip_view_bg,
+            com.android.launcher3.R.color.arrow_tip_view_content,
+            com.android.launcher3.R.color.button_bg,
+            com.android.launcher3.R.color.button_text
+        )
+        val tv = TypedValue()
+        colorIds.forEach { resId ->
+            ctx.resources.getValue(resId, tv, true)
+            assertFalse(
+                "Resource ${ctx.resources.getResourceEntryName(resId)} must not be unresolved attribute on API 30",
+                tv.type == TypedValue.TYPE_ATTRIBUTE
+            )
+            // Exact Context.getColor() call path that crashed on Vivo Y15 (Android 11 / Issue #32)
+            ctx.getColor(resId)
+        }
+
+        val themed = ContextThemeWrapper(ctx, com.android.launcher3.R.style.AppTheme)
+        val scrim = Scrim(View(themed))
+        assertNotNull(scrim)
+    }
+
+    @Test
+    fun kineticMatrixModesStepPhysicsLifeAndSnakeAndWidgetCycles() {
+        val themed = ContextThemeWrapper(context, R.style.NtTheme_Backdrop_Dark)
+        val view = KineticMatrixView(themed)
+
+        val beforeX = view.beadX.copyOf()
+        repeat(6) { view.stepPhysics(gx = 6.5f, gy = 4.2f) }
+        assertTrue(view.beadX.indices.any { kotlin.math.abs(view.beadX[it] - beforeX[it]) > 0.05f })
+        assertTrue(view.beadX.all { it in 0f..KineticMatrixView.COLS.toFloat() })
+
+        view.mode = KineticMatrixView.Mode.LIFE
+        view.lifeGrid.fill(false)
+        // Blinker oscillator at row 3, cols 3..5 -> vertical at col 4, rows 2..4 after 1 generation
+        listOf(3 to 3, 4 to 3, 5 to 3).forEach { (c, r) ->
+            view.lifeGrid[r * KineticMatrixView.COLS + c] = true
+        }
+        view.stepLife()
+        assertTrue(view.lifeGrid[2 * KineticMatrixView.COLS + 4])
+        assertTrue(view.lifeGrid[3 * KineticMatrixView.COLS + 4])
+        assertTrue(view.lifeGrid[4 * KineticMatrixView.COLS + 4])
+        assertFalse(view.lifeGrid[3 * KineticMatrixView.COLS + 3])
+
+        view.mode = KineticMatrixView.Mode.SNAKE
+        var lastScore = -1
+        view.onScoreChanged = { lastScore = it }
+        view.resetSnake()
+        val head = view.snakeBody.last()
+        view.snakeFood = ((head.first + 1) % KineticMatrixView.COLS) to head.second
+        view.stepSnake()
+        assertEquals(1, view.snakeScore)
+        assertEquals(1, lastScore)
+
+        val host = AppWidgetHostView(themed)
+        val root = KineticMatrixWidget(themed).createView(host)
+        val pill = root.findViewById<TextView>(R.id.kineticModePill)
+        val hint = root.findViewById<TextView>(R.id.kineticHint)
+        assertEquals(context.getString(R.string.nt_kinetic_gravity), pill.text.toString())
+        assertEquals(0, prefs.kineticMode)
+
+        pill.performClick()
+        assertEquals(1, prefs.kineticMode)
+        assertEquals(context.getString(R.string.nt_kinetic_life), pill.text.toString())
+
+        pill.performClick()
+        assertEquals(2, prefs.kineticMode)
+        assertEquals(context.getString(R.string.nt_kinetic_snake), pill.text.toString())
+        assertTrue(hint.text.toString().contains("SCORE"))
+
+        pill.performClick()
+        assertEquals(0, prefs.kineticMode)
+    }
+
+    @Test
+    fun notificationDigestAggregatesPrioritiesAndSoundscapeControlsPresent() {
+        val sample = listOf(
+            NotificationDigestRepository.RawNotification(
+                key = "k1", packageName = "com.shop.app", appLabel = "Shop",
+                title = "Flash Sale", text = "50% off", category = Notification.CATEGORY_PROMO,
+                postTime = 1000L, ongoing = false, isGroupSummary = false
+            ),
+            NotificationDigestRepository.RawNotification(
+                key = "k2", packageName = "com.whatsapp", appLabel = "WhatsApp",
+                title = "Alex", text = "Meet at 5?", category = Notification.CATEGORY_MESSAGE,
+                postTime = 2000L, ongoing = false, isGroupSummary = false
+            ),
+            NotificationDigestRepository.RawNotification(
+                key = "k3", packageName = "com.whatsapp", appLabel = "WhatsApp",
+                title = "Alex", text = "On my way", category = Notification.CATEGORY_MESSAGE,
+                postTime = 3000L, ongoing = false, isGroupSummary = false
+            ),
+            NotificationDigestRepository.RawNotification(
+                key = "k4", packageName = "com.whatsapp", appLabel = "WhatsApp",
+                title = "Summary", text = "2 messages", category = Notification.CATEGORY_MESSAGE,
+                postTime = 3000L, ongoing = false, isGroupSummary = true
+            ),
+            NotificationDigestRepository.RawNotification(
+                key = "k5", packageName = "com.music.player", appLabel = "Music",
+                title = "Now Playing", text = "Track", category = Notification.CATEGORY_TRANSPORT,
+                postTime = 4000L, ongoing = true, isGroupSummary = false
+            )
+        )
+        val snap = NotificationDigestRepository.aggregateRaw(permissionGranted = true, raw = sample)
+        assertTrue(snap.permissionGranted)
+        assertEquals(3, snap.totalCount)
+        assertEquals(2, snap.priorityCount)
+        assertEquals(2, snap.entries.size)
+        assertEquals("com.whatsapp", snap.entries[0].packageName)
+        assertEquals(2, snap.entries[0].countInPkg)
+        assertTrue(snap.entries[0].isPriority)
+        assertFalse(snap.entries[1].isPriority)
+
+        val themed = ContextThemeWrapper(context, R.style.NtTheme_Backdrop_Dark)
+        val phoneSpace = LayoutInflater.from(themed).inflate(R.layout.essential_space_overlay, null)
+        assertNotNull(phoneSpace.findViewById<View>(R.id.spaceSoundscapeBtn))
+        assertNotNull(phoneSpace.findViewById<View>(R.id.spaceDigestCard))
+        assertNotNull(phoneSpace.findViewById<View>(R.id.spaceDigestCount))
+        assertNotNull(phoneSpace.findViewById<View>(R.id.spaceDigestContainer))
+    }
+
+    @Test
+    fun focusSoundEngineSynthesizesSamplesCyclesProfilesAndPersistsPrefs() {
+        FocusSoundEngine.stop()
+        assertEquals(FocusSoundEngine.Profile.OFF, FocusSoundEngine.current)
+
+        val state = FocusSoundEngine.SynthState()
+        assertEquals(0f to 0f, FocusSoundEngine.synthesizeSample(FocusSoundEngine.Profile.OFF, state))
+        listOf(
+            FocusSoundEngine.Profile.BROWN,
+            FocusSoundEngine.Profile.RAIN,
+            FocusSoundEngine.Profile.GAMMA_40HZ
+        ).forEach { profile ->
+            var energy = 0f
+            repeat(128) {
+                val (l, r) = FocusSoundEngine.synthesizeSample(profile, state)
+                assertTrue(l.isFinite() && r.isFinite())
+                assertTrue(kotlin.math.abs(l) < 2f && kotlin.math.abs(r) < 2f)
+                energy += kotlin.math.abs(l) + kotlin.math.abs(r)
+            }
+            assertTrue("Expected non-silent output for $profile", energy > 0.01f)
+        }
+
+        assertEquals(FocusSoundEngine.Profile.BROWN, FocusSoundEngine.cycle())
+        assertEquals(FocusSoundEngine.Profile.RAIN, FocusSoundEngine.cycle())
+        assertEquals(FocusSoundEngine.Profile.GAMMA_40HZ, FocusSoundEngine.cycle())
+        assertEquals(FocusSoundEngine.Profile.OFF, FocusSoundEngine.cycle())
+        FocusSoundEngine.stop()
+
+        prefs.kineticMode = 2
+        prefs.soundscapePreset = 3
+        val json = prefs.exportToJson()
+        prefs.kineticMode = 0
+        prefs.soundscapePreset = 1
+        assertTrue(prefs.importFromJson(json))
+        assertEquals(2, prefs.kineticMode)
+        assertEquals(3, prefs.soundscapePreset)
+    }
+
+    @Test
+    fun dreamServiceRegisteredAndStandByLayoutMeasuresCleanly() {
+        val pm = context.packageManager
+        val cn = ComponentName(context, NothingDreamService::class.java)
+        val info = pm.getServiceInfo(cn, PackageManager.GET_META_DATA)
+        assertTrue("DreamService must be exported", info.exported)
+        assertEquals("android.permission.BIND_DREAM_SERVICE", info.permission)
+        assertNotNull(info.metaData)
+
+        val themed = ContextThemeWrapper(context, R.style.NtTheme_Backdrop_Dark)
+        val dream = LayoutInflater.from(themed).inflate(R.layout.dream_nothing_standby, null)
+        val wPx = (400 * themed.resources.displayMetrics.density).toInt()
+        val hPx = (820 * themed.resources.displayMetrics.density).toInt()
+        dream.measure(
+            View.MeasureSpec.makeMeasureSpec(wPx, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(hPx, View.MeasureSpec.EXACTLY)
+        )
+        dream.layout(0, 0, wPx, hPx)
+        val openDesk = dream.findViewById<View>(R.id.dreamOpenDeskBtn)
+        val clock = dream.findViewById<View>(R.id.dreamClock)
+        assertTrue(clock.width > 0 && clock.height > 0)
+        assertTrue(openDesk.width > 0 && openDesk.right <= wPx && openDesk.bottom <= hPx)
     }
 }
