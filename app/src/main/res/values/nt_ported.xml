@@ -50,13 +50,13 @@
     <string name="element_weather_sub">Dot-matrix temperature &amp; conditions</string>
     <string name="format_24h" translatable="false">24H</string>
     <string name="local_time">Local time</string>
-    <string name="media_artist_default">GLYPH AUDIO SYSTEM</string>
+    <string name="media_artist_default">DOT AUDIO SYSTEM</string>
     <string name="media_connect_hint">CONNECT A PLAYER</string>
     <string name="media_label">NOW PLAYING</string>
     <string name="media_label_empty">MEDIA</string>
     <string name="media_no_session">NO ACTIVE PLAYBACK</string>
     <string name="media_permission_needed">NOTIFICATION ACCESS NEEDED</string>
-    <string name="media_title_default">NOTHING SOUNDS</string>
+    <string name="media_title_default">MONOLITH AUDIO</string>
     <string name="quick_note_hint">Enter note or quote…</string>
     <string name="quick_note_save">Save</string>
     <string name="weather_loading">LOADING</string>

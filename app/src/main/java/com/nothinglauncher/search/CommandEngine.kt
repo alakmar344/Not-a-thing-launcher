@@ -124,7 +124,7 @@ object CommandEngine {
     private fun copyToClipboard(context: Context, text: String) {
         try {
             val cm = context.getSystemService(ClipboardManager::class.java)
-            cm?.setPrimaryClip(ClipData.newPlainText("Nothing Command", text))
+            cm?.setPrimaryClip(ClipData.newPlainText("Launcher Command", text))
             Toast.makeText(context, context.getString(R.string.copied_fmt, text), Toast.LENGTH_SHORT).show()
         } catch (_: Throwable) {}
     }
@@ -137,7 +137,7 @@ object CommandEngine {
             return CommandResult(
                 Kind.ACTION, "TIMER",
                 "Start ${mins}m Focus Timer",
-                "Syncs across Home widget & Essential Space"
+                "Syncs across Home widget & Dock Space"
             ) { ctx ->
                 val p = NothingPrefs.get(ctx)
                 p.timerStopwatchMode = false
@@ -153,11 +153,11 @@ object CommandEngine {
             if (noteBody.isNotEmpty()) {
                 return CommandResult(
                     Kind.ACTION, "NOTE",
-                    "Save to Essential Note",
+                    "Save to Focus Note",
                     noteBody
                 ) { ctx ->
                     NothingPrefs.get(ctx).essentialNote = noteBody
-                    Toast.makeText(ctx, "Saved to Essential Note", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(ctx, "Saved to Focus Note", Toast.LENGTH_SHORT).show()
                 }
             }
         }
@@ -184,13 +184,13 @@ object CommandEngine {
         return when {
             low == "desk" || low == "standby" || low == "hud" || low == "desk hud" -> CommandResult(
                 Kind.ACTION, "HUD",
-                "Open Glyph Desk HUD",
+                "Open Matrix Desk HUD",
                 "Full-screen StandBy clock, weather & focus cockpit"
             ) { DeskHudActivity.launch(it) }
             low == "stopwatch" || low == "sw" -> CommandResult(
                 Kind.ACTION, "TIMER",
                 "Start Stopwatch",
-                "Counts up in Focus Timer & Essential Space"
+                "Counts up in Focus Timer & Dock Space"
             ) { ctx ->
                 val p = NothingPrefs.get(ctx)
                 p.timerStopwatchMode = true
@@ -217,7 +217,7 @@ object CommandEngine {
             ) { HardwareControlRepository.toggleTorch(it) }
             low == "focus" || low == "focus mode" -> CommandResult(
                 Kind.ACTION, "CMD",
-                if (NothingPrefs.get(context).focusMode) "Exit Essential Focus Mode" else "Enter Essential Focus Mode",
+                if (NothingPrefs.get(context).focusMode) "Exit Focus Mode" else "Enter Focus Mode",
                 "Monochrome low-distraction home"
             ) {
                 val p = NothingPrefs.get(it)

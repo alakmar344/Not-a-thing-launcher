@@ -123,10 +123,10 @@ class BigScreenScreensTest {
             subtitle = ctx.getString(R.string.timer_running)
         }
         root.findViewById<TextView>(R.id.deskTimerAction).text = "25M"
-        root.findViewById<TextView>(R.id.deskMediaTitle).text = "Glyph Studio 14"
-        root.findViewById<TextView>(R.id.deskMediaArtist).text = "NOTHING AUDIO"
+        root.findViewById<TextView>(R.id.deskMediaTitle).text = "Matrix Studio 14.1"
+        root.findViewById<TextView>(R.id.deskMediaArtist).text = "DOT AUDIO SYSTEM"
         root.findViewById<TextView>(R.id.deskNotePreview).text =
-            "Ship v14 Big-Screen Telemetry Studio · Check tablet Desk HUD + Smart Categories"
+            "Ship v14.1 Big-Screen Telemetry Studio · Check tablet Desk HUD + Smart Categories"
         paparazzi.snapshot(root)
     }
 
@@ -139,7 +139,7 @@ class BigScreenScreensTest {
         root.findViewById<TextView>(R.id.essentialWeatherPill).text = "21° LONDON"
         root.findViewById<TextView>(R.id.essentialBriefingSub).text = "11:00 · Architecture Sync • Alarm Thu 07:30"
         root.findViewById<TextView>(R.id.spaceNoteBody).text =
-            "Big-screen Bento Essential Space with live Habit Pegboard & Now Playing deck."
+            "Big-screen Bento Dock Space with live Habit Pegboard & Now Playing deck."
         root.findViewById<TextView>(R.id.spaceVitalsText).text =
             "STORAGE 94.2 / 256 GB   •   RAM 6.8 / 12.0 GB   •   SCREEN 2H 18M"
         root.findViewById<TextView>(R.id.spaceHabitTitle).text = "DEEP WORK"
@@ -149,8 +149,8 @@ class BigScreenScreensTest {
             Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.let { fmt.format(it.time) }
         }.toSet()
         root.findViewById<HabitPegboardView>(R.id.spaceHabitGrid).completedDates = dates
-        root.findViewById<TextView>(R.id.spaceMediaTitle)?.text = "Glyph Studio 14"
-        root.findViewById<TextView>(R.id.spaceMediaArtist)?.text = "NOTHING AUDIO"
+        root.findViewById<TextView>(R.id.spaceMediaTitle)?.text = "Matrix Studio 14.1"
+        root.findViewById<TextView>(R.id.spaceMediaArtist)?.text = "DOT AUDIO SYSTEM"
         paparazzi.snapshot(root)
     }
 

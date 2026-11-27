@@ -4,23 +4,30 @@ How a change gets from `main` onto your phone, and what (if anything) you ever n
 
 ## What happens automatically
 
-Every push to `main` runs [`.github/workflows/build.yml`](../.github/workflows/build.yml), which:
+Every push to `main` (or matching `v*` tag) runs [`.github/workflows/build.yml`](../.github/workflows/build.yml), which:
 
 1. renders the screenshot tests (`recordPaparazziDebug`),
-2. builds the debug and release APKs (`assembleDebug`, `assembleRelease`) — the release build
+2. runs unit & Robolectric suites (`testDebugUnitTest`),
+3. builds the debug and release APKs (`assembleDebug`, `assembleRelease`) — the release build
    also runs `verifyReleaseReflection`, which fails the build if R8 stripped a class Launcher3
    loads by name (see [AGENTS.md](../AGENTS.md#release-builds-must-be-checked-not-assumed)),
-3. uploads the APKs to the GitHub release, replacing the previous build's files.
+4. publishes the APKs to the GitHub release for `v<versionName>`.
 
-Each build installs **over** the previous one, no uninstall needed, because two things are
-guaranteed by `app/build.gradle` rather than by the workflow:
+Each CI release installs **over** previous v14.1+ builds without uninstalling:
 
 | | How |
 |---|---|
-| Same signing key every time | `keystore/stable-signing.p12` (committed on purpose), unless you supply your own key, see below |
+| Private release signing key | Stored as GitHub Actions secrets (`RELEASE_KEYSTORE_BASE64`, `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`) and decoded only in CI memory/temp runner dir (no private key is committed in git) |
 | Always a higher `versionCode` | `2000 + GITHUB_RUN_NUMBER`, so each CI run is newer than the last; `VERSION_CODE` overrides it |
 
-Pull requests run the same build as a check but don't publish anything.
+Pull requests run verification builds (fork PRs without repository secrets verify debug-signed R8 builds + `verifyReleaseReflection`) without publishing releases.
+
+## Current Release Signing Key (v14.1+)
+
+Beginning in **v14.1**, the legacy public repository keystore (`keystore/stable-signing.p12`) and hardcoded fallback password were removed because publishing a private key allows arbitrary parties to forge APK updates. Releases are now signed with a dedicated 4096-bit RSA key (`notathing-release`):
+
+- **Certificate SHA-256:** `9F:53:42:FE:6B:3A:C5:96:18:D7:DF:13:AC:3E:14:1F:03:7A:24:DD:9F:5B:4A:F3:A2:97:19:A7:53:69:5B:97`
+- **Upgrade note for v14 and earlier users:** Because v14.1 rotates away from the compromised public key, Android requires a **one-time uninstall** of v14 or earlier before installing v14.1. All subsequent v14.1+ releases update in place cleanly.
 
 ## Installing an update
 
@@ -35,27 +42,24 @@ Settings → About.
 2. Move the `[Unreleased]` entries in [`CHANGELOG.md`](../CHANGELOG.md) under a new heading for that
    version.
 3. Merge to `main`. That alone publishes the release `v<versionName>`. Optionally also push the
-   matching tag (e.g. `v13`); a tag that doesn't match `versionName` fails the build.
+   matching tag (e.g. `v14.1`); a tag that doesn't match `versionName` fails the build.
 
 ## How releases are named
 
 The workflow reads `versionName` from `app/build.gradle` and publishes `main` builds to the tag
-`v<versionName>`, titled `Release v<versionName>` — `versionName "13"` gives **v13**. Bumping
+`v<versionName>`, titled `Release v<versionName>` — `versionName "14.1"` gives **v14.1**. Bumping
 `versionName` starts a new release; until then each push replaces the files in the current one.
 A pushed tag must equal `v<versionName>` or the build fails on purpose.
 
-## Using your own signing key (optional)
+## Local Release Signing Configuration
 
-The committed key is fine for a sideloaded launcher. If you want a private key instead, decide
-**now**: switching keys later forces every user to uninstall once, because Android only accepts
-updates signed with the installed app's key.
+`app/build.gradle` picks the release signing key in this order:
 
-`app/build.gradle` picks the key in this order:
+1. env `RELEASE_KEYSTORE_FILE` + `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD` (used by GitHub Actions from repository secrets),
+2. `keystore.properties` in the repo root (local developer builds; git-ignored),
+3. debug keystore fallback (unconfigured local builds or external fork PR verification only).
 
-1. env `RELEASE_KEYSTORE_FILE` + `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS`,
-   `RELEASE_KEY_PASSWORD` (the CI workflow would have to pass these from secrets),
-2. `keystore.properties` in the repo root (local builds; git-ignored),
-3. `keystore/stable-signing.p12` (default).
+Debug builds (`assembleDebug`) use the local Android debug keystore. Never commit `.p12`, `.jks`, `.keystore`, or `keystore.properties` files to git.
 
 Check which key signed an APK with:
 
