@@ -33,6 +33,18 @@ CWP = 'com.android.systemui.plugins.CustomWidgetPlugin'
 CTX_CTOR = '(Landroid/content/Context;)V'
 NOARG_CTOR = '()V'
 
+# Methods added after minSdk 26 that D8/L8 must rewrite (or must be absent) in shipped DEX.
+DISALLOWED_UNDESUGARED_METHODS = {
+    ('Ljava/util/stream/Stream;', 'toList'),
+    ('Ljava/util/List;', 'of'),
+    ('Ljava/util/List;', 'copyOf'),
+    ('Ljava/util/Set;', 'of'),
+    ('Ljava/util/Set;', 'copyOf'),
+    ('Ljava/util/Map;', 'of'),
+    ('Ljava/util/Map;', 'ofEntries'),
+    ('Ljava/util/Map;', 'copyOf'),
+}
+
 
 def _uleb(d, o):
     r = s = 0
@@ -52,7 +64,7 @@ def parse_dex(d):
     n_str, o_str = u4(0x38), u4(0x3C)
     n_typ, o_typ = u4(0x40), u4(0x44)
     o_pro = u4(0x4C)
-    o_met = u4(0x5C)
+    n_met, o_met = u4(0x58), u4(0x5C)
     n_cls, o_cls = u4(0x60), u4(0x64)
 
     def string(i):
@@ -107,7 +119,14 @@ def parse_dex(d):
                     ctors.add(proto_sig(u2(mbase + 2)))
         out[name] = {'super': sup, 'ifaces': ifaces, 'ctors': ctors,
                      'abstract': bool(flags & 0x400) or bool(flags & 0x200)}
-    return out
+    undesugared = []
+    for midx in range(n_met):
+        mbase = o_met + 8 * midx
+        cls_desc = typ(u2(mbase))
+        m_name = string(u4(mbase + 4))
+        if (cls_desc, m_name) in DISALLOWED_UNDESUGARED_METHODS:
+            undesugared.append(f'{cls_desc}->{m_name}{proto_sig(u2(mbase + 2))}')
+    return out, undesugared
 
 
 def is_subtype(classes, name, target, seen=None):
@@ -140,12 +159,16 @@ def main():
         blobs.append(open(p, 'rb').read())
     if not blobs:
         sys.exit('no dex input')
-    classes = {}
+    classes, undesugared = {}, []
     for b in blobs:
-        classes.update(parse_dex(b))
+        c, u = parse_dex(b)
+        classes.update(c)
+        undesugared.extend(u)
 
     res = ET.parse(a.values).getroot()
     errors, checked = [], 0
+    for sig in sorted(set(undesugared)):
+        errors.append(f'undesugared API call in release dex (breaks < Android 11/14): {sig}')
 
     def need(name, ctor, supertype, why):
         nonlocal checked
