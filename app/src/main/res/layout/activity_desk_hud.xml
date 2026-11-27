@@ -570,16 +570,54 @@
                         android:textSize="9.5sp" />
                 </LinearLayout>
 
-                <TextView
-                    android:id="@+id/deskNotePreview"
-                    style="@style/Text.Body"
+                <LinearLayout
+                    android:id="@+id/deskNoteCard"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:background="@drawable/bg_tile_dark"
-                    android:fontFamily="@font/space_mono_regular"
-                    android:padding="16dp"
-                    android:textSize="12.5sp" />
+                    android:foreground="@drawable/fg_ripple_tile"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <View
+                            android:id="@+id/deskNoteDot"
+                            android:layout_width="6dp"
+                            android:layout_height="6dp"
+                            android:background="@drawable/dot_red" />
+
+                        <TextView
+                            style="@style/Text.Label"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="@string/essential_note_title" />
+
+                        <TextView
+                            style="@style/Text.Label"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/nt_note_edit"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="9sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/deskNotePreview"
+                        style="@style/Text.Body"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:fontFamily="@font/space_mono_regular"
+                        android:textSize="12.5sp" />
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

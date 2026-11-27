@@ -4,7 +4,11 @@ import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
 import android.view.View
+import android.view.ViewGroup
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.core.content.ContextCompat
 
 /**
@@ -81,6 +85,79 @@ object AccentTheme {
         val c = accentColor(context)
         dotView.background?.mutate()?.setTint(c)
             ?: run { dotView.backgroundTintList = ColorStateList.valueOf(c) }
+    }
+
+    fun createSwatchDrawable(context: Context, palette: Palette, selected: Boolean): GradientDrawable {
+        val d = context.resources.displayMetrics.density
+        val fillColor = if (palette == Palette.MONO) {
+            ContextCompat.getColor(context, R.color.dot_on)
+        } else {
+            palette.colorHex
+        }
+        return GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(fillColor)
+            val strokePx = if (selected) (2.5f * d).toInt().coerceAtLeast(2) else (1 * d).toInt().coerceAtLeast(1)
+            val strokeColor = ContextCompat.getColor(
+                context,
+                if (selected) R.color.text_primary else R.color.hairline_strong
+            )
+            setStroke(strokePx, strokeColor)
+        }
+    }
+
+    /**
+     * Populates an interactive 5-dot hardware accent palette strip shared by CustomizeSheet and Settings.
+     */
+    fun populateSwatchStrip(
+        context: Context,
+        container: LinearLayout,
+        labelView: TextView? = null,
+        sizeDp: Int = 24,
+        gapDp: Int = 10,
+        onSelected: (Palette) -> Unit
+    ) {
+        val prefs = NothingPrefs.get(context)
+        val d = context.resources.displayMetrics.density
+        val sizePx = (sizeDp * d).toInt()
+        val gapPx = (gapDp * d).toInt()
+        val entries = Palette.entries
+        container.removeAllViews()
+        val views = ArrayList<View>(entries.size)
+
+        fun updateSelectionUi(active: Palette) {
+            entries.forEachIndexed { idx, palette ->
+                val v = views[idx]
+                val sel = palette == active
+                v.background = createSwatchDrawable(context, palette, sel)
+                v.scaleX = if (sel) 1.14f else 1f
+                v.scaleY = if (sel) 1.14f else 1f
+                v.isSelected = sel
+            }
+            labelView?.setText(active.labelRes)
+        }
+
+        entries.forEachIndexed { idx, palette ->
+            val dot = View(context).apply {
+                contentDescription = context.getString(palette.labelRes)
+                isClickable = true
+                isFocusable = true
+                Tactile.press(this, 0.90f)
+                setOnClickListener {
+                    Tactile.tick(it)
+                    prefs.accentPalette = palette
+                    updateSelectionUi(palette)
+                    onSelected(palette)
+                }
+            }
+            val lp = LinearLayout.LayoutParams(sizePx, sizePx).apply {
+                if (idx > 0) marginStart = gapPx
+            }
+            views += dot
+            container.addView(dot, lp)
+        }
+        container.gravity = Gravity.CENTER_VERTICAL
+        updateSelectionUi(prefs.accentPalette)
     }
 
     fun applyWidgetSurface(view: View, context: Context, widgetKey: String, defaultLight: Boolean = false) {

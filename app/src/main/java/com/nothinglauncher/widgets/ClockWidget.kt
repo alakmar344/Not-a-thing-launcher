@@ -51,6 +51,7 @@ class ClockWidget(context: Context) : NothingWidget(context) {
 
         val fx = VisualTier.effects(ctx)
         clock.glow = clock.glow && fx.dotGlow
+        word.glow = word.glow && fx.dotGlow
         clock.powerOnEnabled = fx.clockPowerOn
 
         fun refreshAccentAndFace() {
@@ -73,6 +74,7 @@ class ClockWidget(context: Context) : NothingWidget(context) {
             ticker.applySurfaceColors(sc)
 
             val mode = prefs.clockFaceMode
+            clock.timeZone = if (mode == 3) TimeZone.getTimeZone(prefs.worldClockZoneId) else null
             clock.isVisible = mode == 0 || mode == 3
             analog.isVisible = mode == 1
             word.isVisible = mode == 2
@@ -112,16 +114,19 @@ class ClockWidget(context: Context) : NothingWidget(context) {
                 }
                 else -> {
                     val tz = TimeZone.getTimeZone(prefs.worldClockZoneId)
+                    val localCal = Calendar.getInstance()
                     val worldCal = Calendar.getInstance(tz)
-                    val wh = worldCal.get(Calendar.HOUR_OF_DAY)
-                    val wm = worldCal.get(Calendar.MINUTE)
-                    val wStr = String.format(Locale.US, "%02d:%02d", wh, wm)
+                    val localStr = DateFormat.format(
+                        if (DateFormat.is24HourFormat(ctx)) "HH:mm" else "h:mm a",
+                        localCal
+                    ).toString()
                     val cityTag = tz.id.substringAfterLast('/').replace('_', ' ').uppercase(Locale.US)
-                    clockLabel.text = "$cityTag $wStr"
+                    clockLabel.text = "$cityTag · LOCAL $localStr"
                     meridiem.text = ctx.getString(R.string.clock_mode_world_short)
-                    date.text = DateFormat.format(
-                        DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
-                    )
+                    val fmt = java.text.SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).apply {
+                        timeZone = tz
+                    }
+                    date.text = fmt.format(worldCal.time)
                 }
             }
         }

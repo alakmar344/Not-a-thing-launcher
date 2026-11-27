@@ -4,6 +4,7 @@ import android.content.Context
 import android.text.format.DateFormat
 import android.util.AttributeSet
 import java.util.Calendar
+import java.util.TimeZone
 
 /**
  * Live dot-matrix clock. Respects the system 12/24-hour setting and blinks the colon
@@ -17,6 +18,16 @@ class DotMatrixClockView @JvmOverloads constructor(
 
     var blinkColon: Boolean = true
         set(value) { field = value; tick() }
+
+    /** Optional timezone override (e.g. World Clock mode). Null uses device default timezone. */
+    var timeZone: TimeZone? = null
+        set(value) {
+            if (field?.id != value?.id) {
+                field = value
+                lastTextKey = -1
+                tick()
+            }
+        }
 
     /** Called whenever the displayed minute changes (and once on first tick). */
     var onMinuteChanged: ((Calendar) -> Unit)? = null
@@ -45,7 +56,7 @@ class DotMatrixClockView @JvmOverloads constructor(
     }
 
     fun tick() {
-        val cal = Calendar.getInstance()
+        val cal = Calendar.getInstance(timeZone ?: TimeZone.getDefault())
         val preview = previewTime
         if (preview != null) {
             cal.set(Calendar.HOUR_OF_DAY, preview.first)

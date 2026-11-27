@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ComponentCallbacks2
 import android.content.ComponentName
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
@@ -81,6 +82,53 @@ class NothingLauncher : Launcher() {
     private var appliedFocus: Boolean? = null
     private var appliedDrawerMode: NothingPrefs.DrawerLayoutMode? = null
     private var drawerProgress = 0f
+    private var isResumedState = false
+
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        when (key) {
+            NothingPrefs.K_CAFFEINE -> applyCaffeineFlag()
+            NothingPrefs.K_HIDE_HOME_LABELS -> applyHomeLabelsVisibility()
+            NothingPrefs.K_SHOW_SEARCH_PILL -> refreshSearchPillVisibility()
+            NothingPrefs.K_HIDDEN_PACKAGES -> {
+                refreshHiddenApps()
+                refreshDrawerHeader()
+            }
+            NothingPrefs.K_CUSTOM_LABELS -> {
+                refreshDrawerHeader()
+                (appsView as? NothingAllAppsContainerView)?.refreshDrawerLayoutMode()
+            }
+            NothingPrefs.K_RECENT_APPS, NothingPrefs.K_DRAWER_RECENTS -> refreshDrawerHeader()
+            NothingPrefs.K_DRAWER_MODE -> {
+                appliedDrawerMode = prefs.drawerLayoutMode
+                (appsView as? NothingAllAppsContainerView)?.refreshDrawerLayoutMode()
+            }
+            NothingPrefs.K_FOCUS_MODE -> applyBackdrop()
+            NothingPrefs.K_ACCENT_PALETTE -> {
+                if (CustomizeSheet.isShowing()) {
+                    applyBackdrop()
+                    refreshDrawerHeader()
+                } else if (isResumedState && !isFinishing && appliedAccent != null && appliedAccent != prefs.accentPalette) {
+                    window?.decorView?.post {
+                        if (isResumedState && !isFinishing) recreate()
+                    }
+                }
+            }
+            NothingPrefs.K_BACKGROUND,
+            NothingPrefs.K_NIGHT_DIM,
+            NothingPrefs.K_QUALITY -> {
+                if (isResumedState && !isFinishing) {
+                    val needsRecreate = (appliedBackground != null &&
+                        (appliedBackground != prefs.background || appliedTier != VisualTier.current(this))) ||
+                        (appliedNightDim != null && appliedNightDim != prefs.nightDimDots)
+                    if (needsRecreate) {
+                        window?.decorView?.post {
+                            if (isResumedState && !isFinishing) recreate()
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     override fun getDefaultOverlay(): LauncherOverlayManager {
         return EssentialSpaceOverlay(
@@ -140,6 +188,7 @@ class NothingLauncher : Launcher() {
         applyBackdrop()
         applyCaffeineFlag()
         wireWorkspaceInteractions()
+        prefs.addListener(prefListener)
         // Icons are rendered for light or dark mode; re-render them after a switch.
         val night = NothingIconLogic.isNight(this)
         if (prefs.iconsRenderedNight != night) {
@@ -154,6 +203,7 @@ class NothingLauncher : Launcher() {
 
     override fun onResume() {
         super.onResume()
+        isResumedState = true
         // Re-create when backdrop/accent/tier changes so all window paints match cleanly.
         val themeChanged = (appliedBackground != null &&
             (appliedBackground != prefs.background || appliedTier != VisualTier.current(this))) ||
@@ -213,6 +263,7 @@ class NothingLauncher : Launcher() {
     private var pausedAt = 0L
 
     override fun onPause() {
+        isResumedState = false
         super.onPause()
         pausedAt = SystemClock.elapsedRealtime()
     }
@@ -243,6 +294,7 @@ class NothingLauncher : Launcher() {
      * Activity token it was shown on ("WindowLeaked").
      */
     override fun onDestroy() {
+        prefs.removeListener(prefListener)
         CustomizeSheet.dismissActive()
         super.onDestroy()
     }
@@ -326,6 +378,8 @@ class NothingLauncher : Launcher() {
     fun refreshHiddenApps() {
         (appsView as? NothingAllAppsContainerView)?.applyHiddenFilter()
     }
+
+    fun refreshDrawerHeaderPublic() = refreshDrawerHeader()
 
     private fun refreshDrawerHeader() {
         val av = appsView ?: return
@@ -499,7 +553,11 @@ class NothingLauncher : Launcher() {
                 activeAction = null
                 return false
             }
-            gestureDetector.onTouchEvent(ev)
+            if (gestureDetector.onTouchEvent(ev)) {
+                intercepted = true
+                activeAction = null
+                return true
+            }
             scaleDetector.onTouchEvent(ev)
             when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
@@ -559,7 +617,8 @@ class NothingLauncher : Launcher() {
         private fun isHomeReady(): Boolean =
             isInState(LauncherState.NORMAL) &&
                 AbstractFloatingView.getTopOpenView(this@NothingLauncher) == null &&
-                essentialOverlay?.isShown != true
+                essentialOverlay?.isShown != true &&
+                !dragController.isDragging
 
         private fun isEmptyWorkspacePoint(rawX: Int, rawY: Int): Boolean {
             val hs = hotseat

@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.android.launcher3.BubbleTextView
 import com.android.launcher3.allapps.AllAppsGridAdapter
+import com.android.launcher3.allapps.AllAppsRecyclerView
 import com.android.launcher3.allapps.BaseAllAppsAdapter
 import com.android.launcher3.allapps.search.DefaultSearchAdapterProvider
 import com.android.launcher3.model.data.AppInfo
@@ -20,6 +21,7 @@ import com.nothinglauncher.IconFactory
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.Tactile
+import com.nothinglauncher.icons.IconPackManager
 import com.nothinglauncher.icons.NothingIconLogic
 
 /**
@@ -71,6 +73,15 @@ class NothingSearchAdapterProvider(
         else -> null
     }
 
+    private fun lookupAdapterItem(
+        view: View,
+        position: Int,
+        inSearch: Boolean
+    ): BaseAllAppsAdapter.AdapterItem? {
+        val attached = (view.parent as? AllAppsRecyclerView)?.apps?.adapterItems?.getOrNull(position)
+        return attached ?: itemLookup(position, inSearch)
+    }
+
     override fun onBindView(holder: BaseAllAppsAdapter.ViewHolder, position: Int) {
         if (position == 0 && isSearchingProvider()) {
             highlighted = holder.itemView
@@ -86,14 +97,15 @@ class NothingSearchAdapterProvider(
     }
 
     private fun bindCategory(view: View, position: Int) {
-        val item = itemLookup(position, false) as? NothingAllAppsContainerView.CategoryAdapterItem ?: return
+        val item = lookupAdapterItem(view, position, false) as? NothingAllAppsContainerView.CategoryAdapterItem ?: return
         val ctx = view.context
         AccentTheme.tintDot(view.findViewById(R.id.catDot), ctx)
-        view.findViewById<TextView>(R.id.catTitle).text = "${item.title} · ${item.count}"
+        view.findViewById<TextView>(R.id.catTitle).text = item.title
+        view.findViewById<TextView?>(R.id.catCount)?.text = item.count.toString()
     }
 
     private fun bindCommand(view: View, position: Int) {
-        val item = itemLookup(position, true) as? NothingSearchAlgorithm.CommandAdapterItem ?: return
+        val item = lookupAdapterItem(view, position, true) as? NothingSearchAlgorithm.CommandAdapterItem ?: return
         val cmd = item.command
         val ctx = view.context
         val badge = view.findViewById<TextView>(R.id.cmdBadge)
@@ -114,30 +126,41 @@ class NothingSearchAdapterProvider(
     }
 
     private fun bindListApp(view: View, position: Int) {
-        val item = itemLookup(position, false) ?: return
+        val item = lookupAdapterItem(view, position, false) ?: return
         val info: AppInfo = item.itemInfo ?: return
         val ctx = view.context
+        val prefs = NothingPrefs.get(ctx)
         val title = view.findViewById<TextView>(R.id.listAppTitle)
         val iconView = view.findViewById<ImageView>(R.id.listAppIcon)
         val tag = view.findViewById<TextView>(R.id.listAppTag)
 
-        title.text = info.title
+        val cn = info.componentName
+        title.text = cn?.let { prefs.customAppLabels[it.flattenToString()] } ?: info.title
         tag.text = info.sectionName
         val size = (34 * ctx.resources.displayMetrics.density).toInt()
         val bmp = info.bitmap.icon
-        val pkg = info.componentName?.packageName ?: info.targetPackage
+        val pkg = cn?.packageName ?: info.targetPackage
         if (bmp != null) {
             iconView.setImageDrawable(android.graphics.drawable.BitmapDrawable(ctx.resources, bmp))
         } else if (!pkg.isNullOrBlank()) {
-            val d = try { ctx.packageManager.getApplicationIcon(pkg) } catch (_: Throwable) { null }
+            val packPkg = prefs.iconPackPackage
+            val packIcon = if (packPkg.isNotBlank() && cn != null) {
+                IconPackManager.loadIconForComponent(ctx, packPkg, cn)
+            } else {
+                null
+            }
+            val d = packIcon ?: try { ctx.packageManager.getApplicationIcon(pkg) } catch (_: Throwable) { null }
             if (d != null) {
+                val style = NothingIconLogic.currentStyle(ctx)
+                val night = NothingIconLogic.isNight(ctx)
+                val compKey = cn?.flattenToString() ?: pkg
                 iconView.setImageDrawable(
                     IconFactory.render(
                         ctx.resources,
                         d,
-                        NothingIconLogic.currentStyle(ctx),
+                        style,
                         size,
-                        cacheKey = "list:$pkg"
+                        cacheKey = "list:$compKey:${style.name}:$packPkg:$night"
                     )
                 )
             } else {

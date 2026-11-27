@@ -251,7 +251,7 @@ abstract class ScreensTest(private val night: Boolean) {
         column.addView(weatherCard, LinearLayout.LayoutParams(MATCH, dp(136)))
 
         val mediaCard = LayoutInflater.from(ctx).inflate(R.layout.widget_media_player, column, false)
-        mediaCard.findViewById<TextView>(R.id.mediaTitle).text = "Matrix Studio 14.1"
+        mediaCard.findViewById<TextView>(R.id.mediaTitle).text = "Matrix Studio 15"
         mediaCard.findViewById<TextView>(R.id.mediaArtist).text = "DOT AUDIO SYSTEM"
         column.addView(mediaCard, LinearLayout.LayoutParams(MATCH, dp(144)).apply { topMargin = dp(10) })
 
@@ -324,7 +324,7 @@ abstract class ScreensTest(private val night: Boolean) {
             timerProgress01 = 0.68f
             isAudioActive = true
         }
-        root.findViewById<TextView>(R.id.deskGlyphMediaPill).text = "▶ MATRIX STUDIO 14.1"
+        root.findViewById<TextView>(R.id.deskGlyphMediaPill).text = "▶ MATRIX STUDIO 15"
         root.findViewById<TextView>(R.id.deskGlyphTimerPill).text = "▶ 18:00"
         paparazzi.snapshot(root)
     }

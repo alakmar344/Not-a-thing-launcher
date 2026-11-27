@@ -2,6 +2,7 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
+import android.content.SharedPreferences
 import android.view.HapticFeedbackConstants
 import android.view.LayoutInflater
 import android.view.View
@@ -85,16 +86,22 @@ class MediaWidget(context: Context) : NothingWidget(context) {
             }
         }
 
+        val prefs = com.nothinglauncher.NothingPrefs.get(ctx)
         val listener: (MediaSessionRepository.State) -> Unit = { state ->
             if (root.isAttachedToWindow) apply(state)
         }
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) apply(MediaSessionRepository.state)
+        }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
                 MediaSessionRepository.start(ctx.applicationContext)
                 apply(MediaSessionRepository.addListener(listener))
             }
 
             override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
                 MediaSessionRepository.removeListener(listener)
             }
         })

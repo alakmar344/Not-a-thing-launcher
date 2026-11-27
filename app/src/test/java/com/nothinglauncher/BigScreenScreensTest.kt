@@ -123,10 +123,10 @@ class BigScreenScreensTest {
             subtitle = ctx.getString(R.string.timer_running)
         }
         root.findViewById<TextView>(R.id.deskTimerAction).text = "25M"
-        root.findViewById<TextView>(R.id.deskMediaTitle).text = "Matrix Studio 14.1"
+        root.findViewById<TextView>(R.id.deskMediaTitle).text = "Matrix Studio 15"
         root.findViewById<TextView>(R.id.deskMediaArtist).text = "DOT AUDIO SYSTEM"
         root.findViewById<TextView>(R.id.deskNotePreview).text =
-            "Ship v14.1 Big-Screen Telemetry Studio · Check tablet Desk HUD + Smart Categories"
+            "Ship v15 Big-Screen Telemetry Studio · Check tablet Desk HUD + Smart Categories"
         paparazzi.snapshot(root)
     }
 
@@ -149,7 +149,7 @@ class BigScreenScreensTest {
             Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -offset) }.let { fmt.format(it.time) }
         }.toSet()
         root.findViewById<HabitPegboardView>(R.id.spaceHabitGrid).completedDates = dates
-        root.findViewById<TextView>(R.id.spaceMediaTitle)?.text = "Matrix Studio 14.1"
+        root.findViewById<TextView>(R.id.spaceMediaTitle)?.text = "Matrix Studio 15"
         root.findViewById<TextView>(R.id.spaceMediaArtist)?.text = "DOT AUDIO SYSTEM"
         paparazzi.snapshot(root)
     }

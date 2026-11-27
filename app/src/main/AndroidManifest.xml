@@ -112,7 +112,7 @@
             android:name="com.nothinglauncher.LauncherEntryActivity"
             android:exported="true"
             android:label="@string/nt_entry_label"
-            android:theme="@style/NtTheme.Backdrop.Dark">
+            android:theme="@style/Theme.NothingLauncher.Entry">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

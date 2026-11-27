@@ -222,6 +222,11 @@ object CommandEngine {
             ) {
                 val p = NothingPrefs.get(it)
                 p.focusMode = !p.focusMode
+                Toast.makeText(
+                    it,
+                    if (p.focusMode) "Focus Mode active" else "Focus Mode off",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             low == "caffeine" || low == "awake" -> CommandResult(
                 Kind.ACTION, "CMD",
@@ -230,6 +235,11 @@ object CommandEngine {
             ) {
                 val p = NothingPrefs.get(it)
                 p.caffeineEnabled = !p.caffeineEnabled
+                Toast.makeText(
+                    it,
+                    if (p.caffeineEnabled) "Caffeine active" else "Caffeine off",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
             low == "wifi" || low == "wi-fi" -> CommandResult(
                 Kind.ACTION, "SYS", "Open Wi-Fi Settings", "Network & internet"

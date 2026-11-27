@@ -193,7 +193,7 @@ class WeatherDotsView @JvmOverloads constructor(
         }
 
         if (!compact && hourlyTemps.size >= 4) {
-            drawSparkline(canvas, width * 0.54f, footerY - 22f * density, width - padX, footerY + 1f * density)
+            drawSparkline(canvas, width * 0.54f, footerY - 24f * density, width - padX, footerY - 2f * density)
         }
     }
 
@@ -204,18 +204,24 @@ class WeatherDotsView @JvmOverloads constructor(
         val maxT = temps.max()
         val span = (maxT - minT).coerceAtLeast(1)
         val stepX = (right - left) / (temps.size - 1).coerceAtLeast(1)
-        val dotR = 1.7f * density
+        val midY = (top + bottom) * 0.5f
+        val dotR = 1.75f * density
         temps.forEachIndexed { idx, t ->
             val cx = left + idx * stepX
+            canvas.drawCircle(cx, midY, 0.7f * density, offPaint)
             val norm = (t - minT).toFloat() / span.toFloat()
             val cy = bottom - norm * (bottom - top)
-            // Subtle baseline dot + optional rain probability indicator + live curve dot
+            // Baseline rain probability indicator + live temperature dot
             val rainPct = hourlyRainProbs.getOrNull(idx) ?: 0
             val basePaint = if (rainPct >= 25) accentPaint else offPaint
-            val baseR = if (rainPct >= 50) 1.5f * density else if (rainPct >= 25) 1.2f * density else 1f * density
-            canvas.drawCircle(cx, bottom + 3f * density, baseR, basePaint)
+            val baseR = when {
+                rainPct >= 60 -> 1.65f * density
+                rainPct >= 25 -> 1.25f * density
+                else -> 0.9f * density
+            }
+            canvas.drawCircle(cx, bottom + 4.5f * density, baseR, basePaint)
             val paint = if (idx == 0 || t == maxT) accentPaint else onPaint
-            canvas.drawCircle(cx, cy, if (idx == 0) dotR * 1.3f else dotR, paint)
+            canvas.drawCircle(cx, cy, if (idx == 0) dotR * 1.35f else dotR, paint)
         }
     }
 

@@ -94,6 +94,7 @@ object Intents {
         cls.getMethod("expandNotificationsPanel").invoke(sb)
         true
     } catch (_: Exception) {
+        Toast.makeText(context, R.string.nt_notifications_gesture_hint, Toast.LENGTH_SHORT).show()
         false
     }
 }

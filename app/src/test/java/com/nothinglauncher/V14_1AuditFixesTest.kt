@@ -183,7 +183,7 @@ class V14_1AuditFixesTest {
                 assertFalse("String '$s' unexpectedly contains '$bad'", s.contains(bad, ignoreCase = true))
             }
         }
-        assertTrue(context.getString(R.string.nt_entry_title_v14).contains("14.1"))
+        assertTrue(context.getString(R.string.nt_entry_title_v14).contains("15"))
         assertNotEquals(0, R.drawable.ic_launcher_foreground)
         assertNotEquals(0, R.drawable.ic_launcher_monochrome)
     }

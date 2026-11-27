@@ -155,6 +155,12 @@
         <item name="android:windowShowWallpaper">false</item>
     </style>
 
+    <!-- v15 Setup Hub: follows system light/dark backdrop and contrast cleanly. -->
+    <style name="Theme.NothingLauncher.Entry" parent="Theme.NothingLauncher">
+        <item name="android:windowShowWallpaper">false</item>
+        <item name="android:windowBackground">@color/nothing_bg</item>
+    </style>
+
     <!-- v14 Desk HUD (AppCompat descendant for AppCompatActivity + edge-to-edge cutout support). -->
     <style name="Theme.NothingLauncher.Desk" parent="Theme.NothingLauncher">
         <item name="android:windowShowWallpaper">false</item>

@@ -69,6 +69,47 @@
         </LinearLayout>
 
         <LinearLayout
+            android:id="@+id/customizeAccentBar"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_tile_dark"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp">
+
+            <TextView
+                style="@style/Text.Label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/nt_accent_row_label"
+                android:textColor="@color/text_secondary"
+                android:textSize="9.5sp" />
+
+            <LinearLayout
+                android:id="@+id/customizeAccentDots"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+
+            <TextView
+                android:id="@+id/customizeAccentLabel"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:gravity="end"
+                android:maxLines="1"
+                android:textColor="@color/text_tertiary"
+                android:textSize="9sp" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/customizeQuickRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

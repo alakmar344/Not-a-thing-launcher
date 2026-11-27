@@ -138,6 +138,53 @@ object SettingsUi {
         return b
     }
 
+    /** Interactive 5-dot hardware accent palette picker under the row title. */
+    fun accentSwatchRow(
+        card: LinearLayout,
+        title: String,
+        subtitleProvider: () -> String,
+        onSelect: (AccentTheme.Palette) -> Unit
+    ): ItemSettingRowBinding {
+        val b = row(card, title, subtitleProvider())
+        b.root.background = null
+        b.rowBelow.isVisible = true
+        val ctx = card.context
+        val d = ctx.resources.displayMetrics.density
+        val strip = LinearLayout(ctx).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setBackgroundResource(R.drawable.bg_tile_dark)
+            val ph = (12 * d).toInt()
+            val pv = (10 * d).toInt()
+            setPadding(ph, pv, ph, pv)
+        }
+        val labelPill = TextView(ctx).apply {
+            textSize = 10f
+            letterSpacing = 0.08f
+            isAllCaps = true
+            setTextColor(ContextCompat.getColor(ctx, R.color.text_secondary))
+        }
+        val dotsHolder = LinearLayout(ctx).apply { orientation = LinearLayout.HORIZONTAL }
+        AccentTheme.populateSwatchStrip(ctx, dotsHolder, labelPill, sizeDp = 24, gapDp = 12) { palette ->
+            b.rowSubtitle.text = subtitleProvider()
+            onSelect(palette)
+        }
+        strip.addView(
+            dotsHolder,
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        strip.addView(
+            labelPill,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                gravity = Gravity.CENTER_VERTICAL
+            }
+        )
+        b.rowBelow.addView(
+            strip,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        )
+        return b
+    }
+
     /**
      * Cards slide up and fade in one after another (balanced/full tiers). Runs once per screen
      * on the RenderThread-friendly alpha/translation properties only.

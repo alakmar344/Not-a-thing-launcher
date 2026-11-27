@@ -223,19 +223,12 @@ class NothingSettingsActivity : AppCompatActivity() {
         // 2. LOOK & PHYSICS (Unified — single Icon aesthetic control, zero duplication)
         SettingsUi.section(leftList, getString(R.string.nt_section_personalize), accent())
         SettingsUi.card(leftList).also { card ->
-            dynamicRow(card, getString(R.string.nt_setting_accent), subProvider = {
+            SettingsUi.accentSwatchRow(card, getString(R.string.nt_setting_accent), {
                 getString(prefs.accentPalette.labelRes)
             }) {
-                val entries = AccentTheme.Palette.entries
-                pickChoice(
-                    R.string.nt_setting_accent,
-                    entries.map { getString(it.labelRes) },
-                    entries.indexOf(prefs.accentPalette)
-                ) { idx ->
-                    prefs.accentPalette = entries[idx]
-                    binding.settingsRoot.background = DotGridDrawable.forTier(this)
-                    recreate()
-                }
+                binding.settingsRoot.background = DotGridDrawable.forTier(this)
+                tintAllSectionDots(binding.settingsRoot)
+                refreshAll()
             }
 
             val iconStyles = NothingPrefs.IconStyle.entries
@@ -248,7 +241,7 @@ class NothingSettingsActivity : AppCompatActivity() {
                     getString(R.string.icons_color),
                     getString(R.string.icons_dots)
                 ),
-                iconStyles.indexOf(prefs.iconStyle).coerceAtLeast(0)
+                iconStyles.indexOf(NothingIconLogic.currentStyle(this)).coerceAtLeast(0)
             ) { idx ->
                 NothingIconLogic.applyStyle(this, iconStyles[idx])
             }
@@ -441,9 +434,20 @@ class NothingSettingsActivity : AppCompatActivity() {
             SettingsUi.actionRow(card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)) {
                 Intents.start(this, Intent(this, com.android.launcher3.settings.SettingsActivity::class.java))
             }
-            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "14" }))
+            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "15" }))
         }
         refreshAll()
+    }
+
+    private fun tintAllSectionDots(root: View) {
+        if (root.id == R.id.sectionDot) {
+            AccentTheme.tintDot(root, this)
+        }
+        if (root is android.view.ViewGroup) {
+            for (i in 0 until root.childCount) {
+                tintAllSectionDots(root.getChildAt(i))
+            }
+        }
     }
 
     private fun addStudioHeroCard(parent: LinearLayout) {
@@ -464,9 +468,9 @@ class NothingSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         val titleMatrix = DotMatrixView(this).apply {
-            text = "STUDIO 14.1"
+            text = "STUDIO 15"
             dotColor = getColor(R.color.dot_on)
-            accentIndices = setOf(7, 8, 9, 10)
+            accentIndices = setOf(7, 8)
             dotScale = 0.40f
             layoutParams = LinearLayout.LayoutParams(0, (20 * d).toInt(), 1f)
         }

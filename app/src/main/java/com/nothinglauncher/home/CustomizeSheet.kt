@@ -28,6 +28,8 @@ object CustomizeSheet {
 
     private var currentDialog: Dialog? = null
 
+    fun isShowing(): Boolean = currentDialog?.isShowing == true
+
     fun dismissActive() {
         currentDialog?.dismiss()
         currentDialog = null
@@ -58,6 +60,16 @@ object CustomizeSheet {
         }
         tile(b.tileSettings, R.drawable.ic_tune, R.string.nt_tile_settings) {
             Intents.start(launcher, Intent(launcher, NothingSettingsActivity::class.java))
+        }
+
+        AccentTheme.populateSwatchStrip(
+            launcher,
+            b.customizeAccentDots,
+            b.customizeAccentLabel,
+            sizeDp = 20,
+            gapDp = 9
+        ) {
+            (launcher as? NothingLauncher)?.refreshDrawerHeaderPublic()
         }
 
         fun chip(v: TextView, action: () -> Unit) {

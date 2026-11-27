@@ -33,6 +33,31 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
     open val resizeMode: Int =
         AppWidgetProviderInfo.RESIZE_HORIZONTAL or AppWidgetProviderInfo.RESIZE_VERTICAL
 
+    internal class LifecycleFrameLayout(
+        context: Context,
+        private val onVisibilityChangedCallback: (visible: Boolean) -> Unit
+    ) : FrameLayout(context) {
+        override fun onAttachedToWindow() {
+            super.onAttachedToWindow()
+            onVisibilityChangedCallback(windowVisibility == VISIBLE && isShown)
+        }
+
+        override fun onDetachedFromWindow() {
+            onVisibilityChangedCallback(false)
+            super.onDetachedFromWindow()
+        }
+
+        override fun onWindowVisibilityChanged(visibility: Int) {
+            super.onWindowVisibilityChanged(visibility)
+            onVisibilityChangedCallback(visibility == VISIBLE && isShown)
+        }
+
+        override fun onVisibilityAggregated(isVisible: Boolean) {
+            super.onVisibilityAggregated(isVisible)
+            onVisibilityChangedCallback(isVisible && isShown)
+        }
+    }
+
     /** Builds the element's view for a newly bound widget host. */
     abstract fun createView(host: AppWidgetHostView): View
 

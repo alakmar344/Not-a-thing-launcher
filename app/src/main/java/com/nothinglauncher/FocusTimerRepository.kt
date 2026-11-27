@@ -37,7 +37,7 @@ object FocusTimerRepository {
             val sec = (elapsed / 1000L).toInt()
             val mins = sec / 60
             val secs = sec % 60
-            val text = String.format(Locale.US, "%02d:%02d", mins.coerceAtMost(99), secs)
+            val text = String.format(Locale.US, "%02d:%02d", mins.coerceAtMost(999), secs)
             val progress = ((sec % 60) / 60f)
             return State(true, p.timerRunning, text, progress, false, 0)
         }
@@ -55,7 +55,7 @@ object FocusTimerRepository {
         val totalSec = ((rem + 999L) / 1000L).toInt()
         val mins = totalSec / 60
         val secs = totalSec % 60
-        val text = String.format(Locale.US, "%02d:%02d", mins.coerceAtMost(99), secs)
+        val text = String.format(Locale.US, "%02d:%02d", mins.coerceAtMost(999), secs)
         val progress = (rem.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
         return State(false, p.timerRunning, text, progress, rem == 0L, (duration / 60_000L).toInt())
     }

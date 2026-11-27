@@ -55,14 +55,25 @@ class KineticMatrixWidget(context: Context) : NothingWidget(context) {
                 }
                 KineticMatrixView.Mode.SNAKE -> {
                     modePill.setText(R.string.nt_kinetic_snake)
-                    hint.text = ctx.getString(R.string.nt_kinetic_hint_snake, matrix.snakeScore)
+                    hint.text = ctx.getString(
+                        if (matrix.snakeGameOver) R.string.nt_kinetic_hint_snake_over else R.string.nt_kinetic_hint_snake,
+                        matrix.snakeScore
+                    )
                 }
             }
         }
 
         matrix.onScoreChanged = { score ->
-            if (matrix.mode == KineticMatrixView.Mode.SNAKE) {
+            if (matrix.mode == KineticMatrixView.Mode.SNAKE && !matrix.snakeGameOver) {
                 hint.text = ctx.getString(R.string.nt_kinetic_hint_snake, score)
+            }
+        }
+        matrix.onGameOverChanged = { gameOver, score ->
+            if (matrix.mode == KineticMatrixView.Mode.SNAKE) {
+                hint.text = ctx.getString(
+                    if (gameOver) R.string.nt_kinetic_hint_snake_over else R.string.nt_kinetic_hint_snake,
+                    score
+                )
             }
         }
 

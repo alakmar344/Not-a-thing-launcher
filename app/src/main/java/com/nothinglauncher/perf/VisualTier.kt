@@ -89,6 +89,8 @@ object VisualTier {
         testOverride = tier
     }
 
+    fun isTestOverrideActive(): Boolean = testOverride != null
+
     /**
      * Whether decorative motion may run now: not when the user turned animations off
      * (accessibility / developer options) or Battery Saver is on. Cheap enough to ask per use.

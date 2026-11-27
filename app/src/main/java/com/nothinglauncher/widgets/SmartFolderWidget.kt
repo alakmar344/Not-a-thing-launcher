@@ -63,10 +63,14 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
 
         fun resolveDefaultApps(): List<ComponentName> {
             return try {
+                val hidden = prefs.hiddenPackages
                 val la = ctx.getSystemService(LauncherApps::class.java) ?: return emptyList()
                 la.getActivityList(null, Process.myUserHandle())
                     .asSequence()
-                    .filter { it.applicationInfo.packageName != ctx.packageName }
+                    .filter {
+                        val pkg = it.applicationInfo.packageName
+                        pkg != ctx.packageName && !hidden.contains(pkg)
+                    }
                     .take(4)
                     .map { it.componentName }
                     .toList()
@@ -97,8 +101,12 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
             AccentTheme.tintDot(dot, ctx)
             title.setTextColor(sc.textPrimary)
             title.text = prefs.quickFolderTitle
-            val configured = prefs.quickFolderApps.mapNotNull { ComponentName.unflattenFromString(it) }
+            val hidden = prefs.hiddenPackages
+            val configured = prefs.quickFolderApps
+                .mapNotNull { ComponentName.unflattenFromString(it) }
+                .filter { !hidden.contains(it.packageName) }
             val style = NothingIconLogic.currentStyle(ctx)
+            val night = NothingIconLogic.isNight(ctx)
             val la = try { ctx.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null }
 
             fun resolveRawIcon(cn: ComponentName, info: LauncherActivityInfo?): android.graphics.drawable.Drawable? {
@@ -118,7 +126,7 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
                 val iconSize = (68 * ctx.resources.displayMetrics.density).toInt()
                 val raw = resolveRawIcon(cn, info)
                 if (raw != null) {
-                    val key = "folder:${cn.flattenToString()}:${prefs.iconPackPackage}"
+                    val key = "folder:${cn.flattenToString()}:${style.name}:${prefs.iconPackPackage}:$night"
                     maxIcon.setImageDrawable(IconFactory.render(ctx.resources, raw, style, iconSize, cacheKey = key))
                 } else {
                     maxIcon.setImageResource(R.drawable.nt_ic_apps)
@@ -145,7 +153,7 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
                     val info = loadActivityInfo(la, cn)
                     val raw = resolveRawIcon(cn, info)
                     if (raw != null) {
-                        val key = "folder:${cn.flattenToString()}:${prefs.iconPackPackage}"
+                        val key = "folder:${cn.flattenToString()}:${style.name}:${prefs.iconPackPackage}:$night"
                         iv.setImageDrawable(IconFactory.render(ctx.resources, raw, style, iconSize, cacheKey = key))
                     } else {
                         iv.setImageResource(R.drawable.nt_ic_apps)
@@ -157,10 +165,14 @@ class SmartFolderWidget(context: Context) : NothingWidget(context) {
         }
 
         fun showAppPicker() {
+            val hidden = prefs.hiddenPackages
             val la = try { ctx.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null } ?: return
             val allApps = try {
                 la.getActivityList(null, Process.myUserHandle())
-                    .filter { it.applicationInfo.packageName != ctx.packageName }
+                    .filter {
+                        val pkg = it.applicationInfo.packageName
+                        pkg != ctx.packageName && !hidden.contains(pkg)
+                    }
                     .sortedBy { it.label.toString().lowercase() }
             } catch (_: Throwable) {
                 emptyList()

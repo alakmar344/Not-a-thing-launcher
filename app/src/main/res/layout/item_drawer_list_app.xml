@@ -34,6 +34,12 @@
         style="@style/Text.Label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_tertiary"
+        android:background="@drawable/bg_pill_outline"
+        android:fontFamily="@font/space_mono_bold"
+        android:paddingStart="7dp"
+        android:paddingTop="2dp"
+        android:paddingEnd="7dp"
+        android:paddingBottom="2dp"
+        android:textColor="@color/text_secondary"
         android:textSize="9sp" />
 </LinearLayout>

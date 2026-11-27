@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/entryScroll"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/nothing_bg"
@@ -25,7 +26,7 @@
             app:dmDotColor="@color/dot_on"
             app:dmDotScale="0.42"
             app:dmGravity="start"
-            app:dmText="NOT A THING 14.1" />
+            app:dmText="@string/nt_entry_title_v14" />
 
         <TextView
             android:id="@+id/entrySubtitle"
@@ -129,18 +130,6 @@
                 android:textColor="@color/text_primary" />
 
             <TextView
-                android:id="@+id/entryBackupBtn"
-                style="@style/Text.Label"
-                android:layout_width="0dp"
-                android:layout_height="44dp"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_pill"
-                android:gravity="center"
-                android:text="@string/nt_backup_export"
-                android:textColor="@color/text_primary" />
-
-            <TextView
                 android:id="@+id/entryDeskBtn"
                 style="@style/Text.Label"
                 android:layout_width="0dp"
@@ -151,6 +140,36 @@
                 android:gravity="center"
                 android:text="@string/nt_desk_short"
                 android:textColor="@color/text_primary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/entryBackupBtn"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_pill_outline"
+                android:gravity="center"
+                android:text="@string/nt_backup_export_short"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/entryImportBtn"
+                style="@style/Text.Label"
+                android:layout_width="0dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_pill_outline"
+                android:gravity="center"
+                android:text="@string/nt_backup_import_short"
+                android:textColor="@color/text_secondary" />
         </LinearLayout>
 
         <TextView

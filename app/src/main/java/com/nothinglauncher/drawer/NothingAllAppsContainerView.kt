@@ -41,9 +41,12 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
     }
 
     private var mainAppsList: AlphabeticalAppsList<Launcher>? = null
+    private var workAppsList: AlphabeticalAppsList<Launcher>? = null
     private var searchAppsList: AlphabeticalAppsList<Launcher>? = null
     private var mainAdapter: AllAppsGridAdapter<Launcher>? = null
-    private var observedAdapter: AllAppsGridAdapter<Launcher>? = null
+    private var workAdapter: AllAppsGridAdapter<Launcher>? = null
+    private var observedMainAdapter: AllAppsGridAdapter<Launcher>? = null
+    private var observedWorkAdapter: AllAppsGridAdapter<Launcher>? = null
     private var applyingCategories = false
 
     private val categorySyncObserver = object : RecyclerView.AdapterDataObserver() {
@@ -72,7 +75,11 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
                     mActivityContext,
                     { isSearching }
                 ) { position, inSearch ->
-                    val list = if (inSearch || isSearching) searchAppsList else mainAppsList
+                    val list = when {
+                        inSearch || isSearching -> searchAppsList
+                        currentPage == AdapterHolder.WORK -> workAppsList
+                        else -> mainAppsList
+                    }
                     list?.adapterItems?.getOrNull(position)
                 }
             }
@@ -80,10 +87,21 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
     }
 
     override fun createAdapter(appsList: AlphabeticalAppsList<Launcher>): BaseAllAppsAdapter<Launcher> {
-        if (mainAppsList == null) {
-            mainAppsList = appsList
+        val role = when {
+            mainAppsList == null || appsList === mainAppsList -> {
+                mainAppsList = appsList
+                AdapterHolder.MAIN
+            }
+            workAppsList == null || appsList === workAppsList -> {
+                workAppsList = appsList
+                AdapterHolder.WORK
+            }
+            else -> {
+                if (searchAppsList == null) searchAppsList = appsList
+                AdapterHolder.SEARCH
+            }
         }
-        val isSearchAdapter = appsList !== mainAppsList
+        val isSearchAdapter = role == AdapterHolder.SEARCH
         val adapter = object : AllAppsGridAdapter<Launcher>(
             mActivityContext, layoutInflater, appsList, mMainAdapterProvider, null
         ) {
@@ -127,18 +145,28 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
                 return baseSizer.getSpanSize(position)
             }
         }
-        if (appsList === mainAppsList) {
-            mainAdapter = adapter
+        when (role) {
+            AdapterHolder.MAIN -> mainAdapter = adapter
+            AdapterHolder.WORK -> workAdapter = adapter
         }
         return adapter
     }
 
     private fun ensureObserverAttached() {
-        val adapter = mainAdapter ?: return
-        if (observedAdapter === adapter) return
-        observedAdapter?.unregisterAdapterDataObserver(categorySyncObserver)
-        adapter.registerAdapterDataObserver(categorySyncObserver)
-        observedAdapter = adapter
+        mainAdapter?.let { adapter ->
+            if (observedMainAdapter !== adapter) {
+                observedMainAdapter?.unregisterAdapterDataObserver(categorySyncObserver)
+                adapter.registerAdapterDataObserver(categorySyncObserver)
+                observedMainAdapter = adapter
+            }
+        }
+        workAdapter?.let { adapter ->
+            if (observedWorkAdapter !== adapter) {
+                observedWorkAdapter?.unregisterAdapterDataObserver(categorySyncObserver)
+                adapter.registerAdapterDataObserver(categorySyncObserver)
+                observedWorkAdapter = adapter
+            }
+        }
     }
 
     override fun onFinishInflate() {
@@ -167,25 +195,40 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
             mPersonalMatcher.test(info) &&
                 (info?.targetPackage == null || !hidden.contains(info.targetPackage))
         })
+        val workUserMatcher = mWorkManager.userMatcher
+        workAppsList?.updateItemFilter(Predicate { info ->
+            info != null && workUserMatcher.test(info.user) &&
+                (info.targetPackage == null || !hidden.contains(info.targetPackage))
+        })
         applyCategoriesIfNeeded()
     }
 
     fun refreshDrawerLayoutMode() {
         mainAppsList?.updateAdapterItems()
+        workAppsList?.updateAdapterItems()
         if (NothingPrefs.get(context).drawerLayoutMode == NothingPrefs.DrawerLayoutMode.CATEGORIES) {
             applyCategoriesIfNeeded(forceRebuild = true)
         } else {
             applyingCategories = true
             mainAdapter?.notifyDataSetChanged()
+            workAdapter?.notifyDataSetChanged()
             applyingCategories = false
         }
     }
 
     private fun applyCategoriesIfNeeded(forceRebuild: Boolean = false) {
         if (isSearching) return
-        val list = mainAppsList ?: return
-        val adapter = mainAdapter ?: return
         if (NothingPrefs.get(context).drawerLayoutMode != NothingPrefs.DrawerLayoutMode.CATEGORIES) return
+        applyCategoriesToList(mainAppsList, mainAdapter, forceRebuild)
+        applyCategoriesToList(workAppsList, workAdapter, forceRebuild)
+    }
+
+    private fun applyCategoriesToList(
+        list: AlphabeticalAppsList<Launcher>?,
+        adapter: AllAppsGridAdapter<Launcher>?,
+        forceRebuild: Boolean
+    ) {
+        if (list == null || adapter == null) return
         val items = list.adapterItems
         if (!forceRebuild && items.any { it is CategoryAdapterItem }) return
         val apps = items.mapNotNull { it.itemInfo }.distinctBy { it.componentName to it.user }

@@ -294,7 +294,7 @@ class NothingPrefs private constructor(context: Context) {
     fun allWidgetSurfaces(): Map<String, String> = parseStringMap(getStr(K_WIDGET_SURFACES))
 
     fun exportToJson(): String = JSONObject().apply {
-        put("version", 14)
+        put("version", 15)
         put("background", background.name)
         put("visualQuality", visualQuality.name)
         put("accentPalette", accentPalette.name)
@@ -428,7 +428,7 @@ class NothingPrefs private constructor(context: Context) {
             if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)
             if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode).coerceIn(0, 3)
             if (o.has("kineticMode")) kineticMode = o.optInt("kineticMode", kineticMode).coerceIn(0, 2)
-            if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset).coerceIn(0, 3)
+            if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset).coerceIn(1, 3)
             true
         } catch (_: Exception) {
             false
@@ -460,26 +460,26 @@ class NothingPrefs private constructor(context: Context) {
         private val NULL = Any()
         private const val K_WEATHER_CITY = "weather_city"
         private const val K_WEATHER_CACHE = "weather_cache"
-        private const val K_BACKGROUND = "background"
+        internal const val K_BACKGROUND = "background"
         private const val K_SECONDS = "show_seconds"
         private const val K_ICONS_NIGHT = "icons_rendered_night"
         private const val K_TILES_PLACED = "default_tiles_placed"
         private const val K_DEFAULTS_APPLIED = "defaults_applied_v11"
-        private const val K_QUALITY = "visual_quality"
+        internal const val K_QUALITY = "visual_quality"
         private const val K_MEM_PRESSURE = "memory_pressure_seen"
         private const val K_EXIT_CHECK = "last_exit_check"
 
-        private const val K_ACCENT_PALETTE = "v13_accent_palette"
+        internal const val K_ACCENT_PALETTE = "v13_accent_palette"
         private const val K_ICON_STYLE = "v13_icon_style"
         private const val K_ICON_PACK = "v13_icon_pack"
-        private const val K_HIDE_HOME_LABELS = "v13_hide_home_labels"
-        private const val K_SHOW_SEARCH_PILL = "v13_show_search_pill"
-        private const val K_DRAWER_MODE = "v13_drawer_mode"
-        private const val K_DRAWER_RECENTS = "v13_drawer_recents"
+        internal const val K_HIDE_HOME_LABELS = "v13_hide_home_labels"
+        internal const val K_SHOW_SEARCH_PILL = "v13_show_search_pill"
+        internal const val K_DRAWER_MODE = "v13_drawer_mode"
+        internal const val K_DRAWER_RECENTS = "v13_drawer_recents"
         private const val K_TACTILE_SOUND = "v13_tactile_sound"
-        private const val K_NIGHT_DIM = "v13_night_dim"
-        private const val K_FOCUS_MODE = "v13_focus_mode"
-        private const val K_CAFFEINE = "v13_caffeine"
+        internal const val K_NIGHT_DIM = "v13_night_dim"
+        internal const val K_FOCUS_MODE = "v13_focus_mode"
+        internal const val K_CAFFEINE = "v13_caffeine"
         private const val K_ESSENTIAL_NOTE = "v13_essential_note"
         private const val K_CLOCK_FACE = "v13_clock_face"
         private const val K_WORLD_ZONE = "v13_world_zone"
@@ -489,9 +489,9 @@ class NothingPrefs private constructor(context: Context) {
         private const val K_ONBOARDING_DONE = "v13_onboarding_done"
         private const val K_HABIT_TITLE = "v13_habit_title"
         private const val K_HABIT_DATES = "v13_habit_dates"
-        private const val K_HIDDEN_PACKAGES = "v13_hidden_packages"
-        private const val K_CUSTOM_LABELS = "v13_custom_labels"
-        private const val K_RECENT_APPS = "v13_recent_apps"
+        internal const val K_HIDDEN_PACKAGES = "v13_hidden_packages"
+        internal const val K_CUSTOM_LABELS = "v13_custom_labels"
+        internal const val K_RECENT_APPS = "v13_recent_apps"
         private const val K_TIMER_DURATION = "v13_timer_duration"
         private const val K_TIMER_REMAINING = "v13_timer_remaining"
         private const val K_TIMER_END_AT = "v13_timer_end_at"
