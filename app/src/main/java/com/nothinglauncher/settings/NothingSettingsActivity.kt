@@ -393,7 +393,7 @@ class NothingSettingsActivity : AppCompatActivity() {
                 val n = prefs.hiddenPackages.size
                 if (n == 0) getString(R.string.nt_setting_open_vault_sub) else "$n hidden"
             }) {
-                HiddenVaultSheet.showVaultDialog(this) { refreshAll() }
+                HiddenVaultSheet.openWithAuth(this) { refreshAll() }
             }
         }
 
@@ -464,9 +464,9 @@ class NothingSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         val titleMatrix = DotMatrixView(this).apply {
-            text = "STUDIO 14"
+            text = "STUDIO 14.1"
             dotColor = getColor(R.color.dot_on)
-            accentIndices = setOf(7, 8)
+            accentIndices = setOf(7, 8, 9, 10)
             dotScale = 0.40f
             layoutParams = LinearLayout.LayoutParams(0, (20 * d).toInt(), 1f)
         }

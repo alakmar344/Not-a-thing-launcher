@@ -90,7 +90,7 @@ object SetupBackupManager {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "application/json"
-            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v14-setup.nothing.json")
+            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v14_1-setup.json")
         }
         try {
             @Suppress("DEPRECATION")
@@ -162,11 +162,24 @@ object SetupBackupManager {
         }
     }
 
+    private const val MAX_BACKUP_BYTES = 512 * 1024
+
     fun readBackupFromUri(context: Context, uri: Uri): Boolean {
         return try {
-            val text = context.contentResolver.openInputStream(uri)?.use { input ->
-                input.bufferedReader(Charsets.UTF_8).readText()
+            val bytes = context.contentResolver.openInputStream(uri)?.use { input ->
+                val buf = ByteArray(8192)
+                val out = java.io.ByteArrayOutputStream()
+                var total = 0
+                while (true) {
+                    val n = input.read(buf)
+                    if (n <= 0) break
+                    total += n
+                    if (total > MAX_BACKUP_BYTES) return false
+                    out.write(buf, 0, n)
+                }
+                out.toByteArray()
             } ?: return false
+            val text = String(bytes, Charsets.UTF_8)
             NothingPrefs.get(context).importFromJson(text)
         } catch (_: Exception) {
             false

@@ -117,11 +117,13 @@
 
         <!--
         The content provider for exposing various launcher grid options.
-        TODO: Add proper permissions
+        Restricted to signatureOrSystem settings permissions matching LauncherProvider.
         -->
         <provider
             android:name="com.android.launcher3.graphics.GridCustomizationsProvider"
             android:authorities="${applicationId}.grid_control"
+            android:readPermission="${applicationId}.permission.READ_SETTINGS"
+            android:writePermission="${applicationId}.permission.WRITE_SETTINGS"
             android:exported="true" />
 
         <!--

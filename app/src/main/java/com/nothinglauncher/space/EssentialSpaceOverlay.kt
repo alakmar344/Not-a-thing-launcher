@@ -160,6 +160,7 @@ class EssentialSpaceOverlay(
     override fun onActivityResumed() {
         applyCaffeineFlag()
         if (progress > 0f) {
+            registerListeners()
             bindAll()
             startTickers()
         }
@@ -167,6 +168,7 @@ class EssentialSpaceOverlay(
 
     override fun onActivityPaused() {
         stopTickers()
+        unregisterListeners()
         VoiceMemoRepository.releaseAll()
     }
 
@@ -237,19 +239,105 @@ class EssentialSpaceOverlay(
     private fun ensureViewMounted(): View {
         rootView?.let { return it }
         val dragLayer = launcher.dragLayer
-        val view = LayoutInflater.from(launcher).inflate(R.layout.essential_space_overlay, dragLayer, false)
-        view.background = DotGridDrawable.forTier(launcher)
-        view.visibility = View.GONE
-        setupDismissSwipe(view)
-        setupInsets(view)
-        setupButtons(view)
-        com.nothinglauncher.BigScreenUi.applyMaxWidth(view.findViewById(R.id.essentialColumn), 980)
-        dragLayer.addView(
-            view,
+        val slop = ViewConfiguration.get(launcher).scaledTouchSlop
+        val wrapper = object : FrameLayout(launcher) {
+            private var downX = 0f
+            private var downY = 0f
+            private var dragging = false
+            private var tracker: VelocityTracker? = null
+
+            override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+                when (ev.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = ev.rawX
+                        downY = ev.rawY
+                        dragging = false
+                        tracker?.recycle()
+                        tracker = VelocityTracker.obtain().apply { addMovement(ev) }
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (dragging) return true
+                        tracker?.addMovement(ev)
+                        val dx = ev.rawX - downX
+                        val dy = ev.rawY - downY
+                        val closingDrag = if (isRtl) dx > slop else dx < -slop
+                        if (closingDrag && abs(dx) > abs(dy) * 1.4f) {
+                            dragging = true
+                            settleAnimator?.cancel()
+                            return true
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        if (!dragging) {
+                            tracker?.recycle()
+                            tracker = null
+                        }
+                    }
+                }
+                return super.onInterceptTouchEvent(ev)
+            }
+
+            override fun onTouchEvent(ev: MotionEvent): Boolean {
+                when (ev.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = ev.rawX
+                        downY = ev.rawY
+                        dragging = false
+                        tracker?.recycle()
+                        tracker = VelocityTracker.obtain().apply { addMovement(ev) }
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        tracker?.addMovement(ev)
+                        val dx = ev.rawX - downX
+                        val dy = ev.rawY - downY
+                        val closingDrag = if (isRtl) dx > slop else dx < -slop
+                        if (!dragging && closingDrag && abs(dx) > abs(dy) * 1.4f) {
+                            dragging = true
+                            settleAnimator?.cancel()
+                        }
+                        if (dragging) {
+                            val w = width.coerceAtLeast(1).toFloat()
+                            val fraction = (if (isRtl) 1f - dx / w else 1f + dx / w).coerceIn(0f, 1f)
+                            applyProgress(fraction)
+                            return true
+                        }
+                    }
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        val wasDragging = dragging
+                        val vx = if (wasDragging) {
+                            tracker?.computeCurrentVelocity(1000)
+                            tracker?.xVelocity ?: 0f
+                        } else 0f
+                        tracker?.recycle()
+                        tracker = null
+                        dragging = false
+                        if (wasDragging) {
+                            val keepOpen = shouldSettleOpen(progress, vx)
+                            animateTo(if (keepOpen) 1f else 0f)
+                            return true
+                        }
+                    }
+                }
+                return super.onTouchEvent(ev)
+            }
+        }
+        val content = LayoutInflater.from(launcher).inflate(R.layout.essential_space_overlay, wrapper, false)
+        wrapper.addView(
+            content,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         )
-        rootView = view
-        return view
+        wrapper.background = DotGridDrawable.forTier(launcher)
+        wrapper.visibility = View.GONE
+        setupInsets(wrapper)
+        setupButtons(wrapper)
+        com.nothinglauncher.BigScreenUi.applyMaxWidth(wrapper.findViewById(R.id.essentialColumn), 980)
+        dragLayer.addView(
+            wrapper,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        )
+        rootView = wrapper
+        return wrapper
     }
 
     private fun setupInsets(view: View) {
@@ -267,57 +355,6 @@ class EssentialSpaceOverlay(
                 bottom = baseBottom + bars.bottom
             )
             insets
-        }
-    }
-
-    private fun setupDismissSwipe(view: View) {
-        val slop = ViewConfiguration.get(launcher).scaledTouchSlop
-        var downX = 0f
-        var downY = 0f
-        var dragging = false
-        var tracker: VelocityTracker? = null
-        val root = view.findViewById<View>(R.id.essentialScroll)
-        root.setOnTouchListener { _, ev ->
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = ev.rawX
-                    downY = ev.rawY
-                    dragging = false
-                    tracker?.recycle()
-                    tracker = VelocityTracker.obtain().apply { addMovement(ev) }
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    tracker?.addMovement(ev)
-                    val dx = ev.rawX - downX
-                    val dy = ev.rawY - downY
-                    val closingDrag = if (isRtl) dx > slop else dx < -slop
-                    if (!dragging && closingDrag && abs(dx) > abs(dy) * 1.4f) {
-                        dragging = true
-                        settleAnimator?.cancel()
-                    }
-                    if (dragging) {
-                        val w = view.width.coerceAtLeast(1).toFloat()
-                        val fraction = (if (isRtl) 1f - dx / w else 1f + dx / w).coerceIn(0f, 1f)
-                        applyProgress(fraction)
-                        return@setOnTouchListener true
-                    }
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (dragging) {
-                        tracker?.computeCurrentVelocity(1000)
-                        val vx = tracker?.xVelocity ?: 0f
-                        val keepOpen = shouldSettleOpen(progress, vx)
-                        animateTo(if (keepOpen) 1f else 0f)
-                        tracker?.recycle()
-                        tracker = null
-                        dragging = false
-                        return@setOnTouchListener true
-                    }
-                    tracker?.recycle()
-                    tracker = null
-                }
-            }
-            false
         }
     }
 
@@ -485,6 +522,7 @@ class EssentialSpaceOverlay(
             launcher.workspace?.apply { scaleX = 1f; scaleY = 1f; alpha = 1f }
             launcher.hotseat?.apply { alpha = 1f }
             stopTickers()
+            unregisterListeners()
             return
         }
 
@@ -589,10 +627,10 @@ class EssentialSpaceOverlay(
             val tile = view.findViewById<View>(id)
             val icon = view.findViewById<ImageView>(iconId)
             val label = view.findViewById<TextView>(labelId)
-            tile.setBackgroundResource(if (active) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
+            tile.setBackgroundResource(if (active) R.drawable.bg_tile_active else R.drawable.bg_tile_dark)
             val tint = if (active) accent else normalIcon
             icon.setColorFilter(tint)
-            label.setTextColor(if (active) launcher.getColor(R.color.ink) else dimText)
+            label.setTextColor(if (active) launcher.getColor(R.color.pill_active_text) else dimText)
         }
 
         styleTile(R.id.spaceTorchBtn, R.id.spaceTorchIcon, R.id.spaceTorchLabel, HardwareControlRepository.torchOn)
@@ -856,9 +894,22 @@ class EssentialSpaceOverlay(
             })
             row.setOnClickListener { clicked ->
                 Tactile.tick(clicked)
+                val pi = entry.contentIntent
                 val sent = try {
-                    entry.contentIntent?.send()
-                    entry.contentIntent != null
+                    if (pi != null) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                            val opts = android.app.ActivityOptions.makeBasic().apply {
+                                pendingIntentBackgroundActivityStartMode =
+                                    android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
+                            }
+                            pi.send(launcher, 0, null, null, null, null, opts.toBundle())
+                        } else {
+                            pi.send()
+                        }
+                        true
+                    } else {
+                        false
+                    }
                 } catch (_: Throwable) {
                     false
                 }
