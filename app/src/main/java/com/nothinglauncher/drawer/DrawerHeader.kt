@@ -23,6 +23,7 @@ import com.nothinglauncher.Intents
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.Tactile
+import com.nothinglauncher.icons.IconPackManager
 import com.nothinglauncher.icons.NothingIconLogic
 import com.nothinglauncher.settings.NothingSettingsActivity
 import java.util.Locale
@@ -150,6 +151,8 @@ class DrawerHeader @JvmOverloads constructor(
         val d = resources.displayMetrics.density
         val iconPx = (24 * d).toInt()
         val style = NothingIconLogic.currentStyle(context)
+        val packPkg = prefs.iconPackPackage
+        val night = NothingIconLogic.isNight(context)
         val la = try { context.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null }
 
         for (cn in recent) {
@@ -167,8 +170,17 @@ class DrawerHeader @JvmOverloads constructor(
                 isFocusable = true
             }
             val iv = ImageView(context).apply {
-                val raw = info.getBadgedIcon(0)
-                setImageDrawable(IconFactory.render(resources, raw, style, iconPx))
+                val raw = (if (packPkg.isNotBlank()) IconPackManager.loadIconForComponent(context, packPkg, cn) else null)
+                    ?: info.getBadgedIcon(0)
+                setImageDrawable(
+                    IconFactory.render(
+                        resources,
+                        raw,
+                        style,
+                        iconPx,
+                        cacheKey = "recent:${cn.flattenToString()}:${style.name}:$packPkg:$night"
+                    )
+                )
             }
             val tv = TextView(context).apply {
                 text = prefs.customAppLabels[cn.flattenToString()] ?: info.label

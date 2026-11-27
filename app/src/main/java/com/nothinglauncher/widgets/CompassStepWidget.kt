@@ -2,6 +2,7 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
+import android.content.SharedPreferences
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -121,26 +122,24 @@ class CompassStepWidget(context: Context) : NothingWidget(context) {
             }
         }
 
-        val wrapper = object : android.widget.FrameLayout(ctx) {
-            override fun onAttachedToWindow() {
-                super.onAttachedToWindow()
-                updateSensorRegistration(isShown)
-            }
+        val prefs = com.nothinglauncher.NothingPrefs.get(ctx)
+        lateinit var wrapper: LifecycleFrameLayout
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (wrapper.isAttachedToWindow) bind()
+        }
+        wrapper = LifecycleFrameLayout(ctx) { visible ->
+            updateSensorRegistration(visible)
+        }.apply {
+            addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    prefs.addListener(prefListener)
+                    bind()
+                }
 
-            override fun onDetachedFromWindow() {
-                updateSensorRegistration(false)
-                super.onDetachedFromWindow()
-            }
-
-            override fun onWindowVisibilityChanged(visibility: Int) {
-                super.onWindowVisibilityChanged(visibility)
-                updateSensorRegistration(visibility == VISIBLE && isShown)
-            }
-
-            override fun onVisibilityAggregated(isVisible: Boolean) {
-                super.onVisibilityAggregated(isVisible)
-                updateSensorRegistration(isVisible && isShown)
-            }
+                override fun onViewDetachedFromWindow(v: View) {
+                    prefs.removeListener(prefListener)
+                }
+            })
         }
 
         cardRoot = LayoutInflater.from(ctx).inflate(R.layout.widget_vitals, wrapper, false)

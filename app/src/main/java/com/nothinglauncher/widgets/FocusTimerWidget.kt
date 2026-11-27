@@ -2,6 +2,7 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
@@ -10,12 +11,14 @@ import android.widget.TextView
 import com.nothinglauncher.AccentTheme
 import com.nothinglauncher.DotRingGaugeView
 import com.nothinglauncher.FocusTimerRepository
+import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.R
 import com.nothinglauncher.Tactile
 
 /**
  * Interactive 2x2 Dot-Ring Focus Timer (Pomodoro) & Stopwatch synced with Essential Space.
  * Tap center ring to Start/Pause; tap header to switch Timer/Stopwatch; tap bottom chip to cycle duration or reset.
+ * Uses [NothingWidget.LifecycleFrameLayout] so the 500ms ticker stops completely when hidden or backgrounded.
  */
 class FocusTimerWidget(context: Context) : NothingWidget(context) {
     override val labelRes = R.string.element_timer
@@ -28,6 +31,8 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
 
     override fun createView(host: AppWidgetHostView): View {
         val ctx = host.context
+        val prefs = NothingPrefs.get(ctx)
+        lateinit var wrapper: LifecycleFrameLayout
         val root = LayoutInflater.from(ctx).inflate(R.layout.widget_timer, host, false)
         val dot = root.findViewById<View>(R.id.timerDot)
         val modeLabel = root.findViewById<TextView>(R.id.timerModeLabel)
@@ -35,6 +40,7 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
         val ring = root.findViewById<DotRingGaugeView>(R.id.timerRing)
         val handler = Handler(Looper.getMainLooper())
         var runningLoop = false
+        var visibleInWindow = false
 
         fun bind() {
             val state = FocusTimerRepository.snapshot(ctx)
@@ -56,9 +62,7 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
                 else -> ctx.getString(R.string.timer_tap)
             }
             modeLabel.setText(if (state.isStopwatch) R.string.stopwatch_label else R.string.timer_label)
-            resetBtn.text = if (state.running) {
-                ctx.getString(R.string.timer_reset)
-            } else if (state.isStopwatch) {
+            resetBtn.text = if (state.running || state.isStopwatch) {
                 ctx.getString(R.string.timer_reset)
             } else {
                 "${state.durationMinutes}M"
@@ -70,7 +74,7 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
                 if (!runningLoop) return
                 bind()
                 val st = FocusTimerRepository.snapshot(ctx)
-                if (st.running) {
+                if (visibleInWindow && st.running) {
                     handler.postDelayed(this, 500L)
                 } else {
                     runningLoop = false
@@ -78,8 +82,12 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
             }
         }
 
-        fun updateTicker() {
-            val shouldTick = root.isAttachedToWindow && root.isShown && FocusTimerRepository.snapshot(ctx).running
+        fun updateTicker(forceVisible: Boolean = visibleInWindow) {
+            visibleInWindow = forceVisible
+            val shouldTick = visibleInWindow &&
+                wrapper.isAttachedToWindow &&
+                wrapper.isShown &&
+                FocusTimerRepository.snapshot(ctx).running
             if (shouldTick && !runningLoop) {
                 runningLoop = true
                 handler.post(ticker)
@@ -90,25 +98,35 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
         }
 
         val repoListener: () -> Unit = {
-            if (root.isAttachedToWindow) {
+            if (wrapper.isAttachedToWindow) {
                 bind()
                 updateTicker()
             }
         }
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (wrapper.isAttachedToWindow) bind()
+        }
 
-        root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(v: View) {
-                FocusTimerRepository.addListener(repoListener)
-                bind()
-                updateTicker()
-            }
+        wrapper = LifecycleFrameLayout(ctx) { visible ->
+            updateTicker(visible)
+            if (visible) bind()
+        }.apply {
+            addView(root)
+            addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+                override fun onViewAttachedToWindow(v: View) {
+                    FocusTimerRepository.addListener(repoListener)
+                    prefs.addListener(prefListener)
+                    bind()
+                    updateTicker(windowVisibility == View.VISIBLE && isShown)
+                }
 
-            override fun onViewDetachedFromWindow(v: View) {
-                runningLoop = false
-                handler.removeCallbacks(ticker)
-                FocusTimerRepository.removeListener(repoListener)
-            }
-        })
+                override fun onViewDetachedFromWindow(v: View) {
+                    updateTicker(false)
+                    FocusTimerRepository.removeListener(repoListener)
+                    prefs.removeListener(prefListener)
+                }
+            })
+        }
 
         ring.setOnClickListener {
             Tactile.confirm(it)
@@ -138,6 +156,6 @@ class FocusTimerWidget(context: Context) : NothingWidget(context) {
             updateTicker()
         }
         bind()
-        return root
+        return wrapper
     }
 }

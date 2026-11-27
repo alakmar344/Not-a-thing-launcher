@@ -8,6 +8,7 @@ import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Rect
+import android.graphics.drawable.ColorDrawable
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
@@ -344,7 +345,7 @@ class EssentialSpaceOverlay(
             content,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         )
-        wrapper.background = DotGridDrawable.forTier(launcher)
+        applyBackdropSurface(wrapper)
         wrapper.isClickable = true
         wrapper.isFocusable = true
         wrapper.visibility = View.GONE
@@ -418,9 +419,8 @@ class EssentialSpaceOverlay(
         focus.setOnClickListener {
             Tactile.confirm(it)
             prefs.focusMode = !prefs.focusMode
-            bindHardwarePills()
             onFocusModeToggled()
-            bindDigest(NotificationDigestRepository.current(launcher))
+            bindAll()
         }
         caffeine.setOnClickListener {
             Tactile.confirm(it)
@@ -605,8 +605,19 @@ class EssentialSpaceOverlay(
         if (progress > 0f) bindAll()
     }
 
+    private fun applyBackdropSurface(target: View? = rootView) {
+        val v = target ?: return
+        val prefs = NothingPrefs.get(launcher)
+        v.background = if (prefs.background == NothingPrefs.Background.BLACK) {
+            ColorDrawable(launcher.getColor(R.color.nothing_bg))
+        } else {
+            DotGridDrawable.forTier(launcher)
+        }
+    }
+
     fun bindAll() {
         val view = rootView ?: return
+        applyBackdropSurface(view)
         val accent = AccentTheme.accentColor(launcher)
         AccentTheme.tintDot(view.findViewById(R.id.essentialBriefingDot), launcher)
         AccentTheme.tintDot(view.findViewById(R.id.spaceRecDot), launcher)

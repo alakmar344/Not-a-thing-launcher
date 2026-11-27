@@ -2,6 +2,7 @@ package com.nothinglauncher.widgets
 
 import android.appwidget.AppWidgetHostView
 import android.content.Context
+import android.content.SharedPreferences
 import android.view.LayoutInflater
 import android.view.View
 import com.nothinglauncher.AccentTheme
@@ -34,13 +35,18 @@ class WeatherWidget(context: Context) : NothingWidget(context) {
         val listener: (WeatherRepository.Weather?) -> Unit = { weather ->
             if (root.isAttachedToWindow) bindWeather(weather)
         }
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) bindWeather(WeatherRepository.cached(prefs))
+        }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
                 bindWeather(WeatherRepository.addListener(prefs, listener))
                 WeatherRepository.refresh(ctx, prefs) { }
             }
 
             override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
                 WeatherRepository.removeListener(listener)
             }
         })

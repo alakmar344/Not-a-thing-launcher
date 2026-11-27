@@ -34,6 +34,7 @@ class NothingDreamService : DreamService() {
     private var lastShiftMinute = -1
     private var lastTelemetryMinute = -1
     private var cachedWeather: WeatherRepository.Weather? = null
+    private var cachedBatteryIntent: Intent? = null
     private var receiverRegistered = false
 
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { weather ->
@@ -47,6 +48,7 @@ class NothingDreamService : DreamService() {
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!attached) return
             if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
+                cachedBatteryIntent = intent
                 bindBattery(intent)
             } else {
                 bindTelemetry()
@@ -156,6 +158,9 @@ class NothingDreamService : DreamService() {
         val analog = root.findViewById<AnalogDotClockView>(R.id.dreamClockAnalog)
         val word = root.findViewById<DotMatrixView>(R.id.dreamClockWord)
         val seconds = root.findViewById<SecondsTickerView>(R.id.dreamSeconds)
+        val fx = com.nothinglauncher.perf.VisualTier.effects(this)
+        digital.glow = digital.glow && fx.dotGlow
+        word.glow = word.glow && fx.dotGlow
         val facePill = root.findViewById<TextView>(R.id.dreamFacePill)
         val date = root.findViewById<TextView>(R.id.dreamDate)
 
@@ -165,12 +170,21 @@ class NothingDreamService : DreamService() {
         seconds.accentColor = accent
 
         val mode = prefs.clockFaceMode
+        val worldTz = if (mode == 3) TimeZone.getTimeZone(prefs.worldClockZoneId) else null
+        digital.timeZone = worldTz
         digital.isVisible = mode == 0 || mode == 3
         analog.isVisible = mode == 1
         word.isVisible = mode == 2
         seconds.isVisible = mode == 0 && prefs.showSeconds
 
-        date.text = DateFormat.format("EEEE, MMM d", cal).toString().uppercase(Locale.getDefault())
+        if (worldTz != null) {
+            val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).apply {
+                timeZone = worldTz
+            }
+            date.text = fmt.format(Calendar.getInstance(worldTz).time).uppercase(Locale.getDefault())
+        } else {
+            date.text = DateFormat.format("EEEE, MMM d", cal).toString().uppercase(Locale.getDefault())
+        }
         when (mode) {
             0 -> facePill.text = if (DateFormat.is24HourFormat(this)) {
                 getString(R.string.format_24h)
@@ -184,20 +198,21 @@ class NothingDreamService : DreamService() {
                 word.text = "$l1\n$l2"
             }
             else -> {
-                val tz = TimeZone.getTimeZone(prefs.worldClockZoneId)
-                val wc = Calendar.getInstance(tz)
+                val tz = worldTz ?: TimeZone.getTimeZone(prefs.worldClockZoneId)
                 val city = tz.id.substringAfterLast('/').replace('_', ' ').uppercase(Locale.US)
-                facePill.text = String.format(
-                    Locale.US, "%s %02d:%02d", city, wc.get(Calendar.HOUR_OF_DAY), wc.get(Calendar.MINUTE)
-                )
+                val localPat = if (DateFormat.is24HourFormat(this)) "HH:mm" else "h:mm a"
+                val localStr = DateFormat.format(localPat, cal).toString()
+                facePill.text = "$city · LOCAL $localStr"
             }
         }
     }
 
     private fun bindBattery(batIntent: Intent?) {
         val batTv = findViewById<TextView?>(R.id.dreamBatteryPill) ?: return
-        val resolved = batIntent ?: try {
-            registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        val resolved = batIntent ?: cachedBatteryIntent ?: try {
+            registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))?.also {
+                cachedBatteryIntent = it
+            }
         } catch (_: Throwable) {
             null
         }

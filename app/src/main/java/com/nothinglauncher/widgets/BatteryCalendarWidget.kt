@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
 import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
@@ -95,11 +96,16 @@ class BatteryCalendarWidget(context: Context) : NothingWidget(context) {
         }
 
         onShown = ::bindCalendar
+        val prefs = com.nothinglauncher.NothingPrefs.get(ctx)
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(c: Context, intent: Intent) = bindCalendar()
         }
+        val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (row.isAttachedToWindow) bindCalendar()
+        }
         row.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
                 val filter = IntentFilter().apply {
                     addAction(Intent.ACTION_DATE_CHANGED)
                     addAction(Intent.ACTION_TIME_CHANGED)
@@ -113,6 +119,7 @@ class BatteryCalendarWidget(context: Context) : NothingWidget(context) {
             }
 
             override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
                 try { ctx.unregisterReceiver(receiver) } catch (_: IllegalArgumentException) {}
             }
         })
