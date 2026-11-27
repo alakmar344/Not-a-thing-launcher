@@ -5,6 +5,7 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
 import java.util.concurrent.CopyOnWriteArraySet
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
@@ -25,6 +26,7 @@ object FocusSoundEngine {
 
     private const val SAMPLE_RATE = 22050
     private val listeners = CopyOnWriteArraySet<(Profile) -> Unit>()
+    private val sessionGen = AtomicLong(0L)
 
     @Volatile
     var current: Profile = Profile.OFF
@@ -75,16 +77,21 @@ object FocusSoundEngine {
 
     @Synchronized
     fun stop() {
-        if (current == Profile.OFF && !playing) return
+        if (current == Profile.OFF && !playing && worker == null) return
         current = Profile.OFF
         stopInternal()
         listeners.forEach { it(current) }
     }
 
     private fun startInternal() {
-        if (playing && worker?.isAlive == true) return
+        val existing = worker
+        if (playing && existing?.isAlive == true) return
+        if (existing != null && existing.isAlive) {
+            try { existing.join(120L) } catch (_: InterruptedException) {}
+        }
+        val session = sessionGen.incrementAndGet()
         playing = true
-        val t = Thread({ streamLoop() }, "nothing-focus-sound").apply {
+        val t = Thread({ streamLoop(session) }, "nothing-focus-sound").apply {
             isDaemon = true
             priority = Thread.MIN_PRIORITY + 1
         }
@@ -93,12 +100,17 @@ object FocusSoundEngine {
     }
 
     private fun stopInternal() {
+        sessionGen.incrementAndGet()
         playing = false
         liveLevel = 0f
+        worker?.interrupt()
         worker = null
     }
 
-    private fun streamLoop() {
+    private fun isSessionActive(session: Long): Boolean =
+        playing && current != Profile.OFF && session == sessionGen.get()
+
+    private fun streamLoop(session: Long) {
         val minBuf = try {
             AudioTrack.getMinBufferSize(
                 SAMPLE_RATE,
@@ -110,11 +122,11 @@ object FocusSoundEngine {
         }
         if (minBuf <= 0) {
             // Headless / JVM environment fallback
-            while (playing && current != Profile.OFF) {
+            while (isSessionActive(session)) {
                 liveLevel = 0.45f
                 try { Thread.sleep(120L) } catch (_: InterruptedException) { break }
             }
-            liveLevel = 0f
+            if (session == sessionGen.get()) liveLevel = 0f
             return
         }
 
@@ -137,7 +149,7 @@ object FocusSoundEngine {
                 AudioManager.AUDIO_SESSION_ID_GENERATE
             )
         } catch (_: Throwable) {
-            liveLevel = 0f
+            if (session == sessionGen.get()) liveLevel = 0f
             return
         }
 
@@ -145,14 +157,14 @@ object FocusSoundEngine {
             track.play()
         } catch (_: Throwable) {
             try { track.release() } catch (_: Throwable) {}
-            liveLevel = 0f
+            if (session == sessionGen.get()) liveLevel = 0f
             return
         }
 
         val state = SynthState()
         val buf = ShortArray(1024 * 2)
         var envelope = 0f
-        while (playing && current != Profile.OFF) {
+        while (isSessionActive(session)) {
             val p = current
             var peak = 0f
             for (i in 0 until 1024) {
@@ -165,15 +177,17 @@ object FocusSoundEngine {
                 val m = maxOf(abs(sl), abs(sr))
                 if (m > peak) peak = m
             }
+            if (!isSessionActive(session)) break
             liveLevel = (peak * 2.2f).coerceIn(0.15f, 1f)
-            try {
+            val written = try {
                 track.write(buf, 0, buf.size)
             } catch (_: Throwable) {
-                break
+                -1
             }
+            if (written < 0) break
         }
 
-        liveLevel = 0f
+        if (session == sessionGen.get()) liveLevel = 0f
         try { track.pause() } catch (_: Throwable) {}
         try { track.flush() } catch (_: Throwable) {}
         try { track.release() } catch (_: Throwable) {}

@@ -43,12 +43,13 @@ class QuickTogglesWidget(context: Context) : NothingWidget(context) {
             val accent = AccentTheme.accentColor(ctx)
             val normal = ctx.getColor(R.color.text_primary)
             val muted = ctx.getColor(R.color.text_secondary)
-            val darkInk = ctx.getColor(R.color.ink)
 
             fun style(btn: View, iconId: Int, labelId: Int, active: Boolean) {
-                btn.setBackgroundResource(if (active) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
+                btn.setBackgroundResource(if (active) R.drawable.bg_tile_active else R.drawable.bg_tile_dark)
                 btn.findViewById<ImageView>(iconId).setColorFilter(if (active) accent else normal)
-                btn.findViewById<TextView>(labelId).setTextColor(if (active) darkInk else muted)
+                btn.findViewById<TextView>(labelId).setTextColor(
+                    if (active) ctx.getColor(R.color.pill_active_text) else muted
+                )
             }
 
             style(torchBtn, R.id.wtTorchIcon, R.id.wtTorchLabel, HardwareControlRepository.torchOn)

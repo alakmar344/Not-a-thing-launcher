@@ -79,6 +79,7 @@ class NothingLauncher : Launcher() {
     private var appliedAccent: AccentTheme.Palette? = null
     private var appliedNightDim: Boolean? = null
     private var appliedFocus: Boolean? = null
+    private var appliedDrawerMode: NothingPrefs.DrawerLayoutMode? = null
     private var drawerProgress = 0f
 
     override fun getDefaultOverlay(): LauncherOverlayManager {
@@ -166,6 +167,10 @@ class NothingLauncher : Launcher() {
         applyCaffeineFlag()
         refreshSearchPillVisibility()
         applyHomeLabelsVisibility()
+        if (appliedDrawerMode != null && appliedDrawerMode != prefs.drawerLayoutMode) {
+            (appsView as? NothingAllAppsContainerView)?.refreshDrawerLayoutMode()
+        }
+        appliedDrawerMode = prefs.drawerLayoutMode
         refreshHiddenApps()
         refreshDrawerHeader()
         // Workspace views stay attached while home is in the background, so live elements are
@@ -189,8 +194,19 @@ class NothingLauncher : Launcher() {
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQ_RECORD_AUDIO && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            essentialOverlay?.onActivityResumed()
+        if (requestCode == REQ_RECORD_AUDIO) {
+            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+                essentialOverlay?.onActivityResumed()
+            } else if (!shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+                android.widget.Toast.makeText(this, R.string.nt_mic_permission_denied, android.widget.Toast.LENGTH_SHORT).show()
+                val appDetails = android.content.Intent(
+                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    android.net.Uri.fromParts("package", packageName, null)
+                )
+                Intents.start(this, appDetails)
+            } else {
+                android.widget.Toast.makeText(this, R.string.nt_mic_permission_denied, android.widget.Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

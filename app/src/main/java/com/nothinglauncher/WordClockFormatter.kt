@@ -17,7 +17,7 @@ object WordClockFormatter {
         val hourIdx = (if (rounded >= 35) rawHour + 1 else rawHour) % 12
         val hourWord = HOURS[hourIdx]
         val line1 = when (rounded % 60) {
-            0 -> if (minute in 58..59 || minute in 0..2) hourWord else "NEAR $hourWord"
+            0 -> hourWord
             5 -> "FIVE PAST"
             10 -> "TEN PAST"
             15 -> "QUARTER PAST"

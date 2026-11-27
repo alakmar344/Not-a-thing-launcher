@@ -55,10 +55,10 @@
             android:visibility="gone" />
 
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/vaultScroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:maxHeight="340dp">
+            android:layout_marginTop="12dp">
 
             <LinearLayout
                 android:id="@+id/vaultList"

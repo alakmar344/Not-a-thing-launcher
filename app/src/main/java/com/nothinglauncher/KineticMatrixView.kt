@@ -99,6 +99,8 @@ class KineticMatrixView @JvmOverloads constructor(
     internal val snakeBody = ArrayDeque<Pair<Int, Int>>()
     internal var snakeDirX = 1
     internal var snakeDirY = 0
+    private var committedSnakeDirX = 1
+    private var committedSnakeDirY = 0
     internal var snakeFood = Pair(11, 5)
     internal var snakeScore = 0
     internal var snakeGameOver = false
@@ -161,10 +163,22 @@ class KineticMatrixView @JvmOverloads constructor(
         snakeBody.addLast(7 to 5)
         snakeDirX = 1
         snakeDirY = 0
+        committedSnakeDirX = 1
+        committedSnakeDirY = 0
         snakeScore = 0
         snakeGameOver = false
         placeFoodDeterministic(1)
         onScoreChanged?.invoke(snakeScore)
+    }
+
+    internal fun steerSnake(ndx: Int, ndy: Int) {
+        if (ndx == 0 && ndy == 0) return
+        if (ndx != 0 && ndy != 0) return
+        // Guard against the direction already committed on the current grid tick so rapid
+        // double-taps (e.g. Right -> Up -> Left within 210 ms) cannot 180-reverse into the neck.
+        if (ndx == -committedSnakeDirX && ndy == -committedSnakeDirY) return
+        snakeDirX = ndx
+        snakeDirY = ndy
     }
 
     private fun placeFoodDeterministic(salt: Int) {
@@ -180,6 +194,8 @@ class KineticMatrixView @JvmOverloads constructor(
 
     fun stepSnake() {
         if (snakeGameOver) return
+        committedSnakeDirX = snakeDirX
+        committedSnakeDirY = snakeDirY
         val head = snakeBody.last()
         val nx = (head.first + snakeDirX + COLS) % COLS
         val ny = (head.second + snakeDirY + ROWS) % ROWS
@@ -353,11 +369,9 @@ class KineticMatrixView @JvmOverloads constructor(
                     val cx = event.x - w * 0.5f
                     val cy = event.y - h * 0.5f
                     if (abs(cx) > abs(cy)) {
-                        val ndx = if (cx >= 0f) 1 else -1
-                        if (snakeDirX != -ndx) { snakeDirX = ndx; snakeDirY = 0 }
+                        steerSnake(if (cx >= 0f) 1 else -1, 0)
                     } else {
-                        val ndy = if (cy >= 0f) 1 else -1
-                        if (snakeDirY != -ndy) { snakeDirX = 0; snakeDirY = ndy }
+                        steerSnake(0, if (cy >= 0f) 1 else -1)
                     }
                     return true
                 }

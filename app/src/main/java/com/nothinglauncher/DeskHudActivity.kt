@@ -50,6 +50,10 @@ class DeskHudActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
     private var running = false
     private var shiftStep = 0
+    private var lastShiftMinute = -1
+    private var lastMetaMinute = -1
+    private var cachedEventStr: String? = null
+    private var cachedAlarmStr: String? = null
 
     private lateinit var deskRoot: View
     private lateinit var deskCanvas: View
@@ -81,11 +85,13 @@ class DeskHudActivity : AppCompatActivity() {
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (!running) return
+            val now = Calendar.getInstance()
             bindTimer()
-            bindClockMeta(Calendar.getInstance())
+            bindClockMeta(now)
             if (prefs.deskBurnInShift) {
-                val sec = Calendar.getInstance().get(Calendar.SECOND)
-                if (sec == 0) {
+                val minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+                if (minute != lastShiftMinute) {
+                    lastShiftMinute = minute
                     shiftStep = (shiftStep + 1) % 4
                     val d = resources.displayMetrics.density
                     val dx = when (shiftStep) { 1 -> 2f; 3 -> -2f; else -> 0f } * d
@@ -596,9 +602,21 @@ class DeskHudActivity : AppCompatActivity() {
         val timeText = DateFormat.format(timePat, cal).toString()
         findViewById<TextView?>(R.id.deskGlyphTime)?.text = timeText
 
-        dateView.text = DateFormat.format(
-            DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
-        )
+        val minuteKey = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+        if (minuteKey != lastMetaMinute) {
+            lastMetaMinute = minuteKey
+            dateView.text = DateFormat.format(
+                DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
+            )
+            val alarm = (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.nextAlarmClock
+            cachedAlarmStr = alarm?.let {
+                val pat = if (DateFormat.is24HourFormat(this)) "EEE HH:mm" else "EEE h:mm a"
+                "ALARM ${DateFormat.format(pat, it.triggerTime)}"
+            }
+            cachedEventStr = HardwareControlRepository.queryNextCalendarEvent(this)?.let {
+                "${it.timeLabel} · ${it.title}"
+            }
+        }
         when (mode) {
             0 -> modePill.text = if (DateFormat.is24HourFormat(this)) {
                 getString(R.string.format_24h)
@@ -621,19 +639,12 @@ class DeskHudActivity : AppCompatActivity() {
             }
         }
 
-        val alarm = (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.nextAlarmClock
-        val alarmStr = alarm?.let {
-            val pat = if (DateFormat.is24HourFormat(this)) "EEE HH:mm" else "EEE h:mm a"
-            "ALARM ${DateFormat.format(pat, it.triggerTime)}"
-        }
-        val event = HardwareControlRepository.queryNextCalendarEvent(this)
-        val eventStr = event?.let { "${it.timeLabel} · ${it.title}" }
         val bannerParts = mutableListOf<String>()
         if (Mode.fromPref(prefs.deskMode) == Mode.FOCUS) {
             bannerParts.add(timeText)
         }
-        eventStr?.let { bannerParts.add(it) }
-        alarmStr?.let { bannerParts.add(it) }
+        cachedEventStr?.let { bannerParts.add(it) }
+        cachedAlarmStr?.let { bannerParts.add(it) }
         nextBanner.text = bannerParts.joinToString("   •   ").ifEmpty { getString(R.string.nt_desk_shift_note) }
     }
 
@@ -689,12 +700,11 @@ class DeskHudActivity : AppCompatActivity() {
         val accent = AccentTheme.accentColor(this)
         val normal = getColor(R.color.text_primary)
         val muted = getColor(R.color.text_secondary)
-        val ink = getColor(R.color.ink)
 
         fun style(id: Int, active: Boolean, labelOverride: Int? = null, textOverride: String? = null) {
             val tv = findViewById<TextView?>(id) ?: return
-            tv.setBackgroundResource(if (active) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
-            tv.setTextColor(if (active) ink else muted)
+            tv.setBackgroundResource(if (active) R.drawable.bg_tile_active else R.drawable.bg_tile_dark)
+            tv.setTextColor(if (active) getColor(R.color.pill_active_text) else muted)
             if (textOverride != null) {
                 tv.text = textOverride
             } else if (labelOverride != null) {

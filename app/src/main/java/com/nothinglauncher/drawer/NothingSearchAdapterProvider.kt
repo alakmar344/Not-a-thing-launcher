@@ -29,6 +29,7 @@ import com.nothinglauncher.icons.NothingIconLogic
 class NothingSearchAdapterProvider(
     private val appContext: Context,
     launcher: ActivityContext,
+    private val isSearchingProvider: () -> Boolean = { false },
     private val itemLookup: (position: Int, inSearch: Boolean) -> BaseAllAppsAdapter.AdapterItem?
 ) : DefaultSearchAdapterProvider(launcher) {
 
@@ -71,7 +72,11 @@ class NothingSearchAdapterProvider(
     }
 
     override fun onBindView(holder: BaseAllAppsAdapter.ViewHolder, position: Int) {
-        if (position == 0) highlighted = holder.itemView
+        if (position == 0 && isSearchingProvider()) {
+            highlighted = holder.itemView
+        } else if (holder.itemView === highlighted && (!isSearchingProvider() || position != 0)) {
+            highlighted = null
+        }
         when (holder.itemViewType) {
             VIEW_TYPE_COMMAND -> bindCommand(holder.itemView, position)
             VIEW_TYPE_LIST_APP -> bindListApp(holder.itemView, position)
@@ -120,13 +125,26 @@ class NothingSearchAdapterProvider(
         tag.text = info.sectionName
         val size = (34 * ctx.resources.displayMetrics.density).toInt()
         val bmp = info.bitmap.icon
+        val pkg = info.componentName?.packageName ?: info.targetPackage
         if (bmp != null) {
             iconView.setImageDrawable(android.graphics.drawable.BitmapDrawable(ctx.resources, bmp))
-        } else {
-            val d = try { ctx.packageManager.getApplicationIcon(info.componentName!!.packageName) } catch (_: Throwable) { null }
+        } else if (!pkg.isNullOrBlank()) {
+            val d = try { ctx.packageManager.getApplicationIcon(pkg) } catch (_: Throwable) { null }
             if (d != null) {
-                iconView.setImageDrawable(IconFactory.render(ctx.resources, d, NothingIconLogic.currentStyle(ctx), size))
+                iconView.setImageDrawable(
+                    IconFactory.render(
+                        ctx.resources,
+                        d,
+                        NothingIconLogic.currentStyle(ctx),
+                        size,
+                        cacheKey = "list:$pkg"
+                    )
+                )
+            } else {
+                iconView.setImageDrawable(null)
             }
+        } else {
+            iconView.setImageDrawable(null)
         }
         view.tag = info
         view.setOnClickListener(mLauncher.itemOnClickListener)
@@ -140,7 +158,7 @@ class NothingSearchAdapterProvider(
             tag.action(v.context)
             return true
         }
-        if (v is BubbleTextView && tag is ItemInfo) {
+        if (tag is ItemInfo) {
             return mLauncher.startActivitySafely(v, tag.intent, tag) != null
         }
         return super.launchHighlightedItem()
