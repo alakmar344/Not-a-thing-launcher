@@ -146,7 +146,8 @@
     <string name="vault_auth_sub">Authenticate to manage hidden apps</string>
     <string name="vault_auth_required">Device lock authentication is required to open Hidden Vault</string>
     <string name="vault_empty">No hidden apps yet. Long-press any app icon → Hide in Vault.</string>
-    <string name="vault_tap_actions">Tap an app to launch · Long-press to unhide</string>
+    <string name="vault_tap_actions">Tap an app to launch · Long-press or unhide</string>
+    <string name="vault_unhide">UNHIDE</string>
 
     <!-- v13 Setup Hub, Presets, Shortcuts, Gestures & Settings -->
     <string name="nt_entry_label">Not a Thing</string>
@@ -160,7 +161,7 @@
     <string name="nt_entry_launch_home">GO TO HOME SCREEN</string>
     <string name="nt_presets_title">CURATED PRESETS</string>
     <string name="nt_presets_short">Presets</string>
-    <string name="nt_preset_telemetry">Telemetry v14.1</string>
+    <string name="nt_preset_telemetry">Telemetry v15</string>
     <string name="nt_preset_telemetry_sub">Dot grid, Signal Red, monochrome icons, seconds &amp; recents</string>
     <string name="nt_preset_monolith">Monolith Minimal</string>
     <string name="nt_preset_monolith_sub">Pure black, dot-glyph icons, hidden labels &amp; search, focus dim</string>
@@ -186,7 +187,10 @@
     <string name="nt_status_active">ACTIVE</string>
     <string name="nt_status_enable">ENABLE</string>
     <string name="nt_backup_export">Export setup JSON</string>
+    <string name="nt_backup_export_short">Export JSON</string>
     <string name="nt_backup_import">Import setup JSON</string>
+    <string name="nt_backup_import_short">Import JSON</string>
+    <string name="nt_notifications_gesture_hint">Swipe down from status bar for notifications</string>
     <string name="nt_backup_exported">Setup exported to JSON backup</string>
     <string name="nt_backup_imported">Setup restored from backup</string>
     <string name="nt_backup_failed">Could not read or write backup file</string>
@@ -263,14 +267,16 @@
     <string name="nt_folder_pick_title">APP STACK APPS</string>
     <string name="nt_folder_pick_sub">Pick 1 app for Max Icon mode, or up to 4 for Stack</string>
     <string name="nt_folder_configure">Configure apps</string>
-    <string name="nt_entry_title_v14">NOT A THING 14.1</string>
-    <string name="nt_preset_telemetry_v14">Telemetry v14.1</string>
+    <string name="nt_entry_title_v14">NOT A THING 15</string>
+    <string name="nt_preset_telemetry_v14">Telemetry v15</string>
     <string name="nt_desk_shift_note">AMBIENT PIXEL SHIFT</string>
     <string name="nt_desk_mode_cockpit">COCKPIT</string>
     <string name="nt_desk_mode_clock">CLOCK</string>
     <string name="nt_desk_mode_focus">FOCUS</string>
     <string name="nt_desk_mode_glyph">MATRIX</string>
     <string name="nt_desk_glyph_hint">TAP MATRIX FOR RIPPLE · AUDIO REACTIVE</string>
+    <string name="nt_note_edit">EDIT</string>
+    <string name="nt_accent_row_label">ACCENT</string>
     <string name="drawer_mode_cats">CATS</string>
     <string name="nt_cat_comm">COMMUNICATION</string>
     <string name="nt_cat_media">MEDIA &amp; PHOTO</string>

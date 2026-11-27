@@ -176,15 +176,22 @@ object HiddenVaultSheet {
             val la = context.getSystemService(LauncherApps::class.java)
             val card = SettingsUi.card(list)
             for (pkg in hidden) {
-                val label = try {
-                    la?.getActivityList(pkg, Process.myUserHandle())?.firstOrNull()?.label?.toString()
-                        ?: context.packageManager.getApplicationLabel(
+                val activityInfo = try {
+                    la?.getActivityList(pkg, Process.myUserHandle())?.firstOrNull()
+                } catch (_: Throwable) {
+                    null
+                }
+                val compKey = activityInfo?.componentName?.flattenToString()
+                val label = (compKey?.let { prefs.customAppLabels[it] })
+                    ?: activityInfo?.label?.toString()
+                    ?: try {
+                        context.packageManager.getApplicationLabel(
                             context.packageManager.getApplicationInfo(pkg, 0)
                         ).toString()
-                } catch (_: Throwable) {
-                    pkg
-                }
-                SettingsUi.actionRow(
+                    } catch (_: Throwable) {
+                        pkg
+                    }
+                val rowBinding = SettingsUi.actionRow(
                     card,
                     label,
                     context.getString(R.string.vault_tap_actions),
@@ -193,12 +200,42 @@ object HiddenVaultSheet {
                     Tactile.tick(card)
                     dialog.dismiss()
                     Intents.openApp(context, pkg)
-                }.root.setOnLongClickListener {
+                }
+                rowBinding.root.setOnLongClickListener {
                     Tactile.confirm(it)
                     prefs.hiddenPackages = prefs.hiddenPackages - pkg
                     onHiddenChanged()
                     populate()
                     true
+                }
+                // Explicit 1-tap unhide chip alongside launch so users don't have to discover long-press.
+                val unhideChip = TextView(context).apply {
+                    text = context.getString(R.string.vault_unhide)
+                    textSize = 10f
+                    setTextColor(context.getColor(R.color.text_primary))
+                    setBackgroundResource(R.drawable.bg_pill_outline)
+                    setPadding((10 * d).toInt(), (5 * d).toInt(), (10 * d).toInt(), (5 * d).toInt())
+                    isClickable = true
+                    isFocusable = true
+                    Tactile.press(this, 0.95f)
+                    setOnClickListener {
+                        Tactile.confirm(it)
+                        prefs.hiddenPackages = prefs.hiddenPackages - pkg
+                        onHiddenChanged()
+                        populate()
+                    }
+                }
+                val trailingParent = rowBinding.rowTrailing.parent as? android.view.ViewGroup
+                val idx = trailingParent?.indexOfChild(rowBinding.rowTrailing) ?: -1
+                if (trailingParent != null && idx >= 0) {
+                    trailingParent.addView(
+                        unhideChip,
+                        idx,
+                        LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply { marginEnd = (8 * d).toInt() }
+                    )
                 }
             }
         }

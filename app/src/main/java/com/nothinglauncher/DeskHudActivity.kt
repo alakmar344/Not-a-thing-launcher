@@ -385,7 +385,7 @@ class DeskHudActivity : AppCompatActivity() {
                 bindMedia(MediaSessionRepository.state)
             }
         }
-        findViewById<View>(R.id.deskNotePreview).setOnClickListener {
+        val noteClick = View.OnClickListener {
             Tactile.tick(it)
             Sheets.showTextInput(
                 this,
@@ -398,6 +398,8 @@ class DeskHudActivity : AppCompatActivity() {
                 bindNote()
             }
         }
+        findViewById<View?>(R.id.deskNoteCard)?.setOnClickListener(noteClick)
+        findViewById<View>(R.id.deskNotePreview).setOnClickListener(noteClick)
     }
 
     private fun applyDeskMode(mode: Mode) {
@@ -559,6 +561,7 @@ class DeskHudActivity : AppCompatActivity() {
         AccentTheme.tintDot(findViewById(R.id.deskAccentDot), this)
         AccentTheme.tintDot(findViewById(R.id.deskMediaDot), this)
         AccentTheme.tintDot(findViewById(R.id.deskTimerDot), this)
+        findViewById<View?>(R.id.deskNoteDot)?.let { AccentTheme.tintDot(it, this) }
         findViewById<View?>(R.id.deskGlyphDot)?.let { AccentTheme.tintDot(it, this) }
         clockView.accentColor = accent
         analogView.accentColor = accent
@@ -593,6 +596,8 @@ class DeskHudActivity : AppCompatActivity() {
 
     private fun bindClockMeta(cal: Calendar) {
         val mode = prefs.clockFaceMode
+        val worldTz = if (mode == 3) TimeZone.getTimeZone(prefs.worldClockZoneId) else null
+        clockView.timeZone = worldTz
         clockView.isVisible = mode == 0 || mode == 3
         analogView.isVisible = mode == 1
         wordView.isVisible = mode == 2
@@ -602,12 +607,19 @@ class DeskHudActivity : AppCompatActivity() {
         val timeText = DateFormat.format(timePat, cal).toString()
         findViewById<TextView?>(R.id.deskGlyphTime)?.text = timeText
 
-        val minuteKey = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+        val minuteKey = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE) + mode * 1440
         if (minuteKey != lastMetaMinute) {
             lastMetaMinute = minuteKey
-            dateView.text = DateFormat.format(
-                DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
-            )
+            if (worldTz != null) {
+                val fmt = java.text.SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).apply {
+                    timeZone = worldTz
+                }
+                dateView.text = fmt.format(Calendar.getInstance(worldTz).time)
+            } else {
+                dateView.text = DateFormat.format(
+                    DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
+                )
+            }
             val alarm = (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.nextAlarmClock
             cachedAlarmStr = alarm?.let {
                 val pat = if (DateFormat.is24HourFormat(this)) "EEE HH:mm" else "EEE h:mm a"
@@ -630,12 +642,9 @@ class DeskHudActivity : AppCompatActivity() {
                 wordView.text = "$l1\n$l2"
             }
             else -> {
-                val tz = TimeZone.getTimeZone(prefs.worldClockZoneId)
-                val wc = Calendar.getInstance(tz)
+                val tz = worldTz ?: TimeZone.getTimeZone(prefs.worldClockZoneId)
                 val city = tz.id.substringAfterLast('/').replace('_', ' ').uppercase(Locale.US)
-                modePill.text = String.format(
-                    Locale.US, "%s %02d:%02d", city, wc.get(Calendar.HOUR_OF_DAY), wc.get(Calendar.MINUTE)
-                )
+                modePill.text = "$city · LOCAL $timeText"
             }
         }
 

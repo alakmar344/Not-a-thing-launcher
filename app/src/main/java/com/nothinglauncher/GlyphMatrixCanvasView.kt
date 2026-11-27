@@ -232,9 +232,19 @@ class GlyphMatrixCanvasView @JvmOverloads constructor(
             canvas.drawCircle(x, y, if (lit) innerDotR else innerDotR * 0.72f, p)
         }
 
-        // Bottom-right signature hardware dot + exclamation bar
+        // Cardinal calibration ticks around outer hardware bezel
+        val tickR = outerR + outerDotR * 3.1f
+        for (cardinal in 0 until 4) {
+            val rad = Math.toRadians(cardinal * 90.0)
+            val tx = cx + (tickR * cos(rad)).toFloat()
+            val ty = cy + (tickR * sin(rad)).toFloat()
+            canvas.drawCircle(tx, ty, outerDotR * 0.72f, if (cardinal == 0) accentPaint else onPaint)
+        }
+
+        // Bottom-right signature hardware dot + twin exclamation bar
         val barX = cx + size * 0.32f
         val barY = cy + size * 0.34f
         canvas.drawCircle(barX, barY, outerDotR * 1.3f, accentPaint)
+        canvas.drawCircle(barX + outerDotR * 3.1f, barY, outerDotR * 0.85f, onPaint)
     }
 }

@@ -13,20 +13,21 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import androidx.fragment.app.FragmentActivity
+import com.nothinglauncher.icons.NothingIconLogic
 import com.nothinglauncher.settings.NothingSettingsActivity
 
 /**
  * Guided setup hub & quick control room exposed as the app-drawer launcher entry (`CATEGORY_LAUNCHER`).
- * Lets users set Not a Thing as default Home, pick a v13 preset, grant optional live-widget permissions,
+ * Lets users set Not a Thing as default Home, pick a preset, grant optional live-widget permissions,
  * and export/import `.nothing.json` workspace backups.
  */
-class LauncherEntryActivity : FragmentActivity() {
+class LauncherEntryActivity : AppCompatActivity() {
 
     private var appliedPresetIndex = -1
 
@@ -34,6 +35,13 @@ class LauncherEntryActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(R.layout.activity_entry)
+        val lightBars = NothingIconLogic.isNight(this) != 1
+        WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = lightBars
+            isAppearanceLightNavigationBars = lightBars
+        }
+        appliedPresetIndex = detectActivePresetIndex()
+        applyEntryBackdrop()
 
         val column = findViewById<View>(R.id.entryColumn)
         BigScreenUi.applyMaxWidth(column, 780)
@@ -66,6 +74,10 @@ class LauncherEntryActivity : FragmentActivity() {
             Tactile.press(this)
             setOnClickListener { SetupBackupManager.launchExport(this@LauncherEntryActivity) }
         }
+        findViewById<View>(R.id.entryImportBtn)?.apply {
+            Tactile.press(this)
+            setOnClickListener { SetupBackupManager.launchImport(this@LauncherEntryActivity) }
+        }
         findViewById<View>(R.id.entryDeskBtn)?.apply {
             Tactile.press(this)
             setOnClickListener { DeskHudActivity.launch(this@LauncherEntryActivity) }
@@ -88,7 +100,44 @@ class LauncherEntryActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        appliedPresetIndex = detectActivePresetIndex()
+        applyEntryBackdrop()
+        buildPresets()
         refreshStatus()
+    }
+
+    private fun applyEntryBackdrop() {
+        val scroll = findViewById<View>(R.id.entryScroll) ?: return
+        if (NothingPrefs.get(this).background == NothingPrefs.Background.BLACK) {
+            scroll.setBackgroundColor(getColor(R.color.nothing_bg))
+        } else {
+            scroll.background = DotGridDrawable.forTier(this)
+        }
+    }
+
+    private fun detectActivePresetIndex(): Int {
+        val p = NothingPrefs.get(this)
+        return when {
+            p.background == NothingPrefs.Background.DOTS &&
+                p.accentPalette == AccentTheme.Palette.RED &&
+                p.iconStyle == NothingPrefs.IconStyle.MONO &&
+                !p.focusMode &&
+                !p.hideHomeLabels -> SetupBackupManager.Preset.TELEMETRY.ordinal
+            p.background == NothingPrefs.Background.BLACK &&
+                p.accentPalette == AccentTheme.Palette.MONO &&
+                p.iconStyle == NothingPrefs.IconStyle.DOTS &&
+                p.focusMode &&
+                p.hideHomeLabels -> SetupBackupManager.Preset.MONOLITH.ordinal
+            p.background == NothingPrefs.Background.DOTS &&
+                p.accentPalette == AccentTheme.Palette.PHOSPHOR &&
+                p.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST &&
+                !p.focusMode -> SetupBackupManager.Preset.COMMAND.ordinal
+            p.background == NothingPrefs.Background.WALLPAPER &&
+                p.accentPalette == AccentTheme.Palette.AMBER &&
+                p.iconStyle == NothingPrefs.IconStyle.COLOR &&
+                !p.focusMode -> SetupBackupManager.Preset.STUDIO.ordinal
+            else -> -1
+        }
     }
 
     @Deprecated("Deprecated in Java")
@@ -177,6 +226,7 @@ class LauncherEntryActivity : FragmentActivity() {
                     Tactile.confirm(this)
                     appliedPresetIndex = idx
                     SetupBackupManager.applyPreset(this@LauncherEntryActivity, preset)
+                    applyEntryBackdrop()
                     Toast.makeText(
                         this@LauncherEntryActivity,
                         getString(preset.titleRes) + " applied",

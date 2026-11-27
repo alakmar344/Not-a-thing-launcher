@@ -123,12 +123,14 @@ class MediaDotsView @JvmOverloads constructor(
             for (r in 0 until rows) {
                 val cy = h - (rowSpacing * (r + 1))
                 val isLit = r < litBars
+                val isPeak = isPlaying && r == litBars - 1 && (c % 4 == 0 || litBars == rows)
                 val paint = when {
-                    isLit && c % 4 == 0 -> accentPaint
+                    isPeak -> accentPaint
                     isLit -> onPaint
                     else -> offPaint
                 }
-                canvas.drawCircle(cx, cy, dotRadius, paint)
+                val rDot = if (isPeak) dotRadius * 1.15f else if (isLit) dotRadius else dotRadius * 0.85f
+                canvas.drawCircle(cx, cy, rDot, paint)
             }
         }
     }
