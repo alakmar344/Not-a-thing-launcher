@@ -26,7 +26,7 @@ import kotlin.math.max
 import kotlin.math.roundToInt
 
 /**
- * The signature Nothing backdrop: a fine, evenly spaced dot grid like the unlit face of an LED panel.
+ * The signature dot-matrix backdrop: a fine, evenly spaced dot grid like the unlit face of an LED panel.
  *
  * v13 additions:
  * - Scroll-reactive light pool parallax (`setParallax`) via zero-allocation Shader `LocalMatrix`.
@@ -65,10 +65,12 @@ class DotGridDrawable(
     private var rippleActive = false
     private var rippleAnimator: ValueAnimator? = null
 
+    private var drawableAlpha = 255
+
     init {
         val pitch = max(4, (pitchDp * density).roundToInt())
         gridPaint.shader = tileShader(pitch, dotRadiusDp * density, dotColor)
-        if (dimDots) gridPaint.alpha = 135
+        gridPaint.alpha = if (dimDots) 135 else 255
         lightTile = if (lightDotColor != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             tileShader(pitch, dotRadiusDp * density * 1.3f, lightDotColor)
         } else null
@@ -102,7 +104,8 @@ class DotGridDrawable(
         if (w <= 0f) return
         lightMatrix.setTranslate(parallaxOffsetX * w * 0.16f, -drawerFade * bounds.height() * 0.12f)
         mask.setLocalMatrix(lightMatrix)
-        lightPaint.alpha = ((1f - drawerFade * 0.7f) * (if (dimDots) 140f else 255f)).roundToInt().coerceIn(0, 255)
+        val baseLight = (1f - drawerFade * 0.7f) * (if (dimDots) 140f else 255f)
+        lightPaint.alpha = (baseLight * (drawableAlpha / 255f)).roundToInt().coerceIn(0, 255)
     }
 
     fun triggerRipple(x: Float, y: Float) {
@@ -123,6 +126,7 @@ class DotGridDrawable(
                 override fun onAnimationEnd(animation: Animator) {
                     rippleActive = false
                     rippleProgress = 0f
+                    ripplePaint.shader = null
                     invalidateSelf()
                 }
             })
@@ -186,9 +190,21 @@ class DotGridDrawable(
         if (vignette) canvas.drawRect(b, vignettePaint)
     }
 
+    override fun setVisible(visible: Boolean, restart: Boolean): Boolean {
+        val changed = super.setVisible(visible, restart)
+        if (!visible) {
+            rippleAnimator?.cancel()
+            rippleActive = false
+            rippleProgress = 0f
+            ripplePaint.shader = null
+        }
+        return changed
+    }
+
     override fun setAlpha(alpha: Int) {
-        gridPaint.alpha = alpha
-        lightPaint.alpha = alpha
+        drawableAlpha = alpha.coerceIn(0, 255)
+        gridPaint.alpha = ((if (dimDots) 135 else 255) * drawableAlpha / 255f).roundToInt().coerceIn(0, 255)
+        updateLightMatrix()
         invalidateSelf()
     }
 
@@ -221,7 +237,7 @@ class DotGridDrawable(
                 dotColor = context.getColor(R.color.dot_off),
                 vignette = fx.vignette,
                 lightDotColor = if (fx.backdropLight) context.getColor(R.color.dot_lit_ambient) else 0,
-                rippleEnabled = tier != VisualTier.Tier.LITE,
+                rippleEnabled = tier != VisualTier.Tier.LITE && VisualTier.motionAllowed(context),
                 rippleColor = AccentTheme.accentColor(context),
                 dimDots = isNightDimActive(context)
             )

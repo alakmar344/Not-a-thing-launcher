@@ -5,12 +5,16 @@ import android.content.pm.ApplicationInfo
 import android.os.Build
 import com.android.launcher3.model.data.AppInfo
 import com.nothinglauncher.R
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Classifies drawer apps into clean dot-matrix sections using Android [ApplicationInfo.category]
- * with package fallbacks so apps group cleanly into smart sections without extra permissions.
+ * with package fallbacks and an in-memory per-package cache so drawer rebinds avoid repeated
+ * PackageManager Binder IPC on the UI thread.
  */
 object AppCategorizer {
+
+    private val bucketCache = ConcurrentHashMap<String, Bucket>()
 
     enum class Bucket(val titleRes: Int) {
         COMMUNICATION(R.string.nt_cat_comm),
@@ -21,8 +25,24 @@ object AppCategorizer {
         UTILITIES(R.string.nt_cat_utils)
     }
 
+    fun clearCache() {
+        bucketCache.clear()
+    }
+
     fun bucketFor(context: Context, info: AppInfo): Bucket {
         val pkg = info.componentName?.packageName.orEmpty().lowercase()
+        if (pkg.isNotEmpty()) {
+            bucketCache[pkg]?.let { return it }
+        }
+        val bucket = resolveBucket(context, pkg)
+        if (pkg.isNotEmpty()) {
+            if (bucketCache.size > 1000) bucketCache.clear()
+            bucketCache[pkg] = bucket
+        }
+        return bucket
+    }
+
+    private fun resolveBucket(context: Context, pkg: String): Bucket {
         val pm = context.packageManager
         val appInfo = try {
             if (pkg.isNotEmpty()) pm.getApplicationInfo(pkg, 0) else null

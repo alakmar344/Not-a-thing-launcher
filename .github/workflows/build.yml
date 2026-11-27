@@ -64,28 +64,52 @@ jobs:
       - name: Run Paparazzi Screenshot Tests
         run: ./gradlew recordPaparazziDebug
 
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
+
       - name: Upload Paparazzi Screenshots
         uses: actions/upload-artifact@v4
         with:
-          name: NothingLauncher-screenshots
+          name: NotAThingLauncher-screenshots
           path: app/src/test/snapshots/images/*.png
+
+      - name: Configure Release Signing Keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PW: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+        run: |
+          if [[ -n "${KEYSTORE_B64}" && -n "${KEYSTORE_PW}" && -n "${KEY_ALIAS}" ]]; then
+            printf '%s' "${KEYSTORE_B64}" | tr -d '\r\n' | base64 -d > "${RUNNER_TEMP}/release.p12"
+            chmod 600 "${RUNNER_TEMP}/release.p12"
+            echo "RELEASE_KEYSTORE_FILE=${RUNNER_TEMP}/release.p12" >> "$GITHUB_ENV"
+          elif [[ "${GITHUB_EVENT_NAME}" != "pull_request" || "${{ github.event.pull_request.head.repo.full_name }}" == "${{ github.repository }}" ]]; then
+            echo "::error::Missing RELEASE_KEYSTORE_* GitHub Actions secrets for release signing."
+            exit 1
+          else
+            echo "::warning::Fork PR without secrets; release build uses debug signing for R8 verification."
+          fi
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug
 
       - name: Build Release APK
+        env:
+          RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: NothingLauncher-debug
+          name: NotAThingLauncher-debug
           path: app/build/outputs/apk/debug/*.apk
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: NothingLauncher-release
+          name: NotAThingLauncher-release
           path: app/build/outputs/apk/release/*.apk
 
       - name: Create or Update GitHub Release

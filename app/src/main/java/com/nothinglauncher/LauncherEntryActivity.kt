@@ -158,18 +158,19 @@ class LauncherEntryActivity : FragmentActivity() {
             val isApplied = idx == appliedPresetIndex
             return LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setBackgroundResource(if (isApplied) R.drawable.bg_tile_light else R.drawable.bg_tile_dark)
+                setBackgroundResource(if (isApplied) R.drawable.bg_tile_active else R.drawable.bg_tile_dark)
                 val p = (14 * d).toInt()
                 setPadding(p, p, p, p)
                 addView(TextView(this@LauncherEntryActivity).apply {
                     setText(preset.titleRes)
                     textSize = 14f
-                    setTextColor(getColor(if (isApplied) R.color.ink else R.color.text_primary))
+                    setTextColor(getColor(if (isApplied) R.color.pill_active_text else R.color.text_primary))
                 })
                 addView(TextView(this@LauncherEntryActivity).apply {
                     setText(preset.subtitleRes)
                     textSize = 11.5f
-                    setTextColor(getColor(if (isApplied) R.color.ink_secondary else R.color.text_secondary))
+                    setTextColor(getColor(if (isApplied) R.color.pill_active_text else R.color.text_secondary))
+                    if (isApplied) alpha = 0.78f
                 })
                 Tactile.press(this)
                 setOnClickListener {
@@ -302,7 +303,7 @@ class LauncherEntryActivity : FragmentActivity() {
                     setText(if (cap.granted) R.string.nt_status_active else R.string.nt_status_enable)
                     textSize = 11f
                     setPadding((10 * d).toInt(), (4 * d).toInt(), (10 * d).toInt(), (4 * d).toInt())
-                    setBackgroundResource(if (cap.granted) R.drawable.bg_tile_light else R.drawable.bg_pill)
+                    setBackgroundResource(if (cap.granted) R.drawable.bg_tile_active else R.drawable.bg_pill)
                     setTextColor(
                         if (cap.granted) AccentTheme.accentColor(this@LauncherEntryActivity)
                         else getColor(R.color.text_primary)

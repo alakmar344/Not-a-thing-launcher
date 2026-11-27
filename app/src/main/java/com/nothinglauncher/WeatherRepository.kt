@@ -3,23 +3,21 @@ package com.nothinglauncher
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.VisibleForTesting
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.util.Calendar
-import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.CopyOnWriteArraySet
 import java.util.concurrent.Executors
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 
 /**
- * Live weather + 12-hour forecast sparkline for the Weather element & Essential Space (Open-Meteo, no API key).
+ * Live weather + 12-hour forecast sparkline for the Weather element & Dock Space (Open-Meteo, no API key).
  * A manual city can be set from Settings; otherwise the approximate city is resolved from the network's public IP.
  */
 object WeatherRepository {
@@ -41,15 +39,17 @@ object WeatherRepository {
         Thread(r, "weather-fetch").apply { isDaemon = true }
     }
     private val main = Handler(Looper.getMainLooper())
-    private val running = AtomicBoolean(false)
+    private val fetchLock = Any()
+    private var running = false
+    private var rerunRequested = false
+    private val pendingCallbacks = ArrayList<(Weather?) -> Unit>()
     private val lastAttempt = LongArray(1)
     private val listeners = CopyOnWriteArraySet<(Weather?) -> Unit>()
-    private val pendingCallbacks = ConcurrentLinkedQueue<(Weather?) -> Unit>()
-    private val rerunRequested = AtomicBoolean(false)
     private val cityGeneration = AtomicInteger(0)
 
     private const val CACHE_FRESH_MS = 30 * 60 * 1000L
     private const val RETRY_BACKOFF_MS = 60 * 1000L
+    private const val MAX_HTTP_BYTES = 1024 * 1024
     private val IP_LOCATION_URLS = listOf("https://ipwho.is/", "https://ipapi.co/json/")
     private val USER_AGENT = "NotAThingLauncher/${BuildConfig.VERSION_NAME} (Android)"
 
@@ -85,44 +85,61 @@ object WeatherRepository {
                 return
             }
         }
-        pendingCallbacks += callback
-        if (!running.compareAndSet(false, true)) {
-            if (force) rerunRequested.set(true)
-            return
+        val shouldStart: Boolean
+        synchronized(fetchLock) {
+            pendingCallbacks += callback
+            if (running) {
+                if (force) rerunRequested = true
+                shouldStart = false
+            } else {
+                running = true
+                lastAttempt[0] = now
+                shouldStart = true
+            }
         }
-        lastAttempt[0] = now
-        val appContext = context.applicationContext
-        io.execute { runFetch(appContext, prefs) }
+        if (shouldStart) {
+            io.execute { runFetch(prefs) }
+        }
     }
 
-    private fun runFetch(appContext: Context, prefs: NothingPrefs) {
+    private fun runFetch(prefs: NothingPrefs) {
         while (true) {
-            rerunRequested.set(false)
-            val generation = cityGeneration.get()
+            val generation: Int
+            synchronized(fetchLock) {
+                rerunRequested = false
+                generation = cityGeneration.get()
+            }
             val result = try {
                 fetch(prefs)
             } catch (_: Exception) {
                 null
             }
-            if (generation != cityGeneration.get() || rerunRequested.get()) continue
-            if (result != null) {
-                prefs.weatherCache = serialize(result)
+            var callbacksBatch: List<(Weather?) -> Unit> = emptyList()
+            var retry = false
+            synchronized(fetchLock) {
+                if (generation != cityGeneration.get() || rerunRequested) {
+                    retry = true
+                } else {
+                    if (result != null) {
+                        prefs.weatherCache = serialize(result)
+                    }
+                    callbacksBatch = pendingCallbacks.toList()
+                    pendingCallbacks.clear()
+                    running = false
+                }
             }
+            if (retry) continue
             val resolved = result ?: cached(prefs)
-            running.set(false)
             main.post {
                 listeners.forEach { it(resolved) }
-                val callbacks = ArrayList<(Weather?) -> Unit>()
-                while (true) callbacks += pendingCallbacks.poll() ?: break
-                callbacks.forEach { it(resolved) }
+                callbacksBatch.forEach { it(resolved) }
             }
-            if (rerunRequested.get() && running.compareAndSet(false, true)) continue
             return
         }
     }
 
     fun setCity(context: Context, prefs: NothingPrefs, city: String, callback: (Weather?) -> Unit) {
-        prefs.weatherCity = city
+        prefs.weatherCity = city.trim().take(80)
         prefs.weatherCache = null
         cityGeneration.incrementAndGet()
         refresh(context, prefs, force = true, callback = callback)
@@ -175,7 +192,10 @@ object WeatherRepository {
         if (hourly != null) {
             val tArr = hourly.optJSONArray("temperature_2m")
             val rArr = hourly.optJSONArray("precipitation_probability")
-            val startIdx = Calendar.getInstance().get(Calendar.HOUR_OF_DAY).coerceIn(0, 23)
+            val startIdx = resolveHourlyStartIndex(
+                json,
+                Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            )
             if (tArr != null) {
                 for (i in 0 until 12) {
                     val idx = startIdx + i
@@ -190,7 +210,7 @@ object WeatherRepository {
             }
         }
 
-        val displayCity = city.trim().ifEmpty { "LOCAL" }
+        val displayCity = city.trim().take(80).ifEmpty { "LOCAL" }
         return Weather(
             city = displayCity,
             temperature = temp.roundToInt(),
@@ -203,6 +223,24 @@ object WeatherRepository {
             hourlyRainProbs = hRain,
             windKmh = wind
         )
+    }
+
+    @VisibleForTesting
+    internal fun resolveHourlyStartIndex(json: JSONObject, fallbackHour: Int): Int {
+        val currentTime = json.optJSONObject("current")?.optString("time", "").orEmpty()
+        val hTimeArr = json.optJSONObject("hourly")?.optJSONArray("time")
+        if (currentTime.length >= 13 && hTimeArr != null) {
+            val hourPrefix = currentTime.substring(0, 13)
+            for (i in 0 until hTimeArr.length()) {
+                val entry = hTimeArr.optString(i, "")
+                if (entry.startsWith(hourPrefix)) return i
+            }
+        }
+        if (currentTime.length >= 13) {
+            val parsedHour = currentTime.substring(11, 13).toIntOrNull()
+            if (parsedHour != null && parsedHour in 0..23) return parsedHour
+        }
+        return fallbackHour.coerceIn(0, 23)
     }
 
     private fun geocode(name: String): Pair<Double, Double>? {
@@ -225,7 +263,7 @@ object WeatherRepository {
         val lat = json.optDouble("latitude", Double.NaN)
         val lon = json.optDouble("longitude", Double.NaN)
         fun field(name: String): String =
-            if (json.isNull(name)) "" else json.optString(name, "").trim()
+            if (json.isNull(name)) "" else json.optString(name, "").trim().take(80)
         val city = field("city").ifBlank { field("region") }.ifBlank { "LOCAL" }
         if (lat.isNaN() || lon.isNaN()) return null
         return Triple(lat, lon, city)
@@ -234,16 +272,31 @@ object WeatherRepository {
     private fun getJson(urlString: String): JSONObject? {
         var connection: HttpURLConnection? = null
         return try {
-            connection = (URL(urlString).openConnection() as HttpURLConnection).apply {
+            val url = URL(urlString)
+            if (!url.protocol.equals("https", ignoreCase = true)) return null
+            connection = (url.openConnection() as HttpURLConnection).apply {
                 connectTimeout = 8000
                 readTimeout = 8000
+                instanceFollowRedirects = false
                 requestMethod = "GET"
                 setRequestProperty("User-Agent", USER_AGENT)
                 setRequestProperty("Accept", "application/json")
             }
             if (connection.responseCode !in 200..299) return null
-            val body = BufferedReader(InputStreamReader(connection.inputStream, Charsets.UTF_8)).use { it.readText() }
-            JSONObject(body)
+            val bytes = connection.inputStream.use { input ->
+                val buf = ByteArray(8192)
+                val out = ByteArrayOutputStream()
+                var total = 0
+                while (true) {
+                    val n = input.read(buf)
+                    if (n <= 0) break
+                    total += n
+                    if (total > MAX_HTTP_BYTES) return null
+                    out.write(buf, 0, n)
+                }
+                out.toByteArray()
+            }
+            JSONObject(String(bytes, Charsets.UTF_8))
         } catch (_: Exception) {
             null
         } finally {

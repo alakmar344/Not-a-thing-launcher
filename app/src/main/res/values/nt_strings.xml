@@ -69,7 +69,7 @@
     <string name="setting_quality_sub_lite">Lightest on memory and battery: flat dot grid, no glow, calmer motion.</string>
     <string name="setting_quality_sub_full">Light pool, glowing LEDs, power-on sweep and blurred sheets.</string>
     <!-- v13 Accents -->
-    <string name="accent_red">Nothing Red</string>
+    <string name="accent_red">Signal Red</string>
     <string name="accent_amber">Warm Amber</string>
     <string name="accent_phosphor">Phosphor Green</string>
     <string name="accent_cobalt">Cobalt Blue</string>
@@ -85,19 +85,19 @@
     <string name="element_toggles_sub">Torch, Focus Mode, Caffeine &amp; Ringer control.</string>
     <string name="element_timer">Focus Timer</string>
     <string name="element_timer_sub">Pomodoro countdown and dot-matrix stopwatch.</string>
-    <string name="element_note">Essential Note</string>
-    <string name="element_note_sub">Always-visible scratchpad synced with Essential Space.</string>
+    <string name="element_note">Focus Note</string>
+    <string name="element_note_sub">Always-visible scratchpad synced with Dock Space.</string>
     <string name="element_habit">Habit Matrix</string>
     <string name="element_habit_sub">7×7 dot streak grid with live completion count.</string>
     <string name="element_vitals">Device Vitals</string>
     <string name="element_vitals_sub">Storage, live RAM, and daily screen time.</string>
     <string name="element_compass">Compass &amp; Step Dots</string>
     <string name="element_compass_sub">Hardware magnetometer heading and step counter.</string>
-    <string name="element_folder">Essential Stack</string>
+    <string name="element_folder">App Stack</string>
     <string name="element_folder_sub">2×2 quick-launch folder tile with custom header.</string>
 
-    <!-- v13 Essential Space & Widgets -->
-    <string name="essential_title">Essential Space</string>
+    <!-- v13 Dock Space & Widgets -->
+    <string name="essential_title">Dock Space</string>
     <string name="essential_subtitle">Daily briefing · Toggles · Scratchpad · Timer</string>
     <string name="essential_briefing">DAILY BRIEFING</string>
     <string name="essential_briefing_empty">No upcoming alarms or calendar events</string>
@@ -144,6 +144,7 @@
     <string name="vault_title">Hidden Vault</string>
     <string name="vault_auth_title">Unlock Hidden Vault</string>
     <string name="vault_auth_sub">Authenticate to manage hidden apps</string>
+    <string name="vault_auth_required">Device lock authentication is required to open Hidden Vault</string>
     <string name="vault_empty">No hidden apps yet. Long-press any app icon → Hide in Vault.</string>
     <string name="vault_tap_actions">Tap an app to launch · Long-press to unhide</string>
 
@@ -151,7 +152,7 @@
     <string name="nt_entry_label">Not a Thing</string>
     <string name="nt_entry_subtitle">Setup Hub · Presets · Permissions · Backup</string>
     <string name="nt_entry_home_title">Default Home Screen</string>
-    <string name="nt_entry_home_body">Set Not a Thing as your system Home app for uninterrupted dot-matrix telemetry and Essential Space access.</string>
+    <string name="nt_entry_home_body">Set Not a Thing as your system Home app for uninterrupted dot-matrix telemetry and Dock Space access.</string>
     <string name="nt_entry_set_home">SET AS DEFAULT HOME</string>
     <string name="nt_entry_home_active">ACTIVE DEFAULT LAUNCHER</string>
     <string name="nt_entry_home_inactive">NOT CURRENTLY DEFAULT HOME</string>
@@ -159,8 +160,8 @@
     <string name="nt_entry_launch_home">GO TO HOME SCREEN</string>
     <string name="nt_presets_title">CURATED PRESETS</string>
     <string name="nt_presets_short">Presets</string>
-    <string name="nt_preset_telemetry">Telemetry v13</string>
-    <string name="nt_preset_telemetry_sub">Dot grid, Nothing Red, monochrome icons, seconds &amp; recents</string>
+    <string name="nt_preset_telemetry">Telemetry v14.1</string>
+    <string name="nt_preset_telemetry_sub">Dot grid, Signal Red, monochrome icons, seconds &amp; recents</string>
     <string name="nt_preset_monolith">Monolith Minimal</string>
     <string name="nt_preset_monolith_sub">Pure black, dot-glyph icons, hidden labels &amp; search, focus dim</string>
     <string name="nt_preset_command">Command &amp; Focus</string>
@@ -171,10 +172,11 @@
     <string name="nt_cap_weather_sub">Local temperature &amp; 12h rain strip on home</string>
     <string name="nt_cap_media">Notification Access (Media)</string>
     <string name="nt_cap_media_sub">Now playing track, route &amp; Bayer dot art</string>
-    <string name="nt_cap_calendar">Calendar (Essential Briefing)</string>
-    <string name="nt_cap_calendar_sub">Shows your next scheduled event in Essential Space</string>
+    <string name="nt_cap_calendar">Calendar (Desk Briefing)</string>
+    <string name="nt_cap_calendar_sub">Shows your next scheduled event in Dock Space</string>
     <string name="nt_cap_voice">Microphone (Voice Memos)</string>
-    <string name="nt_cap_voice_sub">Record instant local voice notes in Essential Space</string>
+    <string name="nt_cap_voice_sub">Record instant local voice notes in Dock Space</string>
+    <string name="nt_mic_permission_denied">Microphone permission is needed to record voice notes</string>
     <string name="nt_cap_contacts">Contacts (Command Search)</string>
     <string name="nt_cap_contacts_sub">Filter contacts right inside the app drawer bar</string>
     <string name="nt_cap_usage">Usage Access (Screen Time)</string>
@@ -183,9 +185,9 @@
     <string name="nt_cap_lock_sub">Locks the display on gesture while preserving biometrics</string>
     <string name="nt_status_active">ACTIVE</string>
     <string name="nt_status_enable">ENABLE</string>
-    <string name="nt_backup_export">Export .nothing.json</string>
-    <string name="nt_backup_import">Import .nothing.json</string>
-    <string name="nt_backup_exported">Setup exported to .nothing.json</string>
+    <string name="nt_backup_export">Export setup JSON</string>
+    <string name="nt_backup_import">Import setup JSON</string>
+    <string name="nt_backup_exported">Setup exported to JSON backup</string>
     <string name="nt_backup_imported">Setup restored from backup</string>
     <string name="nt_backup_failed">Could not read or write backup file</string>
     <string name="nt_shortcut_hide_vault">Hide in Vault</string>
@@ -200,9 +202,9 @@
     <!-- v13 Settings -->
     <string name="nt_setting_accent">Accent colour</string>
     <string name="nt_setting_icon_style">Icon aesthetic</string>
-    <string name="nt_icon_mono">Nothing Monochrome</string>
+    <string name="nt_icon_mono">Pure Monochrome</string>
     <string name="nt_icon_color">Original Colour</string>
-    <string name="nt_icon_dots">Dot-Matrix Glyphs</string>
+    <string name="nt_icon_dots">Dot-Matrix Symbols</string>
     <string name="nt_setting_icon_pack">Icon pack</string>
     <string name="nt_icon_pack_system">Built-in (None)</string>
     <string name="nt_icon_pack_none_installed">No compatible icon packs installed</string>
@@ -223,51 +225,51 @@
     <string name="nt_gesture_none">Off</string>
     <string name="nt_gesture_notifications">Expand notifications</string>
     <string name="nt_gesture_search">Command search</string>
-    <string name="nt_gesture_essential">Open Essential Space</string>
+    <string name="nt_gesture_essential">Open Dock Space</string>
     <string name="nt_gesture_lock">Lock screen</string>
     <string name="nt_gesture_customize">Customize sheet</string>
     <string name="nt_gesture_vault">Open Hidden Vault</string>
     <string name="nt_section_personalize">Personality &amp; Physics</string>
     <string name="nt_section_gestures">Gestures &amp; Home Cleanliness</string>
-    <string name="nt_section_essential">Essential Space &amp; Privacy</string>
+    <string name="nt_section_essential">Dock Space &amp; Privacy</string>
     <string name="nt_section_setup_backup">Presets, Backup &amp; Hub</string>
     <string name="nt_setting_open_hub">Setup &amp; Permissions Hub</string>
     <string name="nt_setting_open_hub_sub">Presets, default home &amp; capability status</string>
     <string name="nt_setting_open_vault">Hidden Vault</string>
     <string name="nt_setting_open_vault_sub">Manage hidden apps</string>
 
-    <!-- v14 Big Screen, Glyph Desk HUD, Widget Surfaces & Smart Stack -->
+    <!-- v14 Big Screen, Matrix Desk HUD, Widget Surfaces & App Stack -->
     <string name="essential_short">Space</string>
     <string name="vault_short">Vault</string>
-    <string name="nt_desk_title">Glyph Desk HUD</string>
+    <string name="nt_desk_title">Matrix Desk HUD</string>
     <string name="nt_desk_short">Desk</string>
     <string name="nt_desk_subtitle">Ambient StandBy clock, weather, media &amp; focus cockpit</string>
     <string name="nt_desk_launch">ENTER DESK HUD</string>
     <string name="nt_desk_exit">HOME</string>
     <string name="nt_desk_keep_awake">AWAKE</string>
-    <string name="nt_gesture_desk">Open Glyph Desk HUD</string>
+    <string name="nt_gesture_desk">Open Matrix Desk HUD</string>
     <string name="element_desk">Desk Briefing</string>
-    <string name="element_desk_sub">Live schedule, weather summary &amp; 1-tap Glyph Desk HUD.</string>
+    <string name="element_desk_sub">Live schedule, weather summary &amp; 1-tap Matrix Desk HUD.</string>
     <string name="nt_surface_default">Default</string>
     <string name="nt_surface_dark">Obsidian Dark</string>
     <string name="nt_surface_paper">Bone Paper</string>
     <string name="nt_surface_glass">Frosted Glass</string>
     <string name="nt_setting_widget_surfaces">Widget surfaces</string>
     <string name="nt_setting_widget_surfaces_sub">Customize Dark, Paper, or Frosted Glass per element</string>
-    <string name="nt_setting_desk_hud">Launch Glyph Desk HUD</string>
+    <string name="nt_setting_desk_hud">Launch Matrix Desk HUD</string>
     <string name="nt_setting_desk_hud_sub">Full-screen dot-matrix StandBy &amp; focus dashboard</string>
     <string name="nt_setting_big_bento">Big-screen Bento studio</string>
-    <string name="nt_setting_big_bento_sub">2-column Essential Space, multi-column drawer list &amp; Desk grid</string>
-    <string name="nt_folder_pick_title">ESSENTIAL STACK APPS</string>
+    <string name="nt_setting_big_bento_sub">2-column Dock Space, multi-column drawer list &amp; Desk grid</string>
+    <string name="nt_folder_pick_title">APP STACK APPS</string>
     <string name="nt_folder_pick_sub">Pick 1 app for Max Icon mode, or up to 4 for Stack</string>
     <string name="nt_folder_configure">Configure apps</string>
-    <string name="nt_entry_title_v14">NOT A THING 14</string>
-    <string name="nt_preset_telemetry_v14">Telemetry v14</string>
+    <string name="nt_entry_title_v14">NOT A THING 14.1</string>
+    <string name="nt_preset_telemetry_v14">Telemetry v14.1</string>
     <string name="nt_desk_shift_note">AMBIENT PIXEL SHIFT</string>
     <string name="nt_desk_mode_cockpit">COCKPIT</string>
     <string name="nt_desk_mode_clock">CLOCK</string>
     <string name="nt_desk_mode_focus">FOCUS</string>
-    <string name="nt_desk_mode_glyph">GLYPH</string>
+    <string name="nt_desk_mode_glyph">MATRIX</string>
     <string name="nt_desk_glyph_hint">TAP MATRIX FOR RIPPLE · AUDIO REACTIVE</string>
     <string name="drawer_mode_cats">CATS</string>
     <string name="nt_cat_comm">COMMUNICATION</string>
@@ -277,8 +279,8 @@
     <string name="nt_cat_games">GAMES</string>
     <string name="nt_cat_utils">UTILITIES &amp; SYSTEM</string>
 
-    <!-- v14 Phone-First Wow Features: StandBy Screensaver, Kinetic Matrix, Digest & Soundscapes -->
-    <string name="nt_dream_label">Nothing StandBy Clock</string>
+    <!-- v14.1 StandBy Screensaver, Kinetic Matrix, Digest & Soundscapes -->
+    <string name="nt_dream_label">StandBy Dot Clock</string>
     <string name="nt_setting_dream">StandBy screensaver</string>
     <string name="nt_setting_dream_sub">Auto dot-matrix clock &amp; telemetry while charging</string>
     <string name="element_kinetic">Kinetic Matrix</string>
@@ -289,7 +291,7 @@
     <string name="nt_kinetic_hint_gravity">TILT PHONE · TOUCH TO ATTRACT</string>
     <string name="nt_kinetic_hint_life">TAP CELLS TO SEED LIFE</string>
     <string name="nt_kinetic_hint_snake">TAP EDGES TO STEER · SCORE %d</string>
-    <string name="nt_digest_title">ESSENTIAL DIGEST</string>
+    <string name="nt_digest_title">NOTIFICATION DIGEST</string>
     <string name="nt_digest_empty">INBOX CLEAR · ZERO UNREAD</string>
     <string name="nt_digest_grant">ENABLE NOTIFICATION DIGEST</string>
     <string name="nt_digest_grant_sub">On-device priority summary · 100% offline</string>

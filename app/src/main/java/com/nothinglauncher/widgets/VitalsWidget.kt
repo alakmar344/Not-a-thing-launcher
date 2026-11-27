@@ -102,9 +102,19 @@ class VitalsWidget(context: Context) : NothingWidget(context) {
             }
             Intents.start(ctx, intent, it)
         }
+        val prefs = com.nothinglauncher.NothingPrefs.get(ctx)
+        val prefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) bind()
+        }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
-            override fun onViewAttachedToWindow(v: View) = bind()
-            override fun onViewDetachedFromWindow(v: View) {}
+            override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
+                bind()
+            }
+
+            override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
+            }
         })
         bind()
         return root

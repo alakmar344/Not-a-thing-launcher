@@ -12,6 +12,7 @@ import com.android.launcher3.search.SearchAlgorithm
 import com.android.launcher3.search.SearchCallback
 import com.nothinglauncher.NothingPrefs
 import com.nothinglauncher.search.CommandEngine
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Replaces stock [com.android.launcher3.allapps.search.DefaultAppSearchAlgorithm]:
@@ -25,6 +26,7 @@ class NothingSearchAlgorithm(
 
     private val appState = LauncherAppState.getInstance(context)
     private val mainHandler = Handler(Looper.getMainLooper())
+    private val searchSeq = AtomicInteger(0)
 
     class CommandAdapterItem(
         viewType: Int,
@@ -43,15 +45,18 @@ class NothingSearchAlgorithm(
     }
 
     override fun cancel(interruptActiveRequests: Boolean) {
+        searchSeq.incrementAndGet()
         if (interruptActiveRequests) {
             mainHandler.removeCallbacksAndMessages(null)
         }
     }
 
     override fun doSearch(query: String, callback: SearchCallback<AdapterItem>) {
+        val gen = searchSeq.incrementAndGet()
         val trimmed = query.trim()
         appState.model.enqueueModelUpdateTask(object : BaseModelUpdateTask() {
             override fun execute(app: LauncherAppState, dataModel: BgDataModel, apps: AllAppsList) {
+                if (gen != searchSeq.get()) return
                 val prefs = NothingPrefs.get(context)
                 val hidden = prefs.hiddenPackages
                 val commands = CommandEngine.evaluate(context, trimmed)
@@ -74,6 +79,8 @@ class NothingSearchAlgorithm(
                     .map { AdapterItem.asApp(it.first) }
                     .toList()
 
+                if (gen != searchSeq.get()) return
+
                 val results = ArrayList<AdapterItem>(answersAndActions.size + scoredApps.size + webFallback.size)
                 answersAndActions.forEach { cmd ->
                     results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, cmd)
@@ -83,7 +90,11 @@ class NothingSearchAlgorithm(
                     results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, cmd)
                 }
 
-                mainHandler.post { callback.onSearchResult(query, results) }
+                mainHandler.post {
+                    if (gen == searchSeq.get()) {
+                        callback.onSearchResult(query, results)
+                    }
+                }
             }
         })
     }

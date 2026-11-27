@@ -63,7 +63,7 @@ class DrawerHeader @JvmOverloads constructor(
             } catch (_: RuntimeException) {
                 null
             }
-            appsView?.openVault() ?: HiddenVaultSheet.showVaultDialog(context) { }
+            appsView?.openVault() ?: HiddenVaultSheet.openWithAuth(context) { }
         }
         findViewById<View>(R.id.drawerModeChip)?.setOnClickListener {
             Tactile.tick(it)

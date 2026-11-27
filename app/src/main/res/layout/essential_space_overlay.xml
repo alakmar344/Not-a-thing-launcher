@@ -45,7 +45,7 @@
                         app:dmDotColor="@color/dot_on"
                         app:dmDotScale="0.42"
                         app:dmGravity="start"
-                        app:dmText="ESSENTIAL" />
+                        app:dmText="DOCK SPACE" />
 
                     <TextView
                         android:id="@+id/essentialGreeting"

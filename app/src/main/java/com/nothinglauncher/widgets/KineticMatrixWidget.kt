@@ -72,6 +72,20 @@ class KineticMatrixWidget(context: Context) : NothingWidget(context) {
             bind()
         }
 
+        val prefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) bind()
+        }
+        root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) {
+                prefs.addListener(prefListener)
+                bind()
+            }
+
+            override fun onViewDetachedFromWindow(v: View) {
+                prefs.removeListener(prefListener)
+            }
+        })
+
         bind()
         return root
     }

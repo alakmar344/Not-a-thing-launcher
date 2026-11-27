@@ -127,6 +127,13 @@
             android:resizeableActivity="true"
             android:theme="@style/Theme.NothingLauncher.Desk" />
 
+        <activity
+            android:name="com.nothinglauncher.drawer.VaultAuthActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
         <service
             android:name="com.nothinglauncher.NothingLockAccessibilityService"
             android:exported="false"

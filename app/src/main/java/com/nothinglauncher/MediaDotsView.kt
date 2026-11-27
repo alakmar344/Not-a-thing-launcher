@@ -9,8 +9,8 @@ import androidx.core.content.ContextCompat
 import kotlin.random.Random
 
 /**
- * A Nothing OS-inspired Dot-Matrix Media Waveform Visualizer.
- * Renders dynamic dot-matrix equalizer bars that pulse smoothly.
+ * Minimalist Dot-Matrix Media Waveform Visualizer.
+ * Renders dynamic dot-matrix equalizer bars that pulse smoothly while playback is active.
  */
 class MediaDotsView @JvmOverloads constructor(
     context: Context,
@@ -65,9 +65,14 @@ class MediaDotsView @JvmOverloads constructor(
         }
     }
 
-    /** Only animate while playing and actually on screen (it used to spin at 7 Hz forever). */
+    /** Only animate while playing, motion is permitted, and view is actually on screen. */
     private fun updateRunning() {
-        val shouldRun = isPlaying && isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
+        val shouldRun = isPlaying &&
+            isAttachedToWindow &&
+            windowVisibility == VISIBLE &&
+            visibility == VISIBLE &&
+            isShown &&
+            com.nothinglauncher.perf.VisualTier.motionAllowed(context)
         if (shouldRun == running) return
         running = shouldRun
         removeCallbacks(animator)

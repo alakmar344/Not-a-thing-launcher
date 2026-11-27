@@ -67,8 +67,19 @@ object Sheets {
         val dialog = create(context, b.root)
         b.noteTitle.text = title.uppercase()
         b.noteInput.hint = hint
-        b.noteInput.inputType =
-            android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        b.noteInput.inputType = if (maxLength > 60) {
+            android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES or
+                android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        } else {
+            android.text.InputType.TYPE_CLASS_TEXT or
+                android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+        }
+        b.noteInput.isSingleLine = maxLength <= 60
+        if (maxLength > 60) {
+            b.noteInput.minLines = 2
+            b.noteInput.maxLines = 4
+        }
         b.noteInput.filters = arrayOf(android.text.InputFilter.LengthFilter(maxLength))
         b.noteInput.setText(initial)
         b.noteInput.setSelection(b.noteInput.text.length)

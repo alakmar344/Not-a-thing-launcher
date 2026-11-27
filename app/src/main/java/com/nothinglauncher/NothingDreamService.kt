@@ -1,6 +1,7 @@
 package com.nothinglauncher
 
 import android.app.AlarmManager
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -13,6 +14,7 @@ import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import java.util.Calendar
 import java.util.Locale
@@ -20,7 +22,7 @@ import java.util.TimeZone
 
 /**
  * Android System StandBy Screensaver (`DreamService`).
- * Automatically turns any docked or charging phone into an interactive dark OLED Nothing display
+ * Turns any docked or charging phone into an interactive dark OLED dot-matrix display
  * with burn-in pixel shift, weather, alarm, Notification Digest summary, and 1-tap Desk HUD launch.
  */
 class NothingDreamService : DreamService() {
@@ -29,26 +31,52 @@ class NothingDreamService : DreamService() {
     private val prefs by lazy { NothingPrefs.get(this) }
     private var attached = false
     private var shiftStep = 0
+    private var lastShiftMinute = -1
+    private var lastTelemetryMinute = -1
+    private var cachedWeather: WeatherRepository.Weather? = null
+    private var receiverRegistered = false
 
-    private val weatherListener: (WeatherRepository.Weather?) -> Unit = { bindTelemetry() }
+    private val weatherListener: (WeatherRepository.Weather?) -> Unit = { weather ->
+        cachedWeather = weather
+        bindTelemetry()
+    }
     private val mediaListener: (MediaSessionRepository.State) -> Unit = { bindTelemetry() }
     private val digestListener: (NotificationDigestRepository.Snapshot) -> Unit = { bindTelemetry() }
+
+    private val telemetryReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (!attached) return
+            if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
+                bindBattery(intent)
+            } else {
+                bindTelemetry()
+            }
+        }
+    }
 
     private val tick = object : Runnable {
         override fun run() {
             if (!attached) return
-            bindClock()
-            bindTelemetry()
+            val now = Calendar.getInstance()
+            bindClock(now)
+            val minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+            if (minute != lastTelemetryMinute) {
+                lastTelemetryMinute = minute
+                bindTelemetry()
+            }
             val canvas = findViewById<View?>(R.id.dreamCanvas)
             if (canvas != null && prefs.deskBurnInShift) {
-                val sec = Calendar.getInstance().get(Calendar.SECOND)
-                if (sec == 0) {
+                if (minute != lastShiftMinute) {
+                    lastShiftMinute = minute
                     shiftStep = (shiftStep + 1) % 4
                     val d = resources.displayMetrics.density
                     val dx = when (shiftStep) { 1 -> 2f; 3 -> -2f; else -> 0f } * d
                     val dy = when (shiftStep) { 2 -> 2f; 3 -> -2f; else -> 0f } * d
                     canvas.animate().translationX(dx).translationY(dy).setDuration(900L).start()
                 }
+            } else if (canvas != null && (canvas.translationX != 0f || canvas.translationY != 0f)) {
+                canvas.translationX = 0f
+                canvas.translationY = 0f
             }
             handler.postDelayed(this, 1000L)
         }
@@ -67,7 +95,7 @@ class NothingDreamService : DreamService() {
         val cycleFace = View.OnClickListener {
             Tactile.tick(it)
             prefs.clockFaceMode = (prefs.clockFaceMode + 1) % 4
-            bindClock()
+            bindClock(Calendar.getInstance())
         }
         root.findViewById<View>(R.id.dreamFacePill).setOnClickListener(cycleFace)
         root.findViewById<View>(R.id.dreamClock).setOnClickListener(cycleFace)
@@ -80,10 +108,29 @@ class NothingDreamService : DreamService() {
         }
 
         attached = true
-        WeatherRepository.addListener(prefs, weatherListener)
+        cachedWeather = WeatherRepository.addListener(prefs, weatherListener)
+        MediaSessionRepository.start(applicationContext)
         MediaSessionRepository.addListener(mediaListener)
         NotificationDigestRepository.addListener(this, digestListener)
-        bindClock()
+        try {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_BATTERY_CHANGED)
+                addAction(AlarmManager.ACTION_NEXT_ALARM_CLOCK_CHANGED)
+            }
+            ContextCompat.registerReceiver(
+                this,
+                telemetryReceiver,
+                filter,
+                ContextCompat.RECEIVER_NOT_EXPORTED
+            )
+            receiverRegistered = true
+        } catch (_: Throwable) {
+            receiverRegistered = false
+        }
+        val now = Calendar.getInstance()
+        lastShiftMinute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
+        lastTelemetryMinute = lastShiftMinute
+        bindClock(now)
         bindTelemetry()
         handler.post(tick)
     }
@@ -91,13 +138,17 @@ class NothingDreamService : DreamService() {
     override fun onDetachedFromWindow() {
         attached = false
         handler.removeCallbacks(tick)
+        if (receiverRegistered) {
+            receiverRegistered = false
+            try { unregisterReceiver(telemetryReceiver) } catch (_: Throwable) {}
+        }
         WeatherRepository.removeListener(weatherListener)
         MediaSessionRepository.removeListener(mediaListener)
         NotificationDigestRepository.removeListener(digestListener)
         super.onDetachedFromWindow()
     }
 
-    private fun bindClock() {
+    private fun bindClock(cal: Calendar) {
         val root = findViewById<View?>(R.id.dreamRoot) ?: return
         val accent = AccentTheme.accentColor(this)
         findViewById<View?>(R.id.dreamAccentDot)?.let { AccentTheme.tintDot(it, this) }
@@ -119,7 +170,6 @@ class NothingDreamService : DreamService() {
         word.isVisible = mode == 2
         seconds.isVisible = mode == 0 && prefs.showSeconds
 
-        val cal = Calendar.getInstance()
         date.text = DateFormat.format("EEEE, MMM d", cal).toString().uppercase(Locale.getDefault())
         when (mode) {
             0 -> facePill.text = if (DateFormat.is24HourFormat(this)) {
@@ -144,17 +194,26 @@ class NothingDreamService : DreamService() {
         }
     }
 
-    private fun bindTelemetry() {
+    private fun bindBattery(batIntent: Intent?) {
         val batTv = findViewById<TextView?>(R.id.dreamBatteryPill) ?: return
-        val batIntent = try { registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) } catch (_: Throwable) { null }
-        val level = batIntent?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
-        val scale = batIntent?.getIntExtra(BatteryManager.EXTRA_SCALE, 100)?.takeIf { it > 0 } ?: 100
-        val status = batIntent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
+        val resolved = batIntent ?: try {
+            registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+        } catch (_: Throwable) {
+            null
+        }
+        val level = resolved?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
+        val scale = resolved?.getIntExtra(BatteryManager.EXTRA_SCALE, 100)?.takeIf { it > 0 } ?: 100
+        val status = resolved?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
         val charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
         val pct = if (level >= 0) (level * 100) / scale else 100
         batTv.text = if (charging) "⚡ $pct%" else "$pct%"
+    }
 
-        val weather = WeatherRepository.cached(prefs)
+    private fun bindTelemetry() {
+        findViewById<TextView?>(R.id.dreamBatteryPill) ?: return
+        bindBattery(null)
+
+        val weather = cachedWeather ?: WeatherRepository.cached(prefs).also { cachedWeather = it }
         val alarm = (getSystemService(Context.ALARM_SERVICE) as? AlarmManager)?.nextAlarmClock
         val alarmStr = alarm?.let {
             val pat = if (DateFormat.is24HourFormat(this)) "HH:mm" else "h:mm a"

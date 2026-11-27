@@ -12,6 +12,8 @@ import android.hardware.camera2.CameraManager
 import android.media.AudioManager
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.os.StatFs
 import android.provider.CalendarContract
@@ -23,7 +25,7 @@ import java.util.Date
 import java.util.concurrent.CopyOnWriteArraySet
 
 /**
- * Unified hardware control + device telemetry bridge for Essential Space and Quick Controls.
+ * Unified hardware control + device telemetry bridge for Dock Space and Quick Controls.
  * Every query degrades gracefully on emulators, Robolectric, and permission-restricted setups.
  */
 object HardwareControlRepository {
@@ -46,22 +48,31 @@ object HardwareControlRepository {
     @Volatile var hasFlash: Boolean = false
         private set
 
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var backCameraId: String? = null
     private var torchRegistered = false
     private val torchListeners = CopyOnWriteArraySet<(Boolean) -> Unit>()
+
+    private fun notifyTorchListeners(enabled: Boolean) {
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            torchListeners.forEach { it(enabled) }
+        } else {
+            mainHandler.post { torchListeners.forEach { it(enabled) } }
+        }
+    }
 
     private val torchCallback = object : CameraManager.TorchCallback() {
         override fun onTorchModeChanged(cameraId: String, enabled: Boolean) {
             if (cameraId == backCameraId) {
                 torchOn = enabled
-                torchListeners.forEach { it(enabled) }
+                notifyTorchListeners(enabled)
             }
         }
 
         override fun onTorchModeUnavailable(cameraId: String) {
             if (cameraId == backCameraId) {
                 torchOn = false
-                torchListeners.forEach { it(false) }
+                notifyTorchListeners(false)
             }
         }
     }
@@ -81,7 +92,7 @@ object HardwareControlRepository {
                 }
             }
             if (hasFlash) {
-                cm.registerTorchCallback(torchCallback, null)
+                cm.registerTorchCallback(torchCallback, mainHandler)
                 torchRegistered = true
             }
         } catch (_: Throwable) {
@@ -107,7 +118,7 @@ object HardwareControlRepository {
             val next = !torchOn
             cm.setTorchMode(id, next)
             torchOn = next
-            torchListeners.forEach { it(next) }
+            notifyTorchListeners(next)
             true
         } catch (_: Throwable) {
             false

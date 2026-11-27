@@ -331,75 +331,104 @@ class NothingPrefs private constructor(context: Context) {
     }.toString(2)
 
     fun importFromJson(raw: String): Boolean {
+        if (raw.length > MAX_IMPORT_JSON_CHARS) return false
         return try {
             val o = JSONObject(raw)
             if (!o.has("version")) return false
-        o.optString("background").takeIf { it.isNotEmpty() }?.let { n ->
-            Background.entries.firstOrNull { it.name == n }?.let { background = it }
-        }
-        o.optString("visualQuality").takeIf { it.isNotEmpty() }?.let { n ->
-            VisualQuality.entries.firstOrNull { it.name == n }?.let { visualQuality = it }
-        }
-        o.optString("accentPalette").takeIf { it.isNotEmpty() }?.let { n ->
-            AccentTheme.Palette.entries.firstOrNull { it.name == n }?.let { accentPalette = it }
-        }
-        o.optString("iconStyle").takeIf { it.isNotEmpty() }?.let { n ->
-            IconStyle.entries.firstOrNull { it.name == n }?.let { iconStyle = it }
-        }
-        if (o.has("iconPackPackage")) iconPackPackage = o.optString("iconPackPackage", "")
-        if (o.has("showSeconds")) showSeconds = o.optBoolean("showSeconds", showSeconds)
-        if (o.has("hideHomeLabels")) hideHomeLabels = o.optBoolean("hideHomeLabels", hideHomeLabels)
-        if (o.has("showSearchPill")) showSearchPill = o.optBoolean("showSearchPill", showSearchPill)
-        o.optString("drawerLayoutMode").takeIf { it.isNotEmpty() }?.let { n ->
-            DrawerLayoutMode.entries.firstOrNull { it.name == n }?.let { drawerLayoutMode = it }
-        }
-        if (o.has("showDrawerRecents")) showDrawerRecents = o.optBoolean("showDrawerRecents", showDrawerRecents)
-        if (o.has("tactileSound")) tactileSound = o.optBoolean("tactileSound", tactileSound)
-        if (o.has("nightDimDots")) nightDimDots = o.optBoolean("nightDimDots", nightDimDots)
-        if (o.has("focusMode")) focusMode = o.optBoolean("focusMode", focusMode)
-        if (o.has("weatherCity")) weatherCity = o.optString("weatherCity", "")
-        if (o.has("essentialNote")) essentialNote = o.optString("essentialNote", "")
-        if (o.has("clockFaceMode")) clockFaceMode = o.optInt("clockFaceMode", 0)
-        if (o.has("worldClockZoneId")) worldClockZoneId = o.optString("worldClockZoneId", "UTC")
-        o.optString("swipeDownAction").takeIf { it.isNotEmpty() }?.let { n ->
-            GestureAction.entries.firstOrNull { it.name == n }?.let { swipeDownAction = it }
-        }
-        o.optString("doubleTapAction").takeIf { it.isNotEmpty() }?.let { n ->
-            GestureAction.entries.firstOrNull { it.name == n }?.let { doubleTapAction = it }
-        }
-        o.optString("pinchAction").takeIf { it.isNotEmpty() }?.let { n ->
-            GestureAction.entries.firstOrNull { it.name == n }?.let { pinchAction = it }
-        }
-        if (o.has("habitTitle")) habitTitle = o.optString("habitTitle", "FOCUS")
-        o.optJSONArray("habitDates")?.let { arr ->
-            habitDates = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }.toSet()
-        }
-        o.optJSONArray("hiddenPackages")?.let { arr ->
-            hiddenPackages = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }.toSet()
-        }
-        o.optJSONObject("customAppLabels")?.let { obj ->
-            val m = LinkedHashMap<String, String>()
-            obj.keys().forEach { k -> m[k] = obj.optString(k, "") }
-            customAppLabels = m.filterValues { it.isNotBlank() }
-        }
-        if (o.has("maxAppComponent")) maxAppComponent = o.optString("maxAppComponent", "")
-        if (o.has("quickFolderTitle")) quickFolderTitle = o.optString("quickFolderTitle", "ESSENTIALS")
-        o.optJSONArray("quickFolderApps")?.let { arr ->
-            quickFolderApps = (0 until arr.length()).mapNotNull { arr.optString(it).takeIf(String::isNotBlank) }
-        }
-        o.optJSONObject("widgetSurfaces")?.let { obj ->
-            val m = LinkedHashMap<String, String>()
-            obj.keys().forEach { k ->
-                val v = obj.optString(k, "")
-                if (AccentTheme.WidgetSurface.entries.any { it.name == v }) m[k] = v
+            o.optString("background").takeIf { it.isNotEmpty() }?.let { n ->
+                Background.entries.firstOrNull { it.name == n }?.let { background = it }
             }
-            putStr(K_WIDGET_SURFACES, encodeStringMap(m))
-        }
-        if (o.has("deskKeepAwake")) deskKeepAwake = o.optBoolean("deskKeepAwake", deskKeepAwake)
-        if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)
-        if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode)
-        if (o.has("kineticMode")) kineticMode = o.optInt("kineticMode", kineticMode)
-        if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset)
+            o.optString("visualQuality").takeIf { it.isNotEmpty() }?.let { n ->
+                VisualQuality.entries.firstOrNull { it.name == n }?.let { visualQuality = it }
+            }
+            o.optString("accentPalette").takeIf { it.isNotEmpty() }?.let { n ->
+                AccentTheme.Palette.entries.firstOrNull { it.name == n }?.let { accentPalette = it }
+            }
+            o.optString("iconStyle").takeIf { it.isNotEmpty() }?.let { n ->
+                IconStyle.entries.firstOrNull { it.name == n }?.let { iconStyle = it }
+            }
+            if (o.has("iconPackPackage")) {
+                iconPackPackage = o.optString("iconPackPackage", "").trim().take(256)
+            }
+            if (o.has("showSeconds")) showSeconds = o.optBoolean("showSeconds", showSeconds)
+            if (o.has("hideHomeLabels")) hideHomeLabels = o.optBoolean("hideHomeLabels", hideHomeLabels)
+            if (o.has("showSearchPill")) showSearchPill = o.optBoolean("showSearchPill", showSearchPill)
+            o.optString("drawerLayoutMode").takeIf { it.isNotEmpty() }?.let { n ->
+                DrawerLayoutMode.entries.firstOrNull { it.name == n }?.let { drawerLayoutMode = it }
+            }
+            if (o.has("showDrawerRecents")) showDrawerRecents = o.optBoolean("showDrawerRecents", showDrawerRecents)
+            if (o.has("tactileSound")) tactileSound = o.optBoolean("tactileSound", tactileSound)
+            if (o.has("nightDimDots")) nightDimDots = o.optBoolean("nightDimDots", nightDimDots)
+            if (o.has("focusMode")) focusMode = o.optBoolean("focusMode", focusMode)
+            if (o.has("weatherCity")) weatherCity = o.optString("weatherCity", "").trim().take(80)
+            if (o.has("essentialNote")) essentialNote = o.optString("essentialNote", "").take(2000)
+            if (o.has("clockFaceMode")) clockFaceMode = o.optInt("clockFaceMode", 0).coerceIn(0, 3)
+            if (o.has("worldClockZoneId")) {
+                val z = o.optString("worldClockZoneId", "UTC").trim()
+                if (isValidZoneId(z)) worldClockZoneId = z
+            }
+            o.optString("swipeDownAction").takeIf { it.isNotEmpty() }?.let { n ->
+                GestureAction.entries.firstOrNull { it.name == n }?.let { swipeDownAction = it }
+            }
+            o.optString("doubleTapAction").takeIf { it.isNotEmpty() }?.let { n ->
+                GestureAction.entries.firstOrNull { it.name == n }?.let { doubleTapAction = it }
+            }
+            o.optString("pinchAction").takeIf { it.isNotEmpty() }?.let { n ->
+                GestureAction.entries.firstOrNull { it.name == n }?.let { pinchAction = it }
+            }
+            if (o.has("habitTitle")) habitTitle = o.optString("habitTitle", "FOCUS").trim().take(32)
+            o.optJSONArray("habitDates")?.let { arr ->
+                val cap = arr.length().coerceAtMost(500)
+                habitDates = (0 until cap)
+                    .mapNotNull { arr.optString(it).trim().takeIf { s -> HABIT_DATE_REGEX.matches(s) } }
+                    .toSet()
+            }
+            o.optJSONArray("hiddenPackages")?.let { arr ->
+                val cap = arr.length().coerceAtMost(500)
+                hiddenPackages = (0 until cap)
+                    .mapNotNull { arr.optString(it).trim().takeIf { s -> PACKAGE_REGEX.matches(s) } }
+                    .toSet()
+            }
+            o.optJSONObject("customAppLabels")?.let { obj ->
+                val m = LinkedHashMap<String, String>()
+                val keys = obj.keys()
+                while (keys.hasNext() && m.size < 500) {
+                    val k = keys.next()
+                    if (k.length <= 256) {
+                        val v = obj.optString(k, "").trim().take(64)
+                        if (v.isNotBlank()) m[k] = v
+                    }
+                }
+                customAppLabels = m
+            }
+            if (o.has("maxAppComponent")) {
+                maxAppComponent = o.optString("maxAppComponent", "").trim().take(256)
+            }
+            if (o.has("quickFolderTitle")) {
+                quickFolderTitle = o.optString("quickFolderTitle", "ESSENTIALS").trim().take(32)
+            }
+            o.optJSONArray("quickFolderApps")?.let { arr ->
+                val cap = arr.length().coerceAtMost(24)
+                quickFolderApps = (0 until cap)
+                    .mapNotNull { arr.optString(it).trim().take(256).takeIf(String::isNotBlank) }
+            }
+            o.optJSONObject("widgetSurfaces")?.let { obj ->
+                val m = LinkedHashMap<String, String>()
+                val keys = obj.keys()
+                while (keys.hasNext() && m.size < 100) {
+                    val k = keys.next()
+                    val v = obj.optString(k, "")
+                    if (k.length <= 64 && AccentTheme.WidgetSurface.entries.any { it.name == v }) {
+                        m[k] = v
+                    }
+                }
+                putStr(K_WIDGET_SURFACES, encodeStringMap(m))
+            }
+            if (o.has("deskKeepAwake")) deskKeepAwake = o.optBoolean("deskKeepAwake", deskKeepAwake)
+            if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)
+            if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode).coerceIn(0, 3)
+            if (o.has("kineticMode")) kineticMode = o.optInt("kineticMode", kineticMode).coerceIn(0, 2)
+            if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset).coerceIn(0, 3)
             true
         } catch (_: Exception) {
             false
@@ -476,6 +505,13 @@ class NothingPrefs private constructor(context: Context) {
         private const val K_WIDGET_SURFACES = "v13_widget_surfaces"
         private const val K_KINETIC_MODE = "v14_kinetic_mode"
         private const val K_SOUNDSCAPE_PRESET = "v14_soundscape_preset"
+
+        private const val MAX_IMPORT_JSON_CHARS = 512 * 1024
+        private val HABIT_DATE_REGEX = Regex("""^\d{4}-\d{2}-\d{2}$""")
+        private val PACKAGE_REGEX = Regex("""^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$""")
+        private val VALID_ZONE_IDS: Set<String> by lazy { java.util.TimeZone.getAvailableIDs().toHashSet() }
+
+        fun isValidZoneId(id: String): Boolean = id.isNotBlank() && id in VALID_ZONE_IDS
 
         @Volatile private var instance: NothingPrefs? = null
 

@@ -22,8 +22,8 @@ as an artifact; `testDebugUnitTest` fails the build if a layout changes without 
 
 | | |
 |---|---|
-| ![Tablet Bento Home](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletBentoHome.png) Tablet Bento Studio Home | ![Tablet Desk HUD Cockpit](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletDeskHudCockpit.png) Glyph Desk HUD Cockpit |
-| ![Tablet Essential Space](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletEssentialSpace.png) 2-Column Essential Space | |
+| ![Tablet Bento Home](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletBentoHome.png) Tablet Bento Studio Home | ![Tablet Desk HUD Cockpit](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletDeskHudCockpit.png) Matrix Desk HUD Cockpit |
+| ![Tablet Dock Space](../app/src/test/snapshots/images/com.nothinglauncher_BigScreenScreensTest_tabletEssentialSpace.png) 2-Column Dock Space | |
 
 ## Dark mode (`ScreensDarkTest`)
 
@@ -31,7 +31,7 @@ as an artifact; `testDebugUnitTest` fails the build if a layout changes without 
 |---|---|
 | ![Home, monochrome icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png) Home — monochrome icons | ![Home, colour icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeColor.png) Home — colour icons |
 | ![Home Lite](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeLite.png) Home — Lite tier | ![Clock power-on](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_clockPowerOn.png) Clock power-on scan |
-| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_widgetsShowcase.png) Weather, Media, Timer, Habit & Kinetic Matrix widgets | ![Desk HUD Glyph stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_deskHudGlyph.png) Glyph Desk HUD — procedural LED stage |
+| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_widgetsShowcase.png) Weather, Media, Timer, Habit & Kinetic Matrix widgets | ![Desk HUD Matrix stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_deskHudGlyph.png) Matrix Desk HUD — procedural LED stage |
 | ![Drawer](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_drawer.png) App drawer | ![Customize sheet](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_customizeSheet.png) Customize sheet |
 | ![Settings](../app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_settings.png) Settings | |
 
@@ -41,7 +41,7 @@ as an artifact; `testDebugUnitTest` fails the build if a layout changes without 
 |---|---|
 | ![Home, monochrome icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeMono.png) Home — monochrome icons | ![Home, colour icons](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeColor.png) Home — colour icons |
 | ![Home Lite](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeLite.png) Home — Lite tier | ![Clock power-on](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_clockPowerOn.png) Clock power-on scan |
-| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_widgetsShowcase.png) Weather, Media, Timer, Habit & Kinetic Matrix widgets | ![Desk HUD Glyph stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_deskHudGlyph.png) Glyph Desk HUD — procedural LED stage |
+| ![Widgets showcase](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_widgetsShowcase.png) Weather, Media, Timer, Habit & Kinetic Matrix widgets | ![Desk HUD Matrix stage](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_deskHudGlyph.png) Matrix Desk HUD — procedural LED stage |
 | ![Drawer](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_drawer.png) App drawer | ![Customize sheet](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_customizeSheet.png) Customize sheet |
 | ![Settings](../app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_settings.png) Settings | |
 

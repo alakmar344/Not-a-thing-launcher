@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
@@ -29,7 +30,7 @@ class DotRingGaugeView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.nothing_red) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.text_secondary)
-        textSize = 9f * density * resources.configuration.fontScale
+        textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 9f, resources.displayMetrics)
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.10f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (_: Exception) { null }
@@ -95,7 +96,7 @@ class DotRingGaugeView @JvmOverloads constructor(
                 val x = cx + (ringR * cos(angle)).toFloat()
                 val y = cy + (ringR * sin(angle)).toFloat()
                 val lit = i < litCount
-                val isLead = highlightActive && i == (litCount - 1).coerceAtLeast(0)
+                val isLead = highlightActive && litCount > 0 && i == litCount - 1
                 canvas.drawCircle(
                     x, y,
                     if (isLead) dotR * 1.3f else if (lit) dotR else dotR * 0.78f,

@@ -40,13 +40,20 @@ object NotificationDigestRepository {
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArraySet<(Snapshot) -> Unit>()
+    private val stateLock = Any()
+
+    @Volatile
     private var latestSnapshot: Snapshot = Snapshot(
         permissionGranted = false,
         totalCount = 0,
         priorityCount = 0,
         entries = emptyList()
     )
+
+    @Volatile
     private var attachedContext: Context? = null
+
+    @Volatile
     private var attachedToAosp = false
 
     private val aospListener = object : NotificationListener.NotificationsChangedListener {
@@ -66,6 +73,10 @@ object NotificationDigestRepository {
 
         override fun onNotificationFullRefresh(activeNotifications: List<StatusBarNotification>) {
             val ctx = attachedContext ?: return
+            if (!hasAccess(ctx)) {
+                detachOnRevoke()
+                return
+            }
             latestSnapshot = summarize(ctx, activeNotifications)
             notifyListeners()
         }
@@ -73,12 +84,33 @@ object NotificationDigestRepository {
 
     private val resyncRunnable = Runnable {
         if (listeners.isEmpty()) return@Runnable
-        if (attachedToAosp) {
-            try {
-                NotificationListener.removeNotificationsChangedListener(aospListener)
-                NotificationListener.addNotificationsChangedListener(aospListener)
-            } catch (_: Throwable) {}
+        val ctx = attachedContext
+        if (ctx != null && !hasAccess(ctx)) {
+            detachOnRevoke()
+            return@Runnable
         }
+        synchronized(stateLock) {
+            if (attachedToAosp) {
+                try {
+                    NotificationListener.removeNotificationsChangedListener(aospListener)
+                    NotificationListener.addNotificationsChangedListener(aospListener)
+                } catch (_: Throwable) {}
+            }
+        }
+    }
+
+    private fun detachOnRevoke() {
+        synchronized(stateLock) {
+            if (attachedToAosp) {
+                attachedToAosp = false
+                mainHandler.removeCallbacks(resyncRunnable)
+                try {
+                    NotificationListener.removeNotificationsChangedListener(aospListener)
+                } catch (_: Throwable) {}
+            }
+            latestSnapshot = Snapshot(false, 0, 0, emptyList())
+        }
+        notifyListeners()
     }
 
     fun hasAccess(context: Context): Boolean = try {
@@ -89,40 +121,61 @@ object NotificationDigestRepository {
 
     fun current(context: Context): Snapshot {
         val granted = hasAccess(context)
-        if (granted && !attachedToAosp && listeners.isNotEmpty()) {
-            attachedContext = context.applicationContext ?: context
-            attachedToAosp = true
-            try {
-                NotificationListener.addNotificationsChangedListener(aospListener)
-            } catch (_: Throwable) {
-                attachedToAosp = false
+        if (!granted) {
+            synchronized(stateLock) {
+                if (attachedToAosp) {
+                    attachedToAosp = false
+                    mainHandler.removeCallbacks(resyncRunnable)
+                    try {
+                        NotificationListener.removeNotificationsChangedListener(aospListener)
+                    } catch (_: Throwable) {}
+                }
+                latestSnapshot = Snapshot(false, 0, 0, emptyList())
+            }
+            return Snapshot(false, 0, 0, emptyList())
+        }
+        synchronized(stateLock) {
+            if (!attachedToAosp && listeners.isNotEmpty()) {
+                attachedContext = context.applicationContext ?: context
+                attachedToAosp = true
+                try {
+                    NotificationListener.addNotificationsChangedListener(aospListener)
+                } catch (_: Throwable) {
+                    attachedToAosp = false
+                }
             }
         }
-        return latestSnapshot.copy(permissionGranted = granted)
+        return latestSnapshot.copy(permissionGranted = true)
     }
 
     fun addListener(context: Context, listener: (Snapshot) -> Unit): Snapshot {
-        attachedContext = context.applicationContext ?: context
-        listeners += listener
-        if (hasAccess(context) && !attachedToAosp) {
-            attachedToAosp = true
-            try {
-                NotificationListener.addNotificationsChangedListener(aospListener)
-            } catch (_: Throwable) {}
-        } else if (!hasAccess(context)) {
-            latestSnapshot = Snapshot(false, 0, 0, emptyList())
+        synchronized(stateLock) {
+            attachedContext = context.applicationContext ?: context
+            listeners += listener
+            if (hasAccess(context) && !attachedToAosp) {
+                attachedToAosp = true
+                try {
+                    NotificationListener.addNotificationsChangedListener(aospListener)
+                } catch (_: Throwable) {
+                    attachedToAosp = false
+                }
+            } else if (!hasAccess(context)) {
+                latestSnapshot = Snapshot(false, 0, 0, emptyList())
+            }
         }
         return current(context)
     }
 
     fun removeListener(listener: (Snapshot) -> Unit) {
         listeners -= listener
-        if (listeners.isEmpty() && attachedToAosp) {
-            attachedToAosp = false
-            mainHandler.removeCallbacks(resyncRunnable)
-            try {
-                NotificationListener.removeNotificationsChangedListener(aospListener)
-            } catch (_: Throwable) {}
+        synchronized(stateLock) {
+            if (listeners.isEmpty() && attachedToAosp) {
+                attachedToAosp = false
+                mainHandler.removeCallbacks(resyncRunnable)
+                try {
+                    NotificationListener.removeNotificationsChangedListener(aospListener)
+                } catch (_: Throwable) {}
+            }
         }
     }
 
@@ -153,6 +206,7 @@ object NotificationDigestRepository {
 
     fun summarize(context: Context, sbns: List<StatusBarNotification>): Snapshot {
         val granted = hasAccess(context)
+        if (!granted) return Snapshot(false, 0, 0, emptyList())
         val pm = context.packageManager
         val selfPkg = context.packageName
         val raw = sbns.mapNotNull { sbn ->
@@ -160,13 +214,13 @@ object NotificationDigestRepository {
             if (pkg == selfPkg || pkg == "android" || pkg == "com.android.systemui") return@mapNotNull null
             val n = sbn.notification ?: return@mapNotNull null
             val extras = n.extras
-            val title = extras?.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim().orEmpty()
-            val text = extras?.getCharSequence(Notification.EXTRA_TEXT)?.toString()?.trim().orEmpty()
+            val title = sanitizeText(extras?.getCharSequence(Notification.EXTRA_TITLE), 120)
+            val text = sanitizeText(extras?.getCharSequence(Notification.EXTRA_TEXT), 240)
             val label = try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (_: Throwable) {
                 pkg.substringAfterLast('.')
-            }
+            }.let { sanitizeText(it, 64) }.ifEmpty { pkg.substringAfterLast('.').take(64) }
             RawNotification(
                 key = sbn.key ?: "$pkg:${sbn.id}",
                 packageName = pkg,
@@ -182,6 +236,9 @@ object NotificationDigestRepository {
         }
         return aggregateRaw(granted, raw)
     }
+
+    private fun sanitizeText(cs: CharSequence?, maxLen: Int): String =
+        cs?.toString()?.replace(Regex("[\\r\\n\\t]+"), " ")?.trim()?.take(maxLen).orEmpty()
 
     internal fun aggregateRaw(permissionGranted: Boolean, raw: List<RawNotification>): Snapshot {
         val filtered = raw.filter {

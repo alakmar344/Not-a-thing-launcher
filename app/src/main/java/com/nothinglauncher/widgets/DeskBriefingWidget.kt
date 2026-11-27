@@ -91,16 +91,21 @@ class DeskBriefingWidget(context: Context) : NothingWidget(context) {
         val timerListener: () -> Unit = {
             if (root.isAttachedToWindow) bindTimerPill()
         }
+        val prefListener = android.content.SharedPreferences.OnSharedPreferenceChangeListener { _, _ ->
+            if (root.isAttachedToWindow) bind()
+        }
         root.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(v: View) {
                 WeatherRepository.addListener(prefs, weatherListener)
                 FocusTimerRepository.addListener(timerListener)
+                prefs.addListener(prefListener)
                 bind()
             }
 
             override fun onViewDetachedFromWindow(v: View) {
                 WeatherRepository.removeListener(weatherListener)
                 FocusTimerRepository.removeListener(timerListener)
+                prefs.removeListener(prefListener)
             }
         })
 

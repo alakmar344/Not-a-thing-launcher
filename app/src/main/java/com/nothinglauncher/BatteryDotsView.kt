@@ -9,6 +9,7 @@ import android.os.BatteryManager
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.core.content.ContextCompat
@@ -36,7 +37,7 @@ class BatteryDotsView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, R.color.nothing_red) }
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.ink_secondary)
-        textSize = 9.5f * density * resources.configuration.fontScale
+        textSize = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP, 9.5f, resources.displayMetrics)
         textAlign = Paint.Align.CENTER
         letterSpacing = 0.12f
         typeface = try { ResourcesCompat.getFont(context, R.font.space_mono_regular) } catch (e: Exception) { null }
@@ -181,7 +182,12 @@ class BatteryDotsView @JvmOverloads constructor(
     }
 
     private fun updatePulse() {
-        val shouldPulse = charging && isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
+        val shouldPulse = charging &&
+            isAttachedToWindow &&
+            windowVisibility == VISIBLE &&
+            visibility == VISIBLE &&
+            isShown &&
+            com.nothinglauncher.perf.VisualTier.motionAllowed(context)
         if (shouldPulse && pulseAnimator == null) {
             pulseAnimator = ValueAnimator.ofFloat(0f, 1f, 0f).apply {
                 duration = 1600
