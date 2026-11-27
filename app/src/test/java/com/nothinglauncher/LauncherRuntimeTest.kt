@@ -17,9 +17,12 @@ import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
 import org.robolectric.shadows.ShadowLauncherApps
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.LauncherState
 import com.android.launcher3.widget.custom.CustomWidgetManager
@@ -27,6 +30,9 @@ import com.android.launcher3.widget.picker.WidgetsFullSheet
 import com.nothinglauncher.home.NothingLauncher
 import com.nothinglauncher.settings.NothingSettingsActivity
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -160,5 +166,71 @@ class LauncherRuntimeTest {
         controller.pause().stop().destroy()
         pump()
         println("[runtime] done")
+    }
+
+    @Test
+    fun rightSwipeRevealsVisibleOverlayOutsideFadingDragLayer() {
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        val controller = Robolectric.buildActivity(NothingLauncher::class.java, home).setup()
+        val launcher = controller.get()
+        pump(80)
+
+        // Ensure view hierarchy has realistic screen dimensions even under Robolectric's headless display.
+        val root = launcher.rootView
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(2400, View.MeasureSpec.EXACTLY)
+        )
+        root.layout(0, 0, 1080, 2400)
+
+        val proxy = launcher.overlayManager as com.android.systemui.plugins.shared.LauncherOverlayManager.LauncherOverlayTouchProxy
+        val now = SystemClock.uptimeMillis()
+        val down = MotionEvent.obtain(now, now, MotionEvent.ACTION_DOWN, 80f, 1200f, 0)
+        val move = MotionEvent.obtain(now, now + 40L, MotionEvent.ACTION_MOVE, 600f, 1200f, 0)
+        val up = MotionEvent.obtain(now, now + 80L, MotionEvent.ACTION_UP, 600f, 1200f, 0)
+        try {
+            proxy.onOverlayMotionEvent(down, 0f)
+            proxy.onOverlayMotionEvent(move, 0.52f)
+            proxy.onFlingVelocity(2400f)
+            proxy.onOverlayMotionEvent(up, 0.52f)
+        } finally {
+            down.recycle()
+            move.recycle()
+            up.recycle()
+        }
+        pump(20)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(400))
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(1080, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(2400, View.MeasureSpec.EXACTLY)
+        )
+        root.layout(0, 0, 1080, 2400)
+
+        val overlayRoot = launcher.findViewById<View>(R.id.essentialRoot)
+        assertNotNull("Essential/Dock Space overlay must be mounted", overlayRoot)
+        val overlayHost = overlayRoot.parent as View
+        assertFalse(
+            "Overlay must NOT sit inside DragLayer, which AOSP fades to alpha=0 & shifts off-screen on scroll",
+            overlayHost === launcher.dragLayer || overlayHost.parent === launcher.dragLayer
+        )
+        assertTrue("DragLayer should have faded/slid out when overlay opened", launcher.dragLayer.alpha == 0f)
+        assertTrue("Overlay root must be visible", overlayRoot.isShown)
+        assertEquals(1f, overlayHost.alpha, 0.001f)
+        assertEquals(0f, overlayHost.translationX, 0.5f)
+        assertTrue("Overlay must occupy positive width/height", overlayRoot.width > 0 && overlayRoot.height > 0)
+        val headline = overlayRoot.findViewById<TextView>(R.id.essentialBriefingHeadline)
+        assertNotNull(headline)
+        assertTrue("Overlay content must be bound", headline.text.isNotBlank())
+
+        // Tapping the overlay's Close control restores DragLayer to full visibility at x=0.
+        overlayRoot.findViewById<View>(R.id.essentialCloseBtn).performClick()
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(400))
+        pump(10)
+        assertFalse("Overlay should hide on back", overlayRoot.isShown)
+        assertEquals(1f, launcher.dragLayer.alpha, 0.001f)
+        assertEquals(0f, launcher.dragLayer.translationX, 0.5f)
+
+        controller.pause().stop().destroy()
+        pump()
     }
 }

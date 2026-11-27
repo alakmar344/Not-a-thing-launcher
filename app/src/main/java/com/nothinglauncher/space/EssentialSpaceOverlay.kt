@@ -7,6 +7,7 @@ import android.animation.ValueAnimator
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
@@ -28,6 +29,8 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.isVisible
 import androidx.core.view.updatePadding
+import com.android.launcher3.Insettable
+import com.android.launcher3.InsettableFrameLayout
 import com.android.launcher3.Launcher
 import com.android.launcher3.Utilities
 import com.android.systemui.plugins.shared.LauncherOverlayManager
@@ -228,8 +231,14 @@ class EssentialSpaceOverlay(
             interpolator = DecelerateInterpolator(2.1f)
             addUpdateListener { applyProgress(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
+                private var cancelled = false
+
+                override fun onAnimationCancel(animation: Animator) {
+                    cancelled = true
+                }
+
                 override fun onAnimationEnd(animation: Animator) {
-                    applyProgress(target)
+                    if (!cancelled) applyProgress(target)
                 }
             })
             start()
@@ -239,12 +248,20 @@ class EssentialSpaceOverlay(
     private fun ensureViewMounted(): View {
         rootView?.let { return it }
         val dragLayer = launcher.dragLayer
+        // DragLayer registers as a LauncherOverlayCallbacks and fades itself to alpha=0 / +width on
+        // overlay progress, so the -1 overlay must sit as a sibling above DragLayer (in LauncherRootView).
+        val host: ViewGroup = (dragLayer?.parent as? ViewGroup) ?: launcher.rootView ?: dragLayer
         val slop = ViewConfiguration.get(launcher).scaledTouchSlop
-        val wrapper = object : FrameLayout(launcher) {
+        var applyInsetRect: ((Rect) -> Unit)? = null
+        val wrapper = object : FrameLayout(launcher), Insettable {
             private var downX = 0f
             private var downY = 0f
             private var dragging = false
             private var tracker: VelocityTracker? = null
+
+            override fun setInsets(insets: Rect) {
+                applyInsetRect?.invoke(insets)
+            }
 
             override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
                 when (ev.actionMasked) {
@@ -328,34 +345,48 @@ class EssentialSpaceOverlay(
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         )
         wrapper.background = DotGridDrawable.forTier(launcher)
+        wrapper.isClickable = true
+        wrapper.isFocusable = true
         wrapper.visibility = View.GONE
-        setupInsets(wrapper)
+        applyInsetRect = setupInsets(wrapper)
         setupButtons(wrapper)
         com.nothinglauncher.BigScreenUi.applyMaxWidth(wrapper.findViewById(R.id.essentialColumn), 980)
-        dragLayer.addView(
-            wrapper,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        )
+        val hostLp: ViewGroup.LayoutParams = if (host is InsettableFrameLayout) {
+            InsettableFrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            ).apply { ignoreInsets = true }
+        } else {
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        }
+        host.addView(wrapper, hostLp)
         rootView = wrapper
         return wrapper
     }
 
-    private fun setupInsets(view: View) {
+    private fun setupInsets(view: View): (Rect) -> Unit {
         val column = view.findViewById<View>(R.id.essentialColumn)
         val baseTop = column.paddingTop
         val baseBottom = column.paddingBottom
         val baseLeft = column.paddingLeft
         val baseRight = column.paddingRight
+        val applyPadding: (Int, Int, Int, Int) -> Unit = { left, top, right, bottom ->
+            column.updatePadding(
+                left = baseLeft + left,
+                top = baseTop + top,
+                right = baseRight + right,
+                bottom = baseBottom + bottom
+            )
+        }
         ViewCompat.setOnApplyWindowInsetsListener(view) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
-            column.updatePadding(
-                left = baseLeft + bars.left,
-                top = baseTop + bars.top,
-                right = baseRight + bars.right,
-                bottom = baseBottom + bars.bottom
-            )
+            applyPadding(bars.left, bars.top, bars.right, bars.bottom)
             insets
         }
+        return { r -> applyPadding(r.left, r.top, r.right, r.bottom) }
     }
 
     private fun setupButtons(view: View) {
@@ -515,7 +546,12 @@ class EssentialSpaceOverlay(
         callbacks?.onOverlayScrollChanged(clamped)
 
         val view = rootView ?: return
-        val w = (launcher.dragLayer?.width ?: launcher.resources.displayMetrics.widthPixels).coerceAtLeast(1)
+        val w = (
+            view.width.takeIf { it > 0 }
+                ?: (view.parent as? View)?.width?.takeIf { it > 0 }
+                ?: launcher.dragLayer?.width?.takeIf { it > 0 }
+                ?: launcher.resources.displayMetrics.widthPixels
+            ).coerceAtLeast(1)
         if (clamped <= 0f) {
             view.visibility = View.GONE
             view.translationX = if (isRtl) w.toFloat() else -w.toFloat()
@@ -531,6 +567,7 @@ class EssentialSpaceOverlay(
             bindAll()
             startTickers()
         }
+        view.alpha = 1f
         view.translationX = if (isRtl) w * (1f - clamped) else -w * (1f - clamped)
         val wsScale = 1f - 0.04f * clamped
         launcher.workspace?.apply {
