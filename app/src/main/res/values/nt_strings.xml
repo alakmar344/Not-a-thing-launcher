@@ -295,8 +295,9 @@
     <string name="nt_kinetic_life">LIFE</string>
     <string name="nt_kinetic_snake">SNAKE</string>
     <string name="nt_kinetic_hint_gravity">TILT PHONE · TOUCH TO ATTRACT</string>
-    <string name="nt_kinetic_hint_life">TAP CELLS TO SEED LIFE</string>
-    <string name="nt_kinetic_hint_snake">TAP EDGES TO STEER · SCORE %d</string>
+    <string name="nt_kinetic_hint_life">TAP OR DRAG TO SEED LIFE</string>
+    <string name="nt_kinetic_hint_snake">SWIPE OR TAP EDGES · SCORE %d</string>
+    <string name="nt_kinetic_hint_snake_over">SCORE %d · GAME OVER · TAP</string>
     <string name="nt_digest_title">NOTIFICATION DIGEST</string>
     <string name="nt_digest_empty">INBOX CLEAR · ZERO UNREAD</string>
     <string name="nt_digest_grant">ENABLE NOTIFICATION DIGEST</string>

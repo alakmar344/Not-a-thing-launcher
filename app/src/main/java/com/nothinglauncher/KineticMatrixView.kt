@@ -8,23 +8,30 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Build
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.MotionEvent
+import android.view.Surface
 import android.view.View
+import android.view.ViewConfiguration
+import android.view.WindowManager
 import androidx.core.content.ContextCompat
 import com.nothinglauncher.perf.VisualTier
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.hypot
 import kotlin.math.min
-import kotlin.math.roundToInt
+import kotlin.math.sin
 
 /**
  * Interactive 16x10 LED matrix playground supporting 3 modes:
- * - [Mode.GRAVITY]: accelerometer tilt-driven rolling LED beads with finger attract/fling physics
- * - [Mode.LIFE]: Conway's Game of Life cellular simulation (tap any dot to toggle cells alive/dead)
- * - [Mode.SNAKE]: Playable home-screen / desk-mode Dot Snake (tap edges relative to center to steer)
+ * - [Mode.GRAVITY]: tilt-driven rolling LED beads with full-grid finger attract & fling physics
+ * - [Mode.LIFE]: Conway's Game of Life cellular simulation (tap or drag cells to paint, auto-reseeds if stagnant)
+ * - [Mode.SNAKE]: Playable home-screen Dot Snake (swipe in any direction or tap normalized edge quadrants to steer)
  *
- * Strictly visibility- and [VisualTier.motionAllowed]-gated: zero sensor/frame drain off-screen.
+ * Claims pointer gestures from launcher widget hosts on ACTION_DOWN (cancelling host long-press & page swipes),
+ * pauses only during layoutlib tests or when detached/invisible, and unregisters sensors off-screen.
  */
 class KineticMatrixView @JvmOverloads constructor(
     context: Context,
@@ -45,6 +52,7 @@ class KineticMatrixView @JvmOverloads constructor(
         const val COLS = 16
         const val ROWS = 10
         private const val BEAD_COUNT = 18
+        private const val LIFE_PAUSE_AFTER_TOUCH_MS = 650L
     }
 
     private val offPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -56,6 +64,10 @@ class KineticMatrixView @JvmOverloads constructor(
     private val accentPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = ContextCompat.getColor(context, R.color.nothing_red)
     }
+    private val dimPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = ContextCompat.getColor(context, R.color.dot_on)
+        alpha = 115
+    }
 
     var accentColor: Int
         get() = accentPaint.color
@@ -63,6 +75,8 @@ class KineticMatrixView @JvmOverloads constructor(
 
     fun applySurfaceColors(sc: AccentTheme.SurfaceColors) {
         onPaint.color = sc.onDot
+        dimPaint.color = sc.onDot
+        dimPaint.alpha = 115
         offPaint.color = sc.offDot
         invalidate()
     }
@@ -71,6 +85,8 @@ class KineticMatrixView @JvmOverloads constructor(
         set(value) {
             if (field != value) {
                 field = value
+                touchActive = false
+                if (value == Mode.GRAVITY) kickGravityBeads()
                 if (value == Mode.LIFE && lifeAliveCount() == 0) seedLife()
                 if (value == Mode.SNAKE) resetSnake()
                 updateRunning()
@@ -79,6 +95,7 @@ class KineticMatrixView @JvmOverloads constructor(
         }
 
     var onScoreChanged: ((Int) -> Unit)? = null
+    var onGameOverChanged: ((Boolean, Int) -> Unit)? = null
 
     // --- Gravity Beads State (normalized grid coordinates 0..COLS, 0..ROWS) ---
     internal val beadX = FloatArray(BEAD_COUNT) { 2f + (it % 6) * 2.2f }
@@ -87,13 +104,24 @@ class KineticMatrixView @JvmOverloads constructor(
     private val beadVy = FloatArray(BEAD_COUNT)
     private var accelGx = 0f
     private var accelGy = 3.2f
+    private var hasSensorSample = false
+    private var gravityPhase = 0f
     private var touchActive = false
     private var touchGridX = COLS * 0.5f
     private var touchGridY = ROWS * 0.5f
+    private var dragImpulseVx = 0f
+    private var dragImpulseVy = 0f
 
     // --- Game of Life State ---
     internal var lifeGrid = BooleanArray(COLS * ROWS)
     private var nextLifeGrid = BooleanArray(COLS * ROWS)
+    private var lifePaintValue = true
+    private var lifeLastPaintIndex = -1
+    private var lifePausedUntilMs = 0L
+    private var prevLifeHash1 = 0
+    private var prevLifeHash2 = 0
+    private var stagnantLifeTicks = 0
+    private var reseedCursor = 0
 
     // --- Snake State ---
     internal val snakeBody = ArrayDeque<Pair<Int, Int>>()
@@ -104,15 +132,28 @@ class KineticMatrixView @JvmOverloads constructor(
     internal var snakeFood = Pair(11, 5)
     internal var snakeScore = 0
     internal var snakeGameOver = false
+    private var snakeDownX = 0f
+    private var snakeDownY = 0f
+    private var snakeSwiped = false
 
+    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat().coerceAtLeast(8f)
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
     private val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
     private var sensorRegistered = false
     private var running = false
+    private var reportedWindowVisible: Boolean? = null
 
     init {
+        kickGravityBeads()
         seedLife()
         resetSnake()
+    }
+
+    private fun kickGravityBeads() {
+        for (i in 0 until BEAD_COUNT) {
+            beadVx[i] = ((i % 5) - 2) * 0.7f
+            beadVy[i] = ((i / 5) - 1.5f) * 0.6f
+        }
     }
 
     fun seedLife() {
@@ -126,7 +167,27 @@ class KineticMatrixView @JvmOverloads constructor(
         cells.forEach { (c, r) ->
             if (c in 0 until COLS && r in 0 until ROWS) lifeGrid[r * COLS + c] = true
         }
+        stagnantLifeTicks = 0
+        prevLifeHash1 = 0
+        prevLifeHash2 = 0
         invalidate()
+    }
+
+    private fun injectLifeGlider() {
+        reseedCursor = (reseedCursor + 1) % 4
+        val (ox, oy) = when (reseedCursor) {
+            0 -> 2 to 2
+            1 -> 11 to 2
+            2 -> 2 to 6
+            else -> 9 to 5
+        }
+        val glider = listOf(1 to 0, 2 to 1, 0 to 2, 1 to 2, 2 to 2, 4 to 1, 5 to 1)
+        glider.forEach { (dx, dy) ->
+            val cc = (ox + dx) % COLS
+            val rr = (oy + dy) % ROWS
+            lifeGrid[rr * COLS + cc] = true
+        }
+        stagnantLifeTicks = 0
     }
 
     private fun lifeAliveCount(): Int = lifeGrid.count { it }
@@ -156,6 +217,24 @@ class KineticMatrixView @JvmOverloads constructor(
         if (aliveCount == 0) seedLife()
     }
 
+    private fun advanceLifeInTicker() {
+        val now = SystemClock.uptimeMillis()
+        if (now < lifePausedUntilMs) return
+        val beforeHash = lifeGrid.contentHashCode()
+        stepLife()
+        val afterHash = lifeGrid.contentHashCode()
+        if (afterHash == beforeHash || afterHash == prevLifeHash2) {
+            stagnantLifeTicks++
+            if (stagnantLifeTicks >= 12) {
+                if (lifeAliveCount() <= 4) seedLife() else injectLifeGlider()
+            }
+        } else {
+            stagnantLifeTicks = 0
+        }
+        prevLifeHash2 = prevLifeHash1
+        prevLifeHash1 = beforeHash
+    }
+
     fun resetSnake() {
         snakeBody.clear()
         snakeBody.addLast(5 to 5)
@@ -169,6 +248,7 @@ class KineticMatrixView @JvmOverloads constructor(
         snakeGameOver = false
         placeFoodDeterministic(1)
         onScoreChanged?.invoke(snakeScore)
+        onGameOverChanged?.invoke(false, snakeScore)
     }
 
     internal fun steerSnake(ndx: Int, ndy: Int) {
@@ -202,6 +282,7 @@ class KineticMatrixView @JvmOverloads constructor(
         val next = nx to ny
         if (next in snakeBody) {
             snakeGameOver = true
+            onGameOverChanged?.invoke(true, snakeScore)
             invalidate()
             return
         }
@@ -225,19 +306,20 @@ class KineticMatrixView @JvmOverloads constructor(
                 val dx = touchGridX - beadX[i]
                 val dy = touchGridY - beadY[i]
                 val d = hypot(dx, dy).coerceAtLeast(0.45f)
-                if (d < 5.5f) {
-                    beadVx[i] += (dx / d) * 14f * dt
-                    beadVy[i] += (dy / d) * 14f * dt
-                }
+                val pull = 34f / (0.7f + d * 0.15f)
+                beadVx[i] += (dx / d) * pull * dt + dragImpulseVx * 0.4f
+                beadVy[i] += (dy / d) * pull * dt + dragImpulseVy * 0.4f
             }
             beadX[i] += beadVx[i] * dt * 5f
             beadY[i] += beadVy[i] * dt * 5f
 
-            if (beadX[i] < margin) { beadX[i] = margin; beadVx[i] = abs(beadVx[i]) * 0.65f }
-            if (beadX[i] > COLS - margin) { beadX[i] = COLS - margin; beadVx[i] = -abs(beadVx[i]) * 0.65f }
-            if (beadY[i] < margin) { beadY[i] = margin; beadVy[i] = abs(beadVy[i]) * 0.65f }
-            if (beadY[i] > ROWS - margin) { beadY[i] = ROWS - margin; beadVy[i] = -abs(beadVy[i]) * 0.65f }
+            if (beadX[i] < margin) { beadX[i] = margin; beadVx[i] = abs(beadVx[i]) * 0.68f }
+            if (beadX[i] > COLS - margin) { beadX[i] = COLS - margin; beadVx[i] = -abs(beadVx[i]) * 0.68f }
+            if (beadY[i] < margin) { beadY[i] = margin; beadVy[i] = abs(beadVy[i]) * 0.68f }
+            if (beadY[i] > ROWS - margin) { beadY[i] = ROWS - margin; beadVy[i] = -abs(beadVy[i]) * 0.68f }
         }
+        dragImpulseVx *= 0.65f
+        dragImpulseVy *= 0.65f
         // Soft bead-bead collision avoidance
         val minDist = 1.05f
         for (i in 0 until BEAD_COUNT) {
@@ -261,29 +343,41 @@ class KineticMatrixView @JvmOverloads constructor(
     private val ticker = object : Runnable {
         override fun run() {
             if (!running) return
+            val calmPower = !VisualTier.motionAllowed(context) && !touchActive
             when (mode) {
                 Mode.GRAVITY -> {
-                    stepPhysics(accelGx, accelGy)
+                    gravityPhase += 0.08f
+                    var gx = accelGx
+                    var gy = accelGy
+                    if (!touchActive && (!hasSensorSample || hypot(gx, gy) < 0.45f)) {
+                        gx += sin(gravityPhase) * 1.4f
+                        gy = 1.6f + cos(gravityPhase * 0.7f) * 1.1f
+                    }
+                    stepPhysics(gx, gy, dt = if (calmPower) 0.045f else 0.032f)
                     invalidate()
-                    postDelayed(this, 32L)
+                    postDelayed(this, if (calmPower) 64L else 32L)
                 }
                 Mode.LIFE -> {
-                    stepLife()
+                    advanceLifeInTicker()
                     invalidate()
-                    postDelayed(this, 240L)
+                    postDelayed(this, if (calmPower) 320L else 240L)
                 }
                 Mode.SNAKE -> {
                     stepSnake()
                     invalidate()
-                    postDelayed(this, 210L)
+                    postDelayed(this, if (calmPower) 240L else 210L)
                 }
             }
         }
     }
 
     private fun updateRunning() {
-        val allowed = VisualTier.motionAllowed(context)
-        val shouldRun = allowed && isAttachedToWindow && windowVisibility == VISIBLE && visibility == VISIBLE && isShown
+        val effectiveWindowVisible = reportedWindowVisible ?: (windowVisibility == VISIBLE)
+        val shouldRun = !VisualTier.isTestOverrideActive() &&
+            isAttachedToWindow &&
+            effectiveWindowVisible &&
+            visibility == VISIBLE &&
+            isShown
         val wantSensor = shouldRun && mode == Mode.GRAVITY && accelSensor != null
         if (wantSensor && !sensorRegistered) {
             sensorRegistered = sensorManager?.registerListener(
@@ -299,9 +393,15 @@ class KineticMatrixView @JvmOverloads constructor(
         if (running) post(ticker)
     }
 
-    override fun onAttachedToWindow() { super.onAttachedToWindow(); updateRunning() }
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        updateRunning()
+        post { if (isAttachedToWindow) updateRunning() }
+    }
+
     override fun onDetachedFromWindow() {
         running = false
+        reportedWindowVisible = null
         removeCallbacks(ticker)
         if (sensorRegistered) {
             sensorManager?.unregisterListener(this)
@@ -309,18 +409,80 @@ class KineticMatrixView @JvmOverloads constructor(
         }
         super.onDetachedFromWindow()
     }
-    override fun onWindowVisibilityChanged(visibility: Int) { super.onWindowVisibilityChanged(visibility); updateRunning() }
-    override fun onVisibilityChanged(changedView: View, visibility: Int) { super.onVisibilityChanged(changedView, visibility); updateRunning() }
-    override fun onVisibilityAggregated(isVisible: Boolean) { super.onVisibilityAggregated(isVisible); updateRunning() }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        reportedWindowVisible = (visibility == VISIBLE)
+        updateRunning()
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        updateRunning()
+    }
+
+    override fun onVisibilityAggregated(isVisible: Boolean) {
+        super.onVisibilityAggregated(isVisible)
+        reportedWindowVisible = isVisible
+        updateRunning()
+    }
+
+    // Tell Launcher3 host & HomeGestureController this surface owns directional drags inside its bounds.
+    override fun canScrollVertically(direction: Int): Boolean = true
+    override fun canScrollHorizontally(direction: Int): Boolean = true
+
+    private fun currentDisplayRotation(): Int {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                return context.display.rotation
+            } catch (_: Throwable) {}
+        }
+        return try {
+            @Suppress("DEPRECATION")
+            (context.getSystemService(Context.WINDOW_SERVICE) as? WindowManager)?.defaultDisplay?.rotation
+                ?: Surface.ROTATION_0
+        } catch (_: Throwable) {
+            Surface.ROTATION_0
+        }
+    }
 
     override fun onSensorChanged(event: SensorEvent?) {
         if (event?.sensor?.type != Sensor.TYPE_ACCELEROMETER) return
-        // Android coords: tilt right -> ax < 0, tilt down -> ay > 0
-        accelGx = (-event.values[0]).coerceIn(-12f, 12f)
-        accelGy = event.values[1].coerceIn(-12f, 12f)
+        hasSensorSample = true
+        val rawX = event.values[0]
+        val rawY = event.values[1]
+        val (sx, sy) = when (currentDisplayRotation()) {
+            Surface.ROTATION_90 -> -rawY to -rawX
+            Surface.ROTATION_180 -> rawX to -rawY
+            Surface.ROTATION_270 -> rawY to rawX
+            else -> -rawX to rawY
+        }
+        accelGx = sx.coerceIn(-12f, 12f)
+        accelGy = sy.coerceIn(-12f, 12f)
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
+
+    private fun claimTouchFromHost(disallow: Boolean) {
+        var p = parent
+        while (p != null) {
+            p.requestDisallowInterceptTouchEvent(disallow)
+            if (disallow && p is View) {
+                p.cancelLongPress()
+            }
+            p = p.parent
+        }
+    }
+
+    private fun steerSnakeQuadrant(eventX: Float, eventY: Float, w: Float, h: Float) {
+        val nx = (eventX / w) - 0.5f
+        val ny = (eventY / h) - 0.5f
+        if (abs(nx) > abs(ny)) {
+            steerSnake(if (nx >= 0f) 1 else -1, 0)
+        } else {
+            steerSnake(0, if (ny >= 0f) 1 else -1)
+        }
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -328,52 +490,124 @@ class KineticMatrixView @JvmOverloads constructor(
         val h = height.toFloat().coerceAtLeast(1f)
         val gx = ((event.x / w) * COLS).coerceIn(0f, COLS - 0.01f)
         val gy = ((event.y / h) * ROWS).coerceIn(0f, ROWS - 0.01f)
+        val action = event.actionMasked
+
+        if (action == MotionEvent.ACTION_DOWN) {
+            claimTouchFromHost(true)
+        } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+            claimTouchFromHost(false)
+        }
 
         when (mode) {
             Mode.GRAVITY -> {
-                when (event.actionMasked) {
-                    MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
-                        if (event.actionMasked == MotionEvent.ACTION_DOWN) Tactile.tick(this)
+                when (action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        Tactile.tick(this)
                         touchActive = true
                         touchGridX = gx
                         touchGridY = gy
-                        parent?.requestDisallowInterceptTouchEvent(true)
+                        dragImpulseVx = 0f
+                        dragImpulseVy = 0f
+                        if (!running) {
+                            stepPhysics(accelGx, accelGy)
+                        }
+                        invalidate()
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        dragImpulseVx = ((gx - touchGridX) * 6f).coerceIn(-6f, 6f)
+                        dragImpulseVy = ((gy - touchGridY) * 6f).coerceIn(-6f, 6f)
+                        touchActive = true
+                        touchGridX = gx
+                        touchGridY = gy
+                        if (!running) {
+                            stepPhysics(accelGx, accelGy)
+                        }
                         invalidate()
                         return true
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                         touchActive = false
-                        parent?.requestDisallowInterceptTouchEvent(false)
+                        dragImpulseVx = 0f
+                        dragImpulseVy = 0f
                         return true
                     }
                 }
             }
             Mode.LIFE -> {
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    Tactile.tick(this)
-                    val col = gx.toInt().coerceIn(0, COLS - 1)
-                    val row = gy.toInt().coerceIn(0, ROWS - 1)
-                    lifeGrid[row * COLS + col] = !lifeGrid[row * COLS + col]
-                    invalidate()
-                    return true
-                }
-            }
-            Mode.SNAKE -> {
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    Tactile.tick(this)
-                    if (snakeGameOver) {
-                        resetSnake()
+                val col = gx.toInt().coerceIn(0, COLS - 1)
+                val row = gy.toInt().coerceIn(0, ROWS - 1)
+                val idx = row * COLS + col
+                when (action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        Tactile.tick(this)
+                        lifePaintValue = !lifeGrid[idx]
+                        lifeGrid[idx] = lifePaintValue
+                        lifeLastPaintIndex = idx
+                        lifePausedUntilMs = SystemClock.uptimeMillis() + LIFE_PAUSE_AFTER_TOUCH_MS
+                        stagnantLifeTicks = 0
                         invalidate()
                         return true
                     }
-                    val cx = event.x - w * 0.5f
-                    val cy = event.y - h * 0.5f
-                    if (abs(cx) > abs(cy)) {
-                        steerSnake(if (cx >= 0f) 1 else -1, 0)
-                    } else {
-                        steerSnake(0, if (cy >= 0f) 1 else -1)
+                    MotionEvent.ACTION_MOVE -> {
+                        lifePausedUntilMs = SystemClock.uptimeMillis() + LIFE_PAUSE_AFTER_TOUCH_MS
+                        if (idx != lifeLastPaintIndex) {
+                            lifeLastPaintIndex = idx
+                            lifeGrid[idx] = lifePaintValue
+                            stagnantLifeTicks = 0
+                            invalidate()
+                        }
+                        return true
                     }
-                    return true
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                        lifeLastPaintIndex = -1
+                        lifePausedUntilMs = SystemClock.uptimeMillis() + LIFE_PAUSE_AFTER_TOUCH_MS
+                        return true
+                    }
+                }
+            }
+            Mode.SNAKE -> {
+                when (action) {
+                    MotionEvent.ACTION_DOWN -> {
+                        Tactile.tick(this)
+                        if (snakeGameOver) {
+                            resetSnake()
+                            invalidate()
+                            return true
+                        }
+                        snakeDownX = event.x
+                        snakeDownY = event.y
+                        snakeSwiped = false
+                        return true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (snakeGameOver) return true
+                        val dx = event.x - snakeDownX
+                        val dy = event.y - snakeDownY
+                        val swipeThresh = touchSlop * 0.75f
+                        if (abs(dx) >= swipeThresh || abs(dy) >= swipeThresh) {
+                            snakeSwiped = true
+                            if (abs(dx) > abs(dy)) {
+                                steerSnake(if (dx > 0f) 1 else -1, 0)
+                            } else {
+                                steerSnake(0, if (dy > 0f) 1 else -1)
+                            }
+                            snakeDownX = event.x
+                            snakeDownY = event.y
+                        }
+                        return true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        if (!snakeSwiped && !snakeGameOver) {
+                            steerSnakeQuadrant(event.x, event.y, w, h)
+                        }
+                        snakeSwiped = false
+                        return true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        snakeSwiped = false
+                        return true
+                    }
                 }
             }
         }
@@ -408,7 +642,9 @@ class KineticMatrixView @JvmOverloads constructor(
                         val isHead = snakeBody.lastOrNull() == cell
                         val isBody = !isHead && cell in snakeBody
                         val p = when {
+                            snakeGameOver && isHead -> accentPaint
                             isFood -> accentPaint
+                            snakeGameOver && isBody -> dimPaint
                             isHead || isBody -> onPaint
                             else -> offPaint
                         }
