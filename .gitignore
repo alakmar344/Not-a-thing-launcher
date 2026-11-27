@@ -11,13 +11,12 @@ local.properties
 # OS
 .DS_Store
 
-# Signing secrets. keystore/stable-signing.p12 is the one key that is meant to be public: every
-# build is signed with it so each release installs over the previous one (see README).
+# Signing secrets & release keystores (managed locally or via GitHub Actions secrets).
 *.jks
 *.keystore
+*.p12
 keystore.properties
 keystore/password.txt
-!keystore/stable-signing.p12
 
 # Local logs / scratch output
 build_*.log
