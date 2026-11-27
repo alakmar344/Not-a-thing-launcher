@@ -7,7 +7,7 @@ An independent, minimalist dot-matrix Android home screen built for phones first
 
 Under the hood it is **stock AOSP Launcher3** (`android-14.0.0_r75`) with the Not a Thing experience layered on top, so workspaces, folders, drag & drop, widget resizing, and app shortcuts follow stock Android cleanly.
 
-**Version 14.1** · runs on Android 8.0 – 17 · targets Android 16 (API 36)
+**Version 15** · runs on Android 8.0 – 17 · targets Android 16 (API 36)
 
 <p>
   <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensDarkTest_homeMono.png" width="24%" alt="Home" />
@@ -16,13 +16,12 @@ Under the hood it is **stock AOSP Launcher3** (`android-14.0.0_r75`) with the No
   <img src="app/src/test/snapshots/images/com.nothinglauncher_ScreensLightTest_homeMono.png" width="24%" alt="Light mode" />
 </p>
 
-## What you get in v14.1
+## What you get in v15
 
-- **Security Hardening & Signed Key Rotation:** Retired the former public repository keystore in favor of a newly generated 4096-bit RSA release key (`notathing-release`) stored in GitHub Actions secrets, enforced fail-closed Hidden Vault authentication across Android 8–17 and all entry points, added signature-level permissions to `GridCustomizationsProvider`, revoked stale notification digest intents on permission loss, and bounded all backup/HTTP/JSON parsers.
-- **Android StandBy Screensaver (`NothingDreamService`) & 4-Stage Matrix Desk HUD (`DeskHudActivity`):** Turn any charging or docked phone into a dark OLED clock console (**StandBy Dot Clock**) with per-minute burn-in pixel shift, weather, battery, and notification digest — or open the 4-stage Desk HUD (**COCKPIT**, **CLOCK** theatre, **FOCUS** Pomodoro studio, and procedural **MATRIX** LED visualizer reactive to music, soundscapes, timer progress, and touch ripples).
-- **13 Dot-Matrix Widgets & Kinetic Matrix Playground:** Interactive **Kinetic Matrix (`KineticMatrixWidget`)** (`GRAVITY` LED beads, Conway's `LIFE`, playable `SNAKE`), **Desk Briefing (`DeskBriefingWidget`)**, **App Stack** Max Icon mode, **Focus Note**, **Habit Matrix**, 12h rain/wind telemetry in `WeatherWidget`, live cross-surface sync, and per-widget surfaces (**Default**, **Obsidian Dark**, **Bone Paper**, **Frosted Glass**).
-- **On-Device Notification Digest & Procedural Focus Soundscapes:** Swipe right into `-1` Dock Space for an offline priority-grouped **Notification Digest** (`NotificationDigestRepository` powered by AOSP `NotificationListener`, with Focus Shield when Focus Mode is on) and zero-asset `AudioTrack` focus soundscapes (`FocusSoundEngine`: **BROWN**, **RAIN**, **40HZ**).
-- **Big-Screen Studio (`w600dp`+), Smart Drawer & Android 8–11 Compatibility:** Dual-column Bento studio layouts on tablets/foldables, instant **GRID ↔ LIST ↔ CATS** drawer switching (`AppCategorizer` with package caching), sequence-guarded `/` Command Search utilities, and concrete pre-API-31 `wallpaper_popup_scrim` theme overrides.
+- **Live Cross-Surface Telemetry & Inline Hardware Accent Studio:** 1-tap inline 5-dot Hardware Accent Swatch strips right inside `CustomizeSheet` and Settings (**Studio 15**) with real-time home & widget synchronization (`Focus`, `Caffeine`, `AccentPalette`, `WidgetSurface`, `DrawerLayoutMode`, and labels sync instantaneously across Home, Drawer, `-1` Dock Space, and all 13 widgets without stale icon caches or wasted background timers).
+- **World Clock, Smart Work-Tab Drawer & Fail-Closed Vault Polish:** `DotMatrixClockView` renders true timezone clocks and dates in World Clock mode across Home, Desk HUD, and StandBy Dream; `NothingAllAppsContainerView` cleanly separates Personal, Work, and Search adapters (fixing hidden filtering, Minimal List, and Categories on Work profiles); `HiddenVaultSheet` adds explicit 1-tap **UNHIDE** pills + custom labels; and `LauncherEntryActivity` adapts light/dark system chrome cleanly with Import/Export JSON symmetry.
+- **Refined Dot-Matrix Craft (`15` Visual & Stability Upgrades):** Crisp hairline search pills, schematic drawer category headers with pill count badges, Focus Note cards with edit affordances in Desk HUD, cardinal calibration ticks on `GlyphMatrixCanvasView`, zero-drain `LifecycleFrameLayout` gating for `FocusTimerWidget`, >99m focus timer support, and modern `AudioTrack.Builder` synthesis in `FocusSoundEngine`.
+- **Android StandBy Screensaver (`NothingDreamService`), 4-Stage Desk HUD, 13 Widgets & On-Device Digest:** Charging/docked OLED StandBy clock console, **Gravity / Life / Snake** Kinetic Matrix widget, App Stack Max Icon mode, `Open-Meteo` rain/wind sparklines, procedural ambient soundscapes, and offline Command Search (`/`).
 
 Full guide: [`docs/FEATURES.md`](docs/FEATURES.md).
 
@@ -33,7 +32,7 @@ and set it as your home app (or launch **Not a Thing** from the drawer to open t
 Every push to `main` or matching `v*` tag builds signed APKs that install over the previous build.
 See [`docs/RELEASING.md`](docs/RELEASING.md) for signing and upgrade details.
 
-> Upgrading from v14 or earlier? Uninstall once before installing v14.1: v14.1 rotates to a dedicated secret-managed release signing key.
+> Upgrading from v14 or earlier? Uninstall once before installing v15: builds since v14.1 use the secret-managed release signing key.
 
 ## Build
 
@@ -49,17 +48,17 @@ Requires JDK 17 and Android SDK (`compileSdk 35`, `minSdk 26`, `targetSdk 36`).
 On Windows use `gradlew.bat`. Paparazzi screenshots run on JVM layoutlib without an emulator
 (note: Windows Application Control environments that block `libicuuc_stubdata.dll` can still
 run non-Paparazzi unit/Robolectric tests such as `VisualTierTest`, `LauncherRuntimeTest`,
-`V13FeaturesTest`, and `V14FeaturesTest`).
+`V13FeaturesTest`, `V14FeaturesTest`, `V14_1AuditFixesTest`, and `V15FeaturesTest`).
 
 ## Docs
 
 | | |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Source layout, AOSP extension points, v14.1 subsystems, and R8 reflection contract |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Source layout, AOSP extension points, v15 subsystems, and R8 reflection contract |
 | [`docs/FEATURES.md`](docs/FEATURES.md) | Complete guide to StandBy Screensaver, Kinetic Matrix, Digest, Soundscapes, Matrix Desk HUD, 13 widgets, Big-Screen Studio & Settings |
 | [`docs/SCREENSHOTS.md`](docs/SCREENSHOTS.md) | Visual golden tests (phone & tablet) and host notes |
 | [`docs/RELEASING.md`](docs/RELEASING.md) | How builds are published and installed as updates; GitHub secret signing |
-| [`CHANGELOG.md`](CHANGELOG.md) | Release history through v14.1 |
+| [`CHANGELOG.md`](CHANGELOG.md) | Release history through v15 |
 | [`NOTICE`](NOTICE) | Third-party copyrights, AOSP Apache 2.0 & font attributions, and trademark disclaimer |
 | [`AGENTS.md`](AGENTS.md) | Rules for AI coding agents working in this repo |
 | [`docs/archive/`](docs/archive/) | Archived documentation for v13, v12, and pre-v11.0 releases |
