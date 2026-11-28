@@ -215,9 +215,12 @@ object NotificationDigestRepository {
         if (!granted) return Snapshot(false, 0, 0, emptyList())
         val pm = context.packageManager
         val selfPkg = context.packageName
+        val hiddenPkgs = NothingPrefs.get(context).hiddenPackages
         val raw = sbns.mapNotNull { sbn ->
             val pkg = sbn.packageName ?: return@mapNotNull null
-            if (pkg == selfPkg || pkg == "android" || pkg == "com.android.systemui") return@mapNotNull null
+            if (pkg == selfPkg || pkg == "android" || pkg == "com.android.systemui" || pkg in hiddenPkgs) {
+                return@mapNotNull null
+            }
             val n = sbn.notification ?: return@mapNotNull null
             val extras = n.extras
             val title = sanitizeText(extras?.getCharSequence(Notification.EXTRA_TITLE), 120)

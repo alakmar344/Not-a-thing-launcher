@@ -189,7 +189,7 @@ class NothingSettingsActivity : AppCompatActivity() {
         SettingsUi.section(leftList, getString(R.string.section_home), accent())
         SettingsUi.card(leftList).also { card ->
             val grids = listOf("3_by_3", "4_by_4", "5_by_5")
-            val currentGridName = InvariantDeviceProfile.getCurrentGridName(this)
+            val currentGridName = InvariantDeviceProfile.getCurrentGridName(this).orEmpty()
             val current = grids.indexOf(currentGridName)
             if (current >= 0) {
                 SettingsUi.choiceRow(
@@ -197,10 +197,11 @@ class NothingSettingsActivity : AppCompatActivity() {
                     listOf("3 × 3", "4 × 4", "5 × 5"), current
                 ) { InvariantDeviceProfile.INSTANCE.get(this).setCurrentGrid(this, grids[it]) }
             } else {
+                val displayGrid = currentGridName.takeIf { it.isNotBlank() }?.replace("_by_", " × ") ?: "Auto"
                 SettingsUi.infoRow(
                     card,
                     getString(R.string.nt_setting_big_bento),
-                    "${currentGridName.replace("_by_", " × ")} · ${getString(R.string.nt_setting_big_bento_sub)}"
+                    "$displayGrid · ${getString(R.string.nt_setting_big_bento_sub)}"
                 )
             }
             SettingsUi.switchRow(
@@ -383,8 +384,7 @@ class NothingSettingsActivity : AppCompatActivity() {
                 }
             }
             dynamicRow(card, getString(R.string.nt_setting_open_vault), subProvider = {
-                val n = prefs.hiddenPackages.size
-                if (n == 0) getString(R.string.nt_setting_open_vault_sub) else "$n hidden"
+                getString(R.string.nt_setting_open_vault_sub)
             }) {
                 HiddenVaultSheet.openWithAuth(this) { refreshAll() }
             }
@@ -434,7 +434,7 @@ class NothingSettingsActivity : AppCompatActivity() {
             SettingsUi.actionRow(card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)) {
                 Intents.start(this, Intent(this, com.android.launcher3.settings.SettingsActivity::class.java))
             }
-            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "15.5" }))
+            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "15.6" }))
         }
         refreshAll()
     }
@@ -468,7 +468,7 @@ class NothingSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         val titleMatrix = DotMatrixView(this).apply {
-            text = "STUDIO 15.5"
+            text = "STUDIO 15.6"
             dotColor = getColor(R.color.dot_on)
             accentIndices = setOf(7, 8, 9, 10)
             dotScale = 0.40f

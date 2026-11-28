@@ -267,8 +267,8 @@
     <string name="nt_folder_pick_title">APP STACK APPS</string>
     <string name="nt_folder_pick_sub">Pick 1 app for Max Icon mode, or up to 4 for Stack</string>
     <string name="nt_folder_configure">Configure apps</string>
-    <string name="nt_entry_title_v14">NOT A THING 15.5</string>
-    <string name="nt_preset_telemetry_v14">Telemetry v15.5</string>
+    <string name="nt_entry_title_v14">NOT A THING 15.6</string>
+    <string name="nt_preset_telemetry_v14">Telemetry v15.6</string>
     <string name="nt_desk_shift_note">AMBIENT PIXEL SHIFT</string>
     <string name="nt_desk_mode_cockpit">COCKPIT</string>
     <string name="nt_desk_mode_clock">CLOCK</string>
@@ -307,4 +307,26 @@
     <string name="nt_sound_brown">BROWN</string>
     <string name="nt_sound_rain">RAIN</string>
     <string name="nt_sound_40hz">40HZ</string>
+    <string name="nt_export_lock_title">Unlock data export</string>
+    <string name="nt_export_lock_sub">Verify your identity before exporting launcher data</string>
+    <string name="nt_export_dialog_title">Export launcher data</string>
+    <string name="nt_export_mode_setup">Setup only (Hidden apps excluded)</string>
+    <string name="nt_export_mode_encrypted">Encrypted backup (includes Hidden Vault)</string>
+    <string name="nt_export_passphrase_hint">Backup passphrase (6+ characters)</string>
+    <string name="nt_export_passphrase_confirm">Confirm passphrase</string>
+    <string name="nt_export_passphrase_mismatch">Passphrases do not match</string>
+    <string name="nt_export_passphrase_short">Use at least 6 characters for the backup passphrase</string>
+    <string name="nt_export_hidden_note">Standard exports strip all hidden apps and hidden labels so they cannot be viewed in JSON files.</string>
+    <string name="nt_export_continue">Continue</string>
+    <string name="nt_import_lock_title">Unlock data import</string>
+    <string name="nt_import_lock_sub">Verify your identity before accepting backup data</string>
+    <string name="nt_import_confirm_title">Accept backup data?</string>
+    <string name="nt_import_confirm_accept">Accept &amp; Restore</string>
+    <string name="nt_import_passphrase_hint">Vault backup passphrase</string>
+    <string name="nt_import_wrong_passphrase">Incorrect passphrase or corrupted Hidden Vault</string>
+    <string name="nt_import_summary_setup">Schema v%1$d · Restores layout, appearance, and launcher settings.</string>
+    <string name="nt_import_summary_vault_enc">\n\nEncrypted Hidden Vault detected — enter your backup passphrase to restore hidden apps.</string>
+    <string name="nt_import_summary_vault_kept">\n\nYour existing Hidden Vault will remain protected and unchanged.</string>
+    <string name="nt_import_summary_legacy_ignored">\n\nUnencrypted hidden apps in this legacy file will be ignored for security.</string>
+    <string name="nt_password_copied">Password copied to clipboard (hidden)</string>
 </resources>

@@ -85,6 +85,9 @@ object IconPackManager {
         try {
             res.assets.open("appfilter.xml").use { stream ->
                 val parser = Xml.newPullParser()
+                runCatching {
+                    parser.setFeature("http://xmlpull.org/v1/doc/features.html#process-docdecl", false)
+                }
                 parser.setInput(stream, "UTF-8")
                 readParser(parser, out)
             }
@@ -92,13 +95,17 @@ object IconPackManager {
         return out
     }
 
+    private const val MAX_APPFILTER_ENTRIES = 8192
+
     private fun readParser(parser: XmlPullParser, out: MutableMap<String, String>) {
         var event = parser.eventType
-        while (event != XmlPullParser.END_DOCUMENT) {
+        while (event != XmlPullParser.END_DOCUMENT && out.size < MAX_APPFILTER_ENTRIES) {
             if (event == XmlPullParser.START_TAG && parser.name == "item") {
                 val comp = parser.getAttributeValue(null, "component")
                 val drawable = parser.getAttributeValue(null, "drawable")
-                if (!comp.isNullOrBlank() && !drawable.isNullOrBlank()) {
+                if (!comp.isNullOrBlank() && !drawable.isNullOrBlank() &&
+                    comp.length <= 256 && drawable.length <= 128
+                ) {
                     out[comp] = drawable
                 }
             }

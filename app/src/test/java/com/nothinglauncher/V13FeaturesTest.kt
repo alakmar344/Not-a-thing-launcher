@@ -157,18 +157,46 @@ class V13FeaturesTest {
         p.habitTitle = "DEEP WORK"
         p.habitDates = setOf("2026-11-25")
         p.hiddenPackages = setOf("com.example.secret")
-        p.customAppLabels = mapOf("com.example/.Main" to "VaultApp")
+        p.customAppLabels = mapOf(
+            "com.example/.Main" to "VaultApp",
+            "com.example.secret/.HiddenMain" to "HiddenAlias"
+        )
 
-        val json = p.exportToJson()
+        // Default export must strip hidden packages and their labels from cleartext JSON.
+        val cleartextJson = p.exportToJson()
+        assertFalse(cleartextJson.contains("com.example.secret"))
+        assertFalse(cleartextJson.contains("HiddenAlias"))
+        assertFalse(cleartextJson.contains("\"hiddenPackages\""))
+
+        // Authenticated encrypted backup wraps Hidden Vault with AES-GCM + PBKDF2.
+        val pass = "CorrectHorse99!".toCharArray()
+        val encryptedJson = p.exportToJson(pass)
+        assertFalse(encryptedJson.contains("com.example.secret"))
+        assertFalse(encryptedJson.contains("HiddenAlias"))
+        assertTrue(encryptedJson.contains("\"encryptedVault\""))
+
         SetupBackupManager.applyPreset(context, SetupBackupManager.Preset.MONOLITH)
+        p.hiddenPackages = emptySet()
+        p.customAppLabels = emptyMap()
         assertEquals(AccentTheme.Palette.MONO, p.accentPalette)
 
-        assertTrue(p.importFromJson(json))
+        // Setup-only import restores settings & visible labels, never hidden vault.
+        assertTrue(p.importFromJson(cleartextJson))
         assertEquals(AccentTheme.Palette.PHOSPHOR, p.accentPalette)
         assertEquals("Asia/Tokyo", p.worldClockZoneId)
         assertEquals("DEEP WORK", p.habitTitle)
         assertTrue(p.habitDates.contains("2026-11-25"))
+        assertEquals("VaultApp", p.customAppLabels["com.example/.Main"])
+        assertTrue(p.hiddenPackages.isEmpty())
+
+        // Encrypted import restores hidden packages + hidden labels when given right passphrase.
+        p.accentPalette = AccentTheme.Palette.MONO
+        p.hiddenPackages = emptySet()
+        p.customAppLabels = emptyMap()
+        assertFalse(p.importFromJson(encryptedJson, "WrongPass".toCharArray()))
+        assertTrue(p.importFromJson(encryptedJson, pass))
         assertTrue(p.hiddenPackages.contains("com.example.secret"))
+        assertEquals("HiddenAlias", p.customAppLabels["com.example.secret/.HiddenMain"])
         assertEquals("VaultApp", p.customAppLabels["com.example/.Main"])
     }
 
