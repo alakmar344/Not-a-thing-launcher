@@ -35,7 +35,7 @@ dates.
   - Cached reflection `Field` lookups in `NothingWidget` and `DrawerSearchBox`, and cached `SimpleDateFormat`/`Calendar` + view refs + timer signature checks in `DeskHudActivity` and `NothingDreamService`.
 - **Release R8, Resource Shrinking & Packaging (`app/build.gradle`, `app/proguard-rules.pro`):**
   - Enabled `shrinkResources true` and obfuscated internal `com.nothinglauncher.**` helpers while preserving every `NothingWidget`, `NothingIconLogic`, `ResourceBasedOverride`, and `AppsSearchContainerLayout.mSearchBarController` contract; stripped release `Log.v`/`d`/`i` calls and excluded non-runtime `.proto`, `kotlin_builtins`, `DebugProbesKt.bin`, and `kotlin-tooling-metadata.json` metadata.
-  - Measured release output vs v15: `app-release.apk` reduced `5,099,967` B -> `5,013,847` B (`-86,120` B), `com` DEX payload reduced `1,412,066` B -> `1,296,949` B (`-115,117` B), `classes.dex` reduced `3,476,516` B -> `3,438,332` B, raw `res/` reduced `1,594,107` B -> `1,529,928` B; all 13 custom widgets, `NothingIconLogic`, `mSearchBarController`, and 0 undesugared methods verified on shipped DEX via `dexdump`.
+  - Measured release output vs v15: `app-release.apk` reduced `5,099,967` B -> `5,014,407` B (`-85,560` B), `com` DEX payload reduced `1,412,066` B -> `1,314,016` B (`-98,050` B), raw `res/` reduced `1,594,107` B -> `1,529,928` B; all 13 custom widgets (`CustomWidgetPlugin` supertype + `(Context)` constructor), `NothingIconLogic` (`ResourceBasedOverride`), `mSearchBarController`, and 0 undesugared methods verified on shipped DEX via `dexdump`.
 
 ## [15] — Work-Tab Isolation, Live Cross-Surface Sync, World Clock & Studio UX Polish
 

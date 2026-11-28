@@ -19,7 +19,7 @@
 # for this at the end of every assembleRelease. Without the widget rule, all four Not a Thing
 # widgets vanished from release builds while every (unminified) debug test still passed.
 -keep,allowshrinking,allowoptimization,allowobfuscation class com.nothinglauncher.** { *; }
--keep,allowshrinking,allowoptimization,allowobfuscation class com.android.systemui.plugins.** { *; }
+-keep,allowshrinking,allowoptimization class com.android.systemui.plugins.** { *; }
 -keep class com.nothinglauncher.icons.NothingIconLogic {
     public <init>(android.content.Context);
 }
