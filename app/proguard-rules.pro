@@ -42,8 +42,11 @@
     public static int i(...);
 }
 
-# Generated protobuf-lite messages are accessed reflectively.
--keep class * extends com.google.protobuf.GeneratedMessageLite { *; }
+# Retain fields reflectively read by protobuf-lite ONLY on classes that survive R8 shaking,
+# rather than forcing every unused well-known/logger proto message into classes.dex.
+-keepclassmembers,allowobfuscation class * extends com.google.protobuf.GeneratedMessageLite {
+    <fields>;
+}
 
 -dontwarn com.google.errorprone.annotations.**
 -dontwarn javax.annotation.**

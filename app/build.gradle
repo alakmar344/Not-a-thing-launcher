@@ -59,8 +59,11 @@ android {
         //    resizeable with screenOrientation="unspecified"; Launcher3 rotates on tablets.
         targetSdk 36
         versionCode resolvedVersionCode
-        versionName "15.5"
+        versionName "15.6"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // Custom UI copy is English-only; stripping 84 unused AOSP/Material/AndroidX locale tables
+        // dramatically shrinks both resources.arsc in the APK and base/resources.pb in the AAB.
+        resourceConfigurations += ['en']
     }
 
     signingConfigs {
@@ -103,7 +106,11 @@ android {
             excludes += [
                 'DebugProbesKt.bin',
                 'kotlin-tooling-metadata.json',
+                'kotlin/*.kotlin_builtins',
                 'kotlin/**/*.kotlin_builtins',
+                'META-INF/*.version',
+                'META-INF/LICENSE*',
+                'META-INF/NOTICE*',
                 'google/protobuf/*.proto',
                 'launcher_*.proto'
             ]

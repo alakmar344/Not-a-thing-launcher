@@ -6,6 +6,29 @@ dates.
 
 ## [Unreleased]
 
+## [15.6] — Security Hardening, Encrypted Backup Locks & App Bundle Size Reduction
+
+### Security
+- **Locked Backup Export & Accepting/Importing Data ([`DeviceAuthGate`](app/src/main/java/com/nothinglauncher/security/DeviceAuthGate.kt), [`BackupCrypto`](app/src/main/java/com/nothinglauncher/security/BackupCrypto.kt), [`SetupBackupManager`](app/src/main/java/com/nothinglauncher/SetupBackupManager.kt)):**
+  - **Authentication Gate & Single-Use Grants:** Launching either **Export JSON** or **Import JSON** now authenticates first via `DeviceAuthGate` (BiometricPrompt on API 29+ with confirm-credential fallback on OEM errors, or `VaultAuthActivity` on API 26–28) and mints a single-use, time-bounded action token (`120 s` TTL). Forged, replayed, or unauthenticated `onActivityResult` callbacks fail closed without exporting or altering data.
+  - **Hidden Apps Stripped from Cleartext Export:** Standard JSON exports (`NothingPrefs.exportToJson()`) completely strip `hiddenPackages`, custom labels for hidden apps, hidden `maxAppComponent`, and hidden `quickFolderApps` entries. Including Hidden Vault in an export requires choosing **Encrypted backup** and setting a 6+ char passphrase derived with `PBKDF2WithHmacSHA256` (`120,000` iterations, 16-byte salt) and encrypted with `AES-256-GCM`.
+  - **Accepting-Data Confirmation & Atomic Verification:** `SetupBackupManager` inspects backups safely via a bounded `512 KB` stream reader and presents a `FLAG_SECURE` confirmation dialog summarizing schema version and Hidden Vault impact (plus passphrase decryption prompt if `"encryptedVault"` is present) before applying anything. `NothingPrefs.importBackup()` decrypts and validates schema (`version` `1..1000`) atomically before mutating any pref, ignores untrusted cleartext `hiddenPackages` so imports cannot wipe/unhide the vault, and preserves existing hidden apps & labels untouched.
+- **Hidden Vault Bypass & Leak Closure:**
+  - Removed AOSP `SecondaryDisplayLauncher` (which used stock `ActivityAllAppsContainerView` and exposed hidden apps on secondary displays) and unused `TestInformationProvider` from `AndroidManifest.xml`.
+  - Disabled Android Auto Backup & device transfer (`android:allowBackup="false"`, `nt_backup_rules.xml`, `nt_data_extraction_rules.xml` excluding all `sharedpref`, `database`, and `file` domains) and upgraded `READ_SETTINGS`/`WRITE_SETTINGS` permissions from deprecated `signatureOrSystem` to `signature`.
+  - Enabled `FLAG_SECURE` on `HiddenVaultSheet`, `VaultAuthActivity`, and Backup Export/Import dialogs; masked exact hidden-app count in `NothingSettingsActivity`; automatically purged hidden packages from `recentComponents`, `quickFolderApps`, and `maxAppComponent` on hide and ignored launches in `NothingPrefs.recordAppLaunch()`.
+  - Filtered hidden packages out of `NotificationDigestRepository.summarize()` and `MediaSessionRepository` (home card, `-1` Space, widgets, and Dream StandBy).
+- **Crypto, Input & Media Hardening:**
+  - Replaced `kotlin.random.Random` with `java.security.SecureRandom` for `CommandEngine` password/RNG utilities, guaranteed all character classes in generated passwords, marked copied passwords with `ClipDescription.EXTRA_IS_SENSITIVE` (API 33+), and masked clipboard toast text.
+  - Fixed `VaultAuthActivity` rotation/config-change duplicate credential launches (`savedInstanceState` + manifest `configChanges`), added `XmlPullParser` DOCTYPE suppression and entry caps (`8,192`) in `IconPackManager`, and synchronized `VoiceMemoRepository` recorder/player lifecycles with `MediaRecorder` leak cleanup and `voice_memos/` path validation on delete.
+- **Tests:** Updated [`V13FeaturesTest`](app/src/test/java/com/nothinglauncher/V13FeaturesTest.kt), [`V14_1AuditFixesTest`](app/src/test/java/com/nothinglauncher/V14_1AuditFixesTest.kt), [`V15FeaturesTest`](app/src/test/java/com/nothinglauncher/V15FeaturesTest.kt), and added [`V15_6SecurityAndBundleTest`](app/src/test/java/com/nothinglauncher/V15_6SecurityAndBundleTest.kt).
+
+### Changed
+- **App Bundle & APK Size Reduction:**
+  - Replaced broad `-keep class * extends com.google.protobuf.GeneratedMessageLite { *; }` with `-keepclassmembers` on surviving classes only, enabled `android.r8.optimizedResourceShrinking=true`, removed unused `androidx.cardview` dependency, switched `androidx.slice:slice-view` to `androidx.slice:slice-core`, added `resourceConfigurations += ['en']` matching the English-only app string table, and excluded root `kotlin/*.kotlin_builtins` + `META-INF/*.version` metadata in `app/build.gradle`.
+  - **Measured release reduction (v15.5 → v15.6):** `app-release.apk` `5,014,407` B → `3,159,669` B (**-1.85 MB / -37.0%**; `resources.arsc` `2,469.6 KB` → `794.6 KB`, DEX methods `22,384` → `19,137`); `app-release.aab` `5,519,641` B → `4,735,571` B (**-784 KB / -14.2%** total bundle; `base/resources.pb` `762.6 KB` → `241.9 KB` compressed, `-68.3%`).
+- **Version 15.6 Identity:** Bumped `versionName` to `"15.6"`, backup filename to `not-a-thing-v15.6-setup.json`, **STUDIO 15.6**, `NOT A THING 15.6`, and `Telemetry v15.6`.
+
 ## [15.5] — Deep Performance, Allocation, Memory, IPC & Binary Size Overhaul
 
 ### Added

@@ -1,4 +1,4 @@
-# ART Baseline Profile for Not a Thing Launcher v15.5
+# ART Baseline Profile for Not a Thing Launcher v15.6
 # Targets hot cold-start, workspace/drawer scroll, icon rendering, and dot-matrix draw paths.
 
 Lcom/nothinglauncher/NothingApplication;
