@@ -235,7 +235,7 @@ class V15FeaturesTest {
         }
         val dotTexts = mutableListOf<String>()
         collectDotTitles(rightCol, dotTexts)
-        assertTrue("Expected STUDIO 15 hero header", dotTexts.any { it == "STUDIO 15" })
+        assertTrue("Expected STUDIO 15.5 hero header", dotTexts.any { it == "STUDIO 15.5" })
         assertEquals(NothingPrefs.IconStyle.DOTS, NothingIconLogic.currentStyle(activity))
     }
 

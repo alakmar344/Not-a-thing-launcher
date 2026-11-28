@@ -434,7 +434,7 @@ class NothingSettingsActivity : AppCompatActivity() {
             SettingsUi.actionRow(card, getString(R.string.nt_setting_advanced), getString(R.string.nt_setting_advanced_sub)) {
                 Intents.start(this, Intent(this, com.android.launcher3.settings.SettingsActivity::class.java))
             }
-            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "15" }))
+            SettingsUi.infoRow(card, getString(R.string.setting_about), getString(R.string.about_body, versionName().ifEmpty { "15.5" }))
         }
         refreshAll()
     }
@@ -468,9 +468,9 @@ class NothingSettingsActivity : AppCompatActivity() {
             gravity = android.view.Gravity.CENTER_VERTICAL
         }
         val titleMatrix = DotMatrixView(this).apply {
-            text = "STUDIO 15"
+            text = "STUDIO 15.5"
             dotColor = getColor(R.color.dot_on)
-            accentIndices = setOf(7, 8)
+            accentIndices = setOf(7, 8, 9, 10)
             dotScale = 0.40f
             layoutParams = LinearLayout.LayoutParams(0, (20 * d).toInt(), 1f)
         }

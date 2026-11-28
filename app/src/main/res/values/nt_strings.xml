@@ -267,8 +267,8 @@
     <string name="nt_folder_pick_title">APP STACK APPS</string>
     <string name="nt_folder_pick_sub">Pick 1 app for Max Icon mode, or up to 4 for Stack</string>
     <string name="nt_folder_configure">Configure apps</string>
-    <string name="nt_entry_title_v14">NOT A THING 15</string>
-    <string name="nt_preset_telemetry_v14">Telemetry v15</string>
+    <string name="nt_entry_title_v14">NOT A THING 15.5</string>
+    <string name="nt_preset_telemetry_v14">Telemetry v15.5</string>
     <string name="nt_desk_shift_note">AMBIENT PIXEL SHIFT</string>
     <string name="nt_desk_mode_cockpit">COCKPIT</string>
     <string name="nt_desk_mode_clock">CLOCK</string>
