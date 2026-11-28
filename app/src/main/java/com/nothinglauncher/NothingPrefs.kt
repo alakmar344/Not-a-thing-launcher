@@ -194,26 +194,92 @@ class NothingPrefs private constructor(context: Context) {
         get() = getStr(K_HABIT_TITLE, "FOCUS").ifBlank { "FOCUS" }
         set(value) = putStr(K_HABIT_TITLE, value.trim().ifBlank { "FOCUS" })
 
+    private class ParsedCache<T>(val raw: String, val value: T)
+
+    @Volatile private var cacheHabitDates: ParsedCache<Set<String>>? = null
+    @Volatile private var cacheHiddenPkgs: ParsedCache<Set<String>>? = null
+    @Volatile private var cacheCustomLabels: ParsedCache<Map<String, String>>? = null
+    @Volatile private var cacheRecentComps: ParsedCache<List<String>>? = null
+    @Volatile private var cacheFolderApps: ParsedCache<List<String>>? = null
+    @Volatile private var cacheWidgetSurfaces: ParsedCache<Map<String, String>>? = null
+
     var habitDates: Set<String>
-        get() = parseStringSet(getStr(K_HABIT_DATES))
-        set(value) = putStr(K_HABIT_DATES, encodeStringSet(value))
+        get() {
+            val raw = getStr(K_HABIT_DATES)
+            val hit = cacheHabitDates
+            if (hit != null && hit.raw == raw) return hit.value
+            val parsed = parseStringSet(raw)
+            cacheHabitDates = ParsedCache(raw, parsed)
+            return parsed
+        }
+        set(value) {
+            val snapshot = value.toSet()
+            val encoded = encodeStringSet(snapshot)
+            cacheHabitDates = ParsedCache(encoded, snapshot)
+            putStr(K_HABIT_DATES, encoded)
+        }
 
     var hiddenPackages: Set<String>
-        get() = parseStringSet(getStr(K_HIDDEN_PACKAGES))
-        set(value) = putStr(K_HIDDEN_PACKAGES, encodeStringSet(value))
+        get() {
+            val raw = getStr(K_HIDDEN_PACKAGES)
+            val hit = cacheHiddenPkgs
+            if (hit != null && hit.raw == raw) return hit.value
+            val parsed = parseStringSet(raw)
+            cacheHiddenPkgs = ParsedCache(raw, parsed)
+            return parsed
+        }
+        set(value) {
+            val snapshot = value.toSet()
+            val encoded = encodeStringSet(snapshot)
+            cacheHiddenPkgs = ParsedCache(encoded, snapshot)
+            putStr(K_HIDDEN_PACKAGES, encoded)
+        }
 
     var customAppLabels: Map<String, String>
-        get() = parseStringMap(getStr(K_CUSTOM_LABELS))
-        set(value) = putStr(K_CUSTOM_LABELS, encodeStringMap(value))
+        get() {
+            val raw = getStr(K_CUSTOM_LABELS)
+            val hit = cacheCustomLabels
+            if (hit != null && hit.raw == raw) return hit.value
+            val parsed = parseStringMap(raw)
+            cacheCustomLabels = ParsedCache(raw, parsed)
+            return parsed
+        }
+        set(value) {
+            val snapshot = LinkedHashMap(value)
+            val encoded = encodeStringMap(snapshot)
+            cacheCustomLabels = ParsedCache(encoded, snapshot)
+            putStr(K_CUSTOM_LABELS, encoded)
+        }
 
     var recentComponents: List<String>
-        get() = parseStringList(getStr(K_RECENT_APPS))
-        set(value) = putStr(K_RECENT_APPS, JSONArray(value.take(8)).toString())
+        get() {
+            val raw = getStr(K_RECENT_APPS)
+            val hit = cacheRecentComps
+            if (hit != null && hit.raw == raw) return hit.value
+            val parsed = parseStringList(raw)
+            cacheRecentComps = ParsedCache(raw, parsed)
+            return parsed
+        }
+        set(value) {
+            val snapshot = value.take(8)
+            val encoded = JSONArray(snapshot).toString()
+            cacheRecentComps = ParsedCache(encoded, snapshot)
+            putStr(K_RECENT_APPS, encoded)
+        }
 
     fun recordAppLaunch(componentFlat: String) {
         if (componentFlat.isBlank()) return
-        val next = listOf(componentFlat) + recentComponents.filterNot { it == componentFlat }
-        recentComponents = next.take(8)
+        val current = recentComponents
+        if (current.firstOrNull() == componentFlat) return
+        val next = ArrayList<String>(8)
+        next += componentFlat
+        for (item in current) {
+            if (item != componentFlat) {
+                next += item
+                if (next.size == 8) break
+            }
+        }
+        recentComponents = next
     }
 
     // Focus timer & stopwatch shared state
@@ -255,20 +321,33 @@ class NothingPrefs private constructor(context: Context) {
         set(value) = putStr(K_FOLDER_TITLE, value.trim().ifBlank { "ESSENTIALS" })
 
     var quickFolderApps: List<String>
-        get() = parseStringList(getStr(K_FOLDER_APPS))
-        set(value) = putStr(K_FOLDER_APPS, JSONArray(value.take(4)).toString())
+        get() {
+            val raw = getStr(K_FOLDER_APPS)
+            val hit = cacheFolderApps
+            if (hit != null && hit.raw == raw) return hit.value
+            val parsed = parseStringList(raw)
+            cacheFolderApps = ParsedCache(raw, parsed)
+            return parsed
+        }
+        set(value) {
+            val snapshot = value.take(4)
+            val encoded = JSONArray(snapshot).toString()
+            cacheFolderApps = ParsedCache(encoded, snapshot)
+            putStr(K_FOLDER_APPS, encoded)
+        }
 
     fun widgetSurface(widgetKey: String): AccentTheme.WidgetSurface {
-        val map = parseStringMap(getStr(K_WIDGET_SURFACES))
-        val name = map[widgetKey] ?: return AccentTheme.WidgetSurface.DEFAULT
+        val name = allWidgetSurfaces()[widgetKey] ?: return AccentTheme.WidgetSurface.DEFAULT
         return AccentTheme.WidgetSurface.entries.firstOrNull { it.name == name }
             ?: AccentTheme.WidgetSurface.DEFAULT
     }
 
     fun setWidgetSurface(widgetKey: String, surface: AccentTheme.WidgetSurface) {
-        val map = parseStringMap(getStr(K_WIDGET_SURFACES)).toMutableMap()
+        val map = allWidgetSurfaces().toMutableMap()
         if (surface == AccentTheme.WidgetSurface.DEFAULT) map.remove(widgetKey) else map[widgetKey] = surface.name
-        putStr(K_WIDGET_SURFACES, encodeStringMap(map))
+        val encoded = encodeStringMap(map)
+        cacheWidgetSurfaces = ParsedCache(encoded, map)
+        putStr(K_WIDGET_SURFACES, encoded)
     }
 
     var deskKeepAwake: Boolean
@@ -291,7 +370,14 @@ class NothingPrefs private constructor(context: Context) {
         get() = getInt(K_SOUNDSCAPE_PRESET, 1).coerceIn(1, 3)
         set(value) = putInt(K_SOUNDSCAPE_PRESET, value.coerceIn(1, 3))
 
-    fun allWidgetSurfaces(): Map<String, String> = parseStringMap(getStr(K_WIDGET_SURFACES))
+    fun allWidgetSurfaces(): Map<String, String> {
+        val raw = getStr(K_WIDGET_SURFACES)
+        val hit = cacheWidgetSurfaces
+        if (hit != null && hit.raw == raw) return hit.value
+        val parsed = parseStringMap(raw)
+        cacheWidgetSurfaces = ParsedCache(raw, parsed)
+        return parsed
+    }
 
     fun exportToJson(): String = JSONObject().apply {
         put("version", 15)
@@ -422,7 +508,9 @@ class NothingPrefs private constructor(context: Context) {
                         m[k] = v
                     }
                 }
-                putStr(K_WIDGET_SURFACES, encodeStringMap(m))
+                val encoded = encodeStringMap(m)
+                cacheWidgetSurfaces = ParsedCache(encoded, m)
+                putStr(K_WIDGET_SURFACES, encoded)
             }
             if (o.has("deskKeepAwake")) deskKeepAwake = o.optBoolean("deskKeepAwake", deskKeepAwake)
             if (o.has("deskBurnInShift")) deskBurnInShift = o.optBoolean("deskBurnInShift", deskBurnInShift)

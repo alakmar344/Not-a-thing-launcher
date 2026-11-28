@@ -172,20 +172,12 @@ object FocusSoundEngine {
 
         val state = SynthState()
         val buf = ShortArray(1024 * 2)
+        val result = StreamFrameResult()
         var envelope = 0f
         while (isSessionActive(session)) {
-            val p = current
-            var peak = 0f
-            for (i in 0 until 1024) {
-                envelope = (envelope + 0.002f).coerceAtMost(1f)
-                val (l, r) = synthesizeSample(p, state)
-                val sl = (l * envelope).coerceIn(-0.95f, 0.95f)
-                val sr = (r * envelope).coerceIn(-0.95f, 0.95f)
-                buf[i * 2] = (sl * 32767f).toInt().toShort()
-                buf[i * 2 + 1] = (sr * 32767f).toInt().toShort()
-                val m = maxOf(abs(sl), abs(sr))
-                if (m > peak) peak = m
-            }
+            fillBuffer(current, state, buf, 1024, envelope, result)
+            envelope = result.envelope
+            val peak = result.peak
             if (!isSessionActive(session)) break
             liveLevel = (peak * 2.2f).coerceIn(0.15f, 1f)
             val written = try {
@@ -217,6 +209,79 @@ object FocusSoundEngine {
         }
     }
 
+    private const val TWO_PI = 2.0 * PI
+    private const val GAMMA_L_STEP = TWO_PI * 180.0 / SAMPLE_RATE
+    private const val GAMMA_R_STEP = TWO_PI * 220.0 / SAMPLE_RATE
+
+    /**
+     * Fills interleaved stereo [buf] without allocating per-sample [Pair] objects.
+     * Writes final envelope and peak into [outResult].
+     */
+    internal class StreamFrameResult(var envelope: Float = 0f, var peak: Float = 0f)
+
+    internal fun fillBuffer(
+        profile: Profile,
+        state: SynthState,
+        buf: ShortArray,
+        frames: Int,
+        envelopeStart: Float,
+        outResult: StreamFrameResult
+    ) {
+        var envelope = envelopeStart
+        var peak = 0f
+        if (profile == Profile.OFF) {
+            java.util.Arrays.fill(buf, 0, frames * 2, 0.toShort())
+            outResult.envelope = (envelope + 0.002f * frames).coerceAtMost(1f)
+            outResult.peak = 0f
+            return
+        }
+        for (i in 0 until frames) {
+            envelope = (envelope + 0.002f).coerceAtMost(1f)
+            val n1 = state.nextSigned()
+            val n2 = state.nextSigned()
+            var l: Float
+            var r: Float
+            when (profile) {
+                Profile.OFF -> {
+                    l = 0f
+                    r = 0f
+                }
+                Profile.BROWN -> {
+                    state.brownL = (state.brownL + 0.025f * n1) / 1.025f
+                    state.brownR = (state.brownR + 0.025f * n2) / 1.025f
+                    l = state.brownL * 0.48f
+                    r = state.brownR * 0.48f
+                }
+                Profile.RAIN -> {
+                    state.brownL = (state.brownL + 0.045f * n1) / 1.045f
+                    state.brownR = (state.brownR + 0.045f * n2) / 1.045f
+                    if (abs(n1) > 0.992f) state.dropEnvL = 0.28f else state.dropEnvL *= 0.985f
+                    if (abs(n2) > 0.992f) state.dropEnvR = 0.28f else state.dropEnvR *= 0.985f
+                    l = state.brownL * 0.34f + n1 * 0.055f + n1 * state.dropEnvL
+                    r = state.brownR * 0.34f + n2 * 0.055f + n2 * state.dropEnvR
+                }
+                Profile.GAMMA_40HZ -> {
+                    state.brownL = (state.brownL + 0.02f * n1) / 1.02f
+                    state.brownR = (state.brownR + 0.02f * n2) / 1.02f
+                    state.phaseL = (state.phaseL + GAMMA_L_STEP) % TWO_PI
+                    state.phaseR = (state.phaseR + GAMMA_R_STEP) % TWO_PI
+                    l = sin(state.phaseL).toFloat() * 0.14f + state.brownL * 0.22f
+                    r = sin(state.phaseR).toFloat() * 0.14f + state.brownR * 0.22f
+                }
+            }
+            val sl = (l * envelope).coerceIn(-0.95f, 0.95f)
+            val sr = (r * envelope).coerceIn(-0.95f, 0.95f)
+            buf[i * 2] = (sl * 32767f).toInt().toShort()
+            buf[i * 2 + 1] = (sr * 32767f).toInt().toShort()
+            val al = abs(sl)
+            val ar = abs(sr)
+            val m = if (al > ar) al else ar
+            if (m > peak) peak = m
+        }
+        outResult.envelope = envelope
+        outResult.peak = peak
+    }
+
     internal fun synthesizeSample(profile: Profile, state: SynthState): Pair<Float, Float> {
         val n1 = state.nextSigned()
         val n2 = state.nextSigned()
@@ -239,8 +304,8 @@ object FocusSoundEngine {
             Profile.GAMMA_40HZ -> {
                 state.brownL = (state.brownL + 0.02f * n1) / 1.02f
                 state.brownR = (state.brownR + 0.02f * n2) / 1.02f
-                state.phaseL = (state.phaseL + 2.0 * PI * 180.0 / SAMPLE_RATE) % (2.0 * PI)
-                state.phaseR = (state.phaseR + 2.0 * PI * 220.0 / SAMPLE_RATE) % (2.0 * PI)
+                state.phaseL = (state.phaseL + GAMMA_L_STEP) % TWO_PI
+                state.phaseR = (state.phaseR + GAMMA_R_STEP) % TWO_PI
                 val carrierL = sin(state.phaseL).toFloat() * 0.14f
                 val carrierR = sin(state.phaseR).toFloat() * 0.14f
                 (carrierL + state.brownL * 0.22f) to (carrierR + state.brownR * 0.22f)

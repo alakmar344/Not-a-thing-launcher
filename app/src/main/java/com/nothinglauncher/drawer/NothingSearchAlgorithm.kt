@@ -60,34 +60,48 @@ class NothingSearchAlgorithm(
                 val prefs = NothingPrefs.get(context)
                 val hidden = prefs.hiddenPackages
                 val commands = CommandEngine.evaluate(context, trimmed)
-                val answersAndActions = commands.filter { it.kind != CommandEngine.Kind.WEB }
-                val webFallback = commands.filter { it.kind == CommandEngine.Kind.WEB }
+                if (gen != searchSeq.get()) return
 
-                val scoredApps = apps.data
-                    .asSequence()
-                    .filter { info ->
-                        val pkg = info.componentName?.packageName
-                        pkg == null || !hidden.contains(pkg)
+                // Insertion top-K avoids sorting/boxing all installed apps on every keystroke.
+                val topInfos = arrayOfNulls<com.android.launcher3.model.data.AppInfo>(MAX_APP_RESULTS)
+                val topScores = IntArray(MAX_APP_RESULTS)
+                var topCount = 0
+                val data = apps.data
+                for (i in 0 until data.size) {
+                    val info = data[i]
+                    val pkg = info.componentName?.packageName
+                    if (pkg != null && hidden.contains(pkg)) continue
+                    val title = info.title?.toString() ?: continue
+                    val score = CommandEngine.scoreApp(trimmed, title)
+                    if (score <= 0) continue
+                    if (topCount < MAX_APP_RESULTS || score > topScores[topCount - 1]) {
+                        val limit = if (topCount < MAX_APP_RESULTS) topCount++ else MAX_APP_RESULTS - 1
+                        var pos = limit
+                        while (pos > 0 && topScores[pos - 1] < score) {
+                            topInfos[pos] = topInfos[pos - 1]
+                            topScores[pos] = topScores[pos - 1]
+                            pos--
+                        }
+                        topInfos[pos] = info
+                        topScores[pos] = score
                     }
-                    .mapNotNull { info ->
-                        val title = info.title?.toString().orEmpty()
-                        val score = CommandEngine.scoreApp(trimmed, title)
-                        if (score > 0) info to score else null
-                    }
-                    .sortedByDescending { it.second }
-                    .take(MAX_APP_RESULTS)
-                    .map { AdapterItem.asApp(it.first) }
-                    .toList()
+                }
 
                 if (gen != searchSeq.get()) return
 
-                val results = ArrayList<AdapterItem>(answersAndActions.size + scoredApps.size + webFallback.size)
-                answersAndActions.forEach { cmd ->
-                    results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, cmd)
+                val results = ArrayList<AdapterItem>(commands.size + topCount)
+                for (c in commands) {
+                    if (c.kind != CommandEngine.Kind.WEB) {
+                        results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, c)
+                    }
                 }
-                results += scoredApps
-                webFallback.forEach { cmd ->
-                    results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, cmd)
+                for (i in 0 until topCount) {
+                    results += AdapterItem.asApp(topInfos[i]!!)
+                }
+                for (c in commands) {
+                    if (c.kind == CommandEngine.Kind.WEB) {
+                        results += CommandAdapterItem(NothingSearchAdapterProvider.VIEW_TYPE_COMMAND, c)
+                    }
                 }
 
                 mainHandler.post {
