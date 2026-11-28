@@ -3,6 +3,8 @@ package com.nothinglauncher
 import android.content.ComponentCallbacks2
 import com.android.launcher3.LauncherApplication
 import com.android.launcher3.LauncherPrefs
+import com.nothinglauncher.drawer.AppCategorizer
+import com.nothinglauncher.icons.IconPackManager
 import com.nothinglauncher.perf.VisualTier
 
 /** Stock Launcher3 application plus the Not a Thing first-run defaults. */
@@ -13,6 +15,7 @@ class NothingApplication : LauncherApplication() {
         super.onCreate()
         // Android 11+: if the system killed home for memory last time, Auto quality goes Lite.
         VisualTier.checkPastExits(this)
+        IconFactory.configureForTier(this)
     }
 
     /**
@@ -28,7 +31,16 @@ class NothingApplication : LauncherApplication() {
             level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
         ) {
             DotFont.clearCache()
-            IconFactory.clearCache()
+            IconFactory.trimMemory(level)
+        }
+        if (level >= ComponentCallbacks2.TRIM_MEMORY_MODERATE ||
+            level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW ||
+            level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL
+        ) {
+            AppCategorizer.clearCache()
+            IconPackManager.clearCache()
+            NotificationDigestRepository.trimCaches()
+            HardwareControlRepository.clearCaches()
         }
     }
 

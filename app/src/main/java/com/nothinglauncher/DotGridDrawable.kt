@@ -69,24 +69,25 @@ class DotGridDrawable(
 
     init {
         val pitch = max(4, (pitchDp * density).roundToInt())
-        gridPaint.shader = tileShader(pitch, dotRadiusDp * density, dotColor)
+        val tilePaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        gridPaint.shader = tileShader(pitch, dotRadiusDp * density, dotColor, tilePaint)
         gridPaint.alpha = if (dimDots) 135 else 255
         lightTile = if (lightDotColor != 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            tileShader(pitch, dotRadiusDp * density * 1.3f, lightDotColor)
+            tileShader(pitch, dotRadiusDp * density * 1.3f, lightDotColor, tilePaint)
         } else null
         rippleTile = if (rippleEnabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            tileShader(pitch, dotRadiusDp * density * 1.45f, rippleColor)
+            tileShader(pitch, dotRadiusDp * density * 1.45f, rippleColor, tilePaint)
         } else null
     }
 
-    private fun tileShader(pitch: Int, radius: Float, color: Int): BitmapShader {
+    private fun tileShader(pitch: Int, radius: Float, color: Int, tilePaint: Paint): BitmapShader {
         val tile = Bitmap.createBitmap(pitch, pitch, Bitmap.Config.ARGB_8888)
-        Canvas(tile).drawCircle(
-            pitch / 2f, pitch / 2f, radius,
-            Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
-        )
+        tilePaint.color = color
+        Canvas(tile).drawCircle(pitch / 2f, pitch / 2f, radius, tilePaint)
         return BitmapShader(tile, Shader.TileMode.REPEAT, Shader.TileMode.REPEAT)
     }
+
+    private var lastRippleStep = -1
 
     fun setParallax(fractionX: Float, drawerProgress: Float = 0f) {
         val clampedX = fractionX.coerceIn(-1f, 1f)
@@ -114,18 +115,24 @@ class DotGridDrawable(
         rippleY = y
         rippleAnimator?.cancel()
         rippleActive = true
+        lastRippleStep = -1
         rippleAnimator = ValueAnimator.ofFloat(0f, 1f).apply {
             duration = 420L
             interpolator = DecelerateInterpolator(1.6f)
             addUpdateListener {
                 rippleProgress = it.animatedValue as Float
-                updateRippleShader()
-                invalidateSelf()
+                val step = (rippleProgress * 24f).roundToInt()
+                if (step != lastRippleStep) {
+                    lastRippleStep = step
+                    updateRippleShader()
+                    invalidateSelf()
+                }
             }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
                     rippleActive = false
                     rippleProgress = 0f
+                    lastRippleStep = -1
                     ripplePaint.shader = null
                     invalidateSelf()
                 }

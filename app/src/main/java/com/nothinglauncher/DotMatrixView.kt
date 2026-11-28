@@ -34,13 +34,15 @@ open class DotMatrixView @JvmOverloads constructor(
     private var rasterLines: List<DotFont.Raster> = listOf(DotFont.rasterize(""))
     private var lineCharOffsets: IntArray = intArrayOf(0)
     private var maxCols: Int = 0
+    private var accentMask: BooleanArray = BooleanArray(0)
+    private var hasAccents: Boolean = false
 
     var text: String = ""
         set(value) {
             if (field == value) return
             field = value
             rebuildRaster()
-            contentDescription = value.replace('\n', ' ')
+            contentDescription = if (value.indexOf('\n') >= 0) value.replace('\n', ' ') else value
             requestLayout()
             invalidate()
         }
@@ -49,17 +51,30 @@ open class DotMatrixView @JvmOverloads constructor(
         set(value) { field = value.coerceAtLeast(0f); requestLayout(); invalidate() }
 
     private fun rebuildRaster() {
-        val parts = text.split('\n')
-        val list = parts.map { DotFont.rasterizeCached(it, letterSpacingCols) }
-        val offsets = IntArray(list.size)
+        val raw = text
+        if (raw.indexOf('\n') < 0) {
+            val single = DotFont.rasterizeCached(raw, letterSpacingCols)
+            rasterLines = listOf(single)
+            lineCharOffsets = intArrayOf(0)
+            maxCols = single.columns
+            return
+        }
+        val parts = raw.split('\n')
+        val list = ArrayList<DotFont.Raster>(parts.size)
+        val offsets = IntArray(parts.size)
         var acc = 0
-        for (i in parts.indices) {
+        var widest = 0
+        for (i in 0 until parts.size) {
+            val p = parts[i]
+            val r = DotFont.rasterizeCached(p, letterSpacingCols)
+            list.add(r)
+            if (r.columns > widest) widest = r.columns
             offsets[i] = acc
-            acc += parts[i].length + 1 // +1 for '\n'
+            acc += p.length + 1 // +1 for '\n'
         }
         rasterLines = list
         lineCharOffsets = offsets
-        maxCols = list.maxOfOrNull { it.columns } ?: 0
+        maxCols = widest
     }
 
     var dotColor: Int
@@ -100,7 +115,20 @@ open class DotMatrixView @JvmOverloads constructor(
 
     /** Characters (by index in [text]) drawn in [accentColor]. */
     var accentIndices: Set<Int> = emptySet()
-        set(value) { field = value; invalidate() }
+        set(value) {
+            field = value
+            hasAccents = value.isNotEmpty()
+            if (!hasAccents) {
+                if (accentMask.isNotEmpty()) java.util.Arrays.fill(accentMask, false)
+            } else {
+                var maxIdx = -1
+                for (idx in value) if (idx in 0..255 && idx > maxIdx) maxIdx = idx
+                val needed = maxIdx + 1
+                if (accentMask.size < needed) accentMask = BooleanArray(needed) else java.util.Arrays.fill(accentMask, false)
+                for (idx in value) if (idx in 0 until accentMask.size) accentMask[idx] = true
+            }
+            invalidate()
+        }
 
     /** When false, accent characters are drawn unlit (used for the blinking colon). */
     var accentVisible: Boolean = true
@@ -225,25 +253,28 @@ open class DotMatrixView @JvmOverloads constructor(
             val gridCols = max(floor(availW / pitch).toInt(), cols)
             val x0 = paddingLeft + (availW - gridCols * pitch) / 2f
             val y0 = paddingTop + (availH - rows * pitch) / 2f
+            val period = DotFont.ROWS + lineGapRows
+            var cy = y0 + 0.5f * pitch
             for (row in 0 until rows) {
-                val cy = y0 + (row + 0.5f) * pitch
                 val tr = row - panelPadRows
-                val lineIdx = if (tr >= 0) tr / (DotFont.ROWS + lineGapRows) else -1
-                val rowInLine = if (tr >= 0) tr % (DotFont.ROWS + lineGapRows) else -1
-                val rLine = if (lineIdx in rasterLines.indices && rowInLine in 0 until DotFont.ROWS) rasterLines[lineIdx] else null
+                val lineIdx = if (tr >= 0) tr / period else -1
+                val rowInLine = if (tr >= 0) tr % period else -1
+                val rLine = if (lineIdx in 0 until rasterLines.size && rowInLine in 0 until DotFont.ROWS) rasterLines[lineIdx] else null
                 val lineCols = rLine?.columns ?: 0
                 val textStart = when (gravityMode) {
                     0 -> min(1, gridCols - lineCols)
                     2 -> max(0, gridCols - lineCols - 1)
                     else -> (gridCols - lineCols) / 2
                 }
-                val charOffset = if (lineIdx in lineCharOffsets.indices) lineCharOffsets[lineIdx] else 0
+                val charOffset = if (lineIdx in 0 until lineCharOffsets.size) lineCharOffsets[lineIdx] else 0
+                val rowLit = rLine?.lit?.get(rowInLine)
+                val rowCharIdx = rLine?.charIndexAtColumn
+                var cx = x0 + 0.5f * pitch
                 for (col in 0 until gridCols) {
-                    val cx = x0 + (col + 0.5f) * pitch
                     val tc = col - textStart
-                    val lit = rLine != null && tc in 0 until lineCols && rLine.lit[rowInLine][tc]
+                    val lit = rowLit != null && tc in 0 until lineCols && rowLit[tc]
                     val charIdx = if (lit) {
-                        val rawIdx = rLine!!.charIndexAtColumn[tc]
+                        val rawIdx = rowCharIdx!![tc]
                         if (rawIdx >= 0) charOffset + rawIdx else -1
                     } else -1
                     when (scanState(col / gridCols.toFloat())) {
@@ -251,14 +282,18 @@ open class DotMatrixView @JvmOverloads constructor(
                         1 -> drawDot(canvas, cx, cy, radius, false, -1)
                         else -> drawScanDot(canvas, cx, cy, radius, lit)
                     }
+                    cx += pitch
                 }
+                cy += pitch
             }
         } else {
             if (cols == 0) return
             val y0 = paddingTop + (availH - textRows * pitch) / 2f
-            rasterLines.forEachIndexed { lineIdx, rLine ->
+            val skipOff = offColor == 0
+            for (lineIdx in 0 until rasterLines.size) {
+                val rLine = rasterLines[lineIdx]
                 val lineCols = rLine.columns
-                if (lineCols == 0) return@forEachIndexed
+                if (lineCols == 0) continue
                 val textW = lineCols * pitch
                 val x0 = paddingLeft + when (gravityMode) {
                     0 -> 0f
@@ -267,20 +302,26 @@ open class DotMatrixView @JvmOverloads constructor(
                 }
                 val lineY0 = y0 + lineIdx * (DotFont.ROWS + lineGapRows) * pitch
                 val charOffset = lineCharOffsets[lineIdx]
+                val litGrid = rLine.lit
+                val colCharIdx = rLine.charIndexAtColumn
+                var cy = lineY0 + 0.5f * pitch
                 for (row in 0 until DotFont.ROWS) {
-                    val cy = lineY0 + (row + 0.5f) * pitch
+                    val rowLit = litGrid[row]
+                    var cx = x0 + 0.5f * pitch
                     for (col in 0 until lineCols) {
-                        val lit = rLine.lit[row][col]
-                        if (!lit && offColor == 0) continue
-                        val cx = x0 + (col + 0.5f) * pitch
-                        val rawIdx = rLine.charIndexAtColumn[col]
-                        val charIdx = if (rawIdx >= 0) charOffset + rawIdx else -1
-                        when (scanState(col / cols.toFloat())) {
-                            0 -> drawDot(canvas, cx, cy, radius, lit, charIdx)
-                            1 -> drawDot(canvas, cx, cy, radius, false, -1)
-                            else -> drawScanDot(canvas, cx, cy, radius, lit)
+                        val lit = rowLit[col]
+                        if (lit || !skipOff) {
+                            val rawIdx = colCharIdx[col]
+                            val charIdx = if (rawIdx >= 0) charOffset + rawIdx else -1
+                            when (scanState(col / cols.toFloat())) {
+                                0 -> drawDot(canvas, cx, cy, radius, lit, charIdx)
+                                1 -> drawDot(canvas, cx, cy, radius, false, -1)
+                                else -> drawScanDot(canvas, cx, cy, radius, lit)
+                            }
                         }
+                        cx += pitch
                     }
+                    cy += pitch
                 }
             }
         }
@@ -293,12 +334,17 @@ open class DotMatrixView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, if (lit) r * 1.08f else r * 0.82f, scanPaint)
     }
 
+    private fun isAccentChar(charIndex: Int): Boolean {
+        if (!hasAccents || charIndex < 0) return false
+        return if (charIndex < accentMask.size) accentMask[charIndex] else charIndex in accentIndices
+    }
+
     private fun drawDot(canvas: Canvas, cx: Float, cy: Float, r: Float, lit: Boolean, charIndex: Int) {
         if (!lit) {
             if (offColor != 0) canvas.drawCircle(cx, cy, r * 0.82f, offPaint)
             return
         }
-        val isAccent = charIndex >= 0 && charIndex in accentIndices
+        val isAccent = isAccentChar(charIndex)
         if (isAccent && !accentVisible) {
             if (offColor != 0) canvas.drawCircle(cx, cy, r * 0.82f, offPaint)
             return

@@ -43,7 +43,7 @@ class DotRingGaugeView @JvmOverloads constructor(
         set(value) { if (value != field) { field = value; invalidate() } }
 
     var subtitle: String = ""
-        set(value) { if (value != field) { field = value; invalidate() } }
+        set(value) { if (value != field) { field = value; drawnSubSource = null; invalidate() } }
 
     /** Non-null azimuth angle (0..360 deg, 0=North) switches the ring into a compass dial. */
     var compassDegrees: Float? = null
@@ -63,22 +63,58 @@ class DotRingGaugeView @JvmOverloads constructor(
         invalidate()
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        val size = min(width - paddingLeft - paddingRight, height - paddingTop - paddingBottom).toFloat()
-        if (size <= 0f) return
-        val cx = paddingLeft + (width - paddingLeft - paddingRight) / 2f
-        val cy = paddingTop + (height - paddingTop - paddingBottom) / 2f
+    private val ringX = FloatArray(DOT_COUNT)
+    private val ringY = FloatArray(DOT_COUNT)
+    private var geomW = -1
+    private var geomH = -1
+    private var geomCx = 0f
+    private var geomCy = 0f
+    private var geomDotR = 0f
+    private var geomRingR = 0f
+    private var drawnSubSource: String? = null
+    private var drawnSubMaxW = -1f
+    private var drawnSubtitle = ""
+
+    private fun ensureGeometry() {
+        if (geomW == width && geomH == height) return
+        geomW = width
+        geomH = height
+        val availW = width - paddingLeft - paddingRight
+        val availH = height - paddingTop - paddingBottom
+        val size = min(availW, availH).toFloat()
+        if (size <= 0f) {
+            geomRingR = 0f
+            return
+        }
+        val cx = paddingLeft + availW / 2f
+        val cy = paddingTop + availH / 2f
         val dotR = size * 0.025f
         val ringR = size / 2f - dotR * 1.8f
+        geomCx = cx
+        geomCy = cy
+        geomDotR = dotR
+        geomRingR = ringR
+        for (i in 0 until DOT_COUNT) {
+            ringX[i] = cx + ringR * COS_40[i]
+            ringY[i] = cy + ringR * SIN_40[i]
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        ensureGeometry()
+        val ringR = geomRingR
+        if (ringR <= 0f) return
+        val cx = geomCx
+        val cy = geomCy
+        val dotR = geomDotR
         val heading = compassDegrees
 
         if (heading != null) {
             val northIdx = (((-heading % 360f + 360f) % 360f) / 360f * dotCount).roundToInt() % dotCount
+            val northR = dotR * 1.5f
+            val otherR = dotR * 0.72f
             for (i in 0 until dotCount) {
-                val angle = Math.toRadians(-90.0 + i * 360.0 / dotCount)
-                val x = cx + (ringR * cos(angle)).toFloat()
-                val y = cy + (ringR * sin(angle)).toFloat()
                 val isNorth = i == northIdx
                 val isCardinal = i % 10 == 0
                 val p = when {
@@ -86,20 +122,19 @@ class DotRingGaugeView @JvmOverloads constructor(
                     isCardinal -> onPaint
                     else -> offPaint
                 }
-                canvas.drawCircle(x, y, if (isNorth) dotR * 1.5f else if (isCardinal) dotR else dotR * 0.72f, p)
+                canvas.drawCircle(ringX[i], ringY[i], if (isNorth) northR else if (isCardinal) dotR else otherR, p)
             }
         } else {
             val litCount = (progress01 * dotCount).roundToInt()
             val activePaint = if (highlightActive) accentPaint else onPaint
+            val leadR = dotR * 1.3f
+            val offR = dotR * 0.78f
             for (i in 0 until dotCount) {
-                val angle = Math.toRadians(-90.0 + i * 360.0 / dotCount)
-                val x = cx + (ringR * cos(angle)).toFloat()
-                val y = cy + (ringR * sin(angle)).toFloat()
                 val lit = i < litCount
                 val isLead = highlightActive && litCount > 0 && i == litCount - 1
                 canvas.drawCircle(
-                    x, y,
-                    if (isLead) dotR * 1.3f else if (lit) dotR else dotR * 0.78f,
+                    ringX[i], ringY[i],
+                    if (isLead) leadR else if (lit) dotR else offR,
                     if (isLead) accentPaint else if (lit) activePaint else offPaint
                 )
             }
@@ -112,17 +147,33 @@ class DotRingGaugeView @JvmOverloads constructor(
         val textH = DotFont.ROWS * pitch
         val x0 = cx - textW / 2f
         val y0 = cy - textH / 2f - (if (subtitle.isNotBlank()) 6f * density else 0f)
+        var ry = y0 + 0.5f * pitch
         for (row in 0 until DotFont.ROWS) {
+            val rowLit = raster.lit[row]
+            var rx = x0 + 0.5f * pitch
             for (col in 0 until raster.columns) {
-                if (!raster.lit[row][col]) continue
-                canvas.drawCircle(x0 + (col + 0.5f) * pitch, y0 + (row + 0.5f) * pitch, r, onPaint)
+                if (rowLit[col]) {
+                    canvas.drawCircle(rx, ry, r, onPaint)
+                }
+                rx += pitch
             }
+            ry += pitch
         }
         if (subtitle.isNotBlank()) {
             val maxSubW = (ringR * 1.48f).coerceAtLeast(1f)
-            val fit = labelPaint.breakText(subtitle, true, maxSubW, null)
-            val drawn = if (fit < subtitle.length && fit > 1) subtitle.substring(0, fit - 1) + "\u2026" else subtitle
-            canvas.drawText(drawn, cx, y0 + textH + 14f * density, labelPaint)
+            if (drawnSubSource != subtitle || drawnSubMaxW != maxSubW) {
+                val fit = labelPaint.breakText(subtitle, true, maxSubW, null)
+                drawnSubtitle = if (fit < subtitle.length && fit > 1) subtitle.substring(0, fit - 1) + "\u2026" else subtitle
+                drawnSubSource = subtitle
+                drawnSubMaxW = maxSubW
+            }
+            canvas.drawText(drawnSubtitle, cx, y0 + textH + 14f * density, labelPaint)
         }
+    }
+
+    private companion object {
+        const val DOT_COUNT = 40
+        val COS_40 = FloatArray(DOT_COUNT) { i -> cos(Math.toRadians(-90.0 + i * 360.0 / DOT_COUNT)).toFloat() }
+        val SIN_40 = FloatArray(DOT_COUNT) { i -> sin(Math.toRadians(-90.0 + i * 360.0 / DOT_COUNT)).toFloat() }
     }
 }
