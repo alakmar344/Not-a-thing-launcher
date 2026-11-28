@@ -6,7 +6,6 @@ import android.graphics.Paint
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.ContextCompat
-import kotlin.random.Random
 
 /**
  * Minimalist Dot-Matrix Media Waveform Visualizer.
@@ -49,15 +48,24 @@ class MediaDotsView @JvmOverloads constructor(
 
     private val frameMs = com.nothinglauncher.perf.VisualTier.effects(context).visualizerFrameMs
 
-    private val barCounts = IntArray(16) { Random.nextInt(1, 6) }
+    private var rng = 0x1A2B3C4D
+    private val barCounts = IntArray(16) { ((it * 7 + 3) % 5) + 1 }
     private var running = false
+    private val colCx = FloatArray(16)
+    private val rowCy = FloatArray(5)
+    private var geomW = -1
+    private var geomH = -1
+
+    private fun nextRandStep(): Int {
+        rng = rng * 1664525 + 1013904223
+        return ((rng ushr 16) % 3) - 1
+    }
 
     private val animator = object : Runnable {
         override fun run() {
             if (!running) return
             for (i in barCounts.indices) {
-                val change = Random.nextInt(-1, 2)
-                barCounts[i] = (barCounts[i] + change).coerceIn(1, 5)
+                barCounts[i] = (barCounts[i] + nextRandStep()).coerceIn(1, 5)
             }
             invalidate()
             // Faster and smoother on capable phones, calmer (fewer redraws) on Lite ones.
@@ -113,24 +121,33 @@ class MediaDotsView @JvmOverloads constructor(
 
         val cols = barCounts.size
         val rows = 5
+        if (geomW != width || geomH != height) {
+            geomW = width
+            geomH = height
+            val colSpacing = w / cols
+            val rowSpacing = h / (rows + 1)
+            for (c in 0 until cols) colCx[c] = colSpacing * c + colSpacing * 0.5f
+            for (r in 0 until rows) rowCy[r] = h - rowSpacing * (r + 1)
+        }
+
         val dotRadius = 2.2f * density
-        val colSpacing = w / cols
-        val rowSpacing = h / (rows + 1)
+        val peakR = dotRadius * 1.15f
+        val dimR = dotRadius * 0.85f
+        val playing = isPlaying
 
         for (c in 0 until cols) {
-            val cx = colSpacing * c + colSpacing / 2f
-            val litBars = if (isPlaying) barCounts[c] else 1
+            val cx = colCx[c]
+            val litBars = if (playing) barCounts[c] else 1
             for (r in 0 until rows) {
-                val cy = h - (rowSpacing * (r + 1))
                 val isLit = r < litBars
-                val isPeak = isPlaying && r == litBars - 1 && (c % 4 == 0 || litBars == rows)
+                val isPeak = playing && r == litBars - 1 && (c % 4 == 0 || litBars == rows)
                 val paint = when {
                     isPeak -> accentPaint
                     isLit -> onPaint
                     else -> offPaint
                 }
-                val rDot = if (isPeak) dotRadius * 1.15f else if (isLit) dotRadius else dotRadius * 0.85f
-                canvas.drawCircle(cx, cy, rDot, paint)
+                val rDot = if (isPeak) peakR else if (isLit) dotRadius else dimR
+                canvas.drawCircle(cx, rowCy[r], rDot, paint)
             }
         }
     }

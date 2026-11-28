@@ -53,7 +53,19 @@ object WeatherRepository {
     private val IP_LOCATION_URLS = listOf("https://ipwho.is/", "https://ipapi.co/json/")
     private val USER_AGENT = "NotAThingLauncher/${BuildConfig.VERSION_NAME} (Android)"
 
-    fun cached(prefs: NothingPrefs): Weather? = parse(prefs.weatherCache)
+    private class ParsedCache(val raw: String?, val value: Weather?)
+
+    @Volatile
+    private var parsedCache: ParsedCache? = null
+
+    fun cached(prefs: NothingPrefs): Weather? {
+        val raw = prefs.weatherCache
+        val hit = parsedCache
+        if (hit != null && hit.raw == raw) return hit.value
+        val parsed = parse(raw)
+        parsedCache = ParsedCache(raw, parsed)
+        return parsed
+    }
 
     fun isFresh(weather: Weather?): Boolean =
         weather != null && System.currentTimeMillis() - weather.updatedAt < CACHE_FRESH_MS
@@ -121,7 +133,9 @@ object WeatherRepository {
                     retry = true
                 } else {
                     if (result != null) {
-                        prefs.weatherCache = serialize(result)
+                        val encoded = serialize(result)
+                        parsedCache = ParsedCache(encoded, result)
+                        prefs.weatherCache = encoded
                     }
                     callbacksBatch = pendingCallbacks.toList()
                     pendingCallbacks.clear()
@@ -140,6 +154,7 @@ object WeatherRepository {
 
     fun setCity(context: Context, prefs: NothingPrefs, city: String, callback: (Weather?) -> Unit) {
         prefs.weatherCity = city.trim().take(80)
+        parsedCache = ParsedCache(null, null)
         prefs.weatherCache = null
         cityGeneration.incrementAndGet()
         refresh(context, prefs, force = true, callback = callback)

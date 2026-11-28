@@ -18,14 +18,28 @@
 # ResourceBasedOverride rule — and tools/verify_release_reflection.py checks the real release dex
 # for this at the end of every assembleRelease. Without the widget rule, all four Not a Thing
 # widgets vanished from release builds while every (unminified) debug test still passed.
--keep,allowshrinking,allowoptimization class com.nothinglauncher.** { *; }
--keep,allowshrinking,allowoptimization class com.android.systemui.plugins.** { *; }
+-keep,allowshrinking,allowoptimization,allowobfuscation class com.nothinglauncher.** { *; }
+-keep,allowshrinking,allowoptimization,allowobfuscation class com.android.systemui.plugins.** { *; }
+-keep class com.nothinglauncher.icons.NothingIconLogic {
+    public <init>(android.content.Context);
+}
+-keep class * implements com.android.launcher3.util.ResourceBasedOverride {
+    public <init>(android.content.Context);
+}
 -keepnames class * extends com.nothinglauncher.widgets.NothingWidget
 -keepclassmembers class * extends com.nothinglauncher.widgets.NothingWidget {
     public <init>(android.content.Context);
 }
 -keepclassmembers class com.android.launcher3.allapps.search.AppsSearchContainerLayout {
     com.android.launcher3.allapps.search.AllAppsSearchBarController mSearchBarController;
+}
+
+# Strip verbose/debug/info logcat calls from release bytecode while retaining w/e/wtf.
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
 }
 
 # Generated protobuf-lite messages are accessed reflectively.

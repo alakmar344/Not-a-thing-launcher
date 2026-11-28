@@ -131,22 +131,56 @@ class BatteryDotsView @JvmOverloads constructor(
             if (charging) ", ${context.getString(R.string.charging)}" else ""
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        val size = min(width - paddingLeft - paddingRight, height - paddingTop - paddingBottom).toFloat()
-        if (size <= 0f) return
-        val cx = paddingLeft + (width - paddingLeft - paddingRight) / 2f
-        val cy = paddingTop + (height - paddingTop - paddingBottom) / 2f
+    private val ringX = FloatArray(40)
+    private val ringY = FloatArray(40)
+    private var geomW = -1
+    private var geomH = -1
+    private var geomCx = 0f
+    private var geomCy = 0f
+    private var geomDotR = 0f
+    private var geomRingR = 0f
+
+    private fun ensureGeometry() {
+        if (geomW == width && geomH == height) return
+        geomW = width
+        geomH = height
+        val availW = width - paddingLeft - paddingRight
+        val availH = height - paddingTop - paddingBottom
+        val size = min(availW, availH).toFloat()
+        if (size <= 0f) {
+            geomRingR = 0f
+            return
+        }
+        val cx = paddingLeft + availW / 2f
+        val cy = paddingTop + availH / 2f
         val dotR = size * 0.026f
         val ringR = size / 2f - dotR * 1.6f
+        geomCx = cx
+        geomCy = cy
+        geomDotR = dotR
+        geomRingR = ringR
+        for (i in 0 until 40) {
+            ringX[i] = cx + ringR * COS_40[i]
+            ringY[i] = cy + ringR * SIN_40[i]
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        ensureGeometry()
+        val ringR = geomRingR
+        if (ringR <= 0f) return
+        val cx = geomCx
+        val cy = geomCy
+        val dotR = geomDotR
         val litCount = (level / 100f * dotCount).roundToInt()
         val low = level <= lowThreshold && !charging
         val litPaint = if (low) accentPaint else onPaint
+        val offR = dotR * 0.8f
 
         for (i in 0 until dotCount) {
-            val angle = Math.toRadians(-90.0 + i * 360.0 / dotCount)
-            val x = cx + (ringR * cos(angle)).toFloat()
-            val y = cy + (ringR * sin(angle)).toFloat()
+            val x = ringX[i]
+            val y = ringY[i]
             when {
                 i < litCount -> canvas.drawCircle(x, y, dotR, litPaint)
                 charging && i == litCount -> {
@@ -154,7 +188,7 @@ class BatteryDotsView @JvmOverloads constructor(
                     canvas.drawCircle(x, y, dotR * (0.9f + 0.3f * pulse), accentPaint)
                     accentPaint.alpha = 255
                 }
-                else -> canvas.drawCircle(x, y, dotR * 0.8f, offPaint)
+                else -> canvas.drawCircle(x, y, offR, offPaint)
             }
         }
 
@@ -166,11 +200,16 @@ class BatteryDotsView @JvmOverloads constructor(
         val textH = DotFont.ROWS * pitch
         val x0 = cx - textW / 2f
         val y0 = cy - textH / 2f - 6f * density
+        val textPaint = if (low) accentPaint else onPaint
+        var ry = y0 + 0.5f * pitch
         for (row in 0 until DotFont.ROWS) {
+            val rowLit = raster.lit[row]
+            var rx = x0 + 0.5f * pitch
             for (col in 0 until raster.columns) {
-                if (!raster.lit[row][col]) continue
-                canvas.drawCircle(x0 + (col + 0.5f) * pitch, y0 + (row + 0.5f) * pitch, r, if (low) accentPaint else onPaint)
+                if (rowLit[col]) canvas.drawCircle(rx, ry, r, textPaint)
+                rx += pitch
             }
+            ry += pitch
         }
 
         val label = when {
@@ -179,6 +218,11 @@ class BatteryDotsView @JvmOverloads constructor(
             else -> labelNormal
         }
         canvas.drawText(label, cx, y0 + textH + 16f * density, labelPaint)
+    }
+
+    private companion object {
+        val COS_40 = FloatArray(40) { i -> cos(Math.toRadians(-90.0 + i * 360.0 / 40.0)).toFloat() }
+        val SIN_40 = FloatArray(40) { i -> sin(Math.toRadians(-90.0 + i * 360.0 / 40.0)).toFloat() }
     }
 
     private fun updatePulse() {

@@ -132,6 +132,16 @@ class WeatherDotsView @JvmOverloads constructor(
         contentDescription = "${weather.city}, ${weather.temperature}\u00B0, ${weather.condition}"
     }
 
+    private var fitCityKey: String? = null
+    private var fitCityMaxW = -1f
+    private var cachedCityFit = 0
+    private var fitCondKey: String? = null
+    private var fitCondMaxW = -1f
+    private var cachedCondFit = 0
+    private var fitHlKey: String? = null
+    private var fitHlMaxW = -1f
+    private var cachedHlFit = 0
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (width <= 0 || height <= 0) return
@@ -144,8 +154,12 @@ class WeatherDotsView @JvmOverloads constructor(
         canvas.drawCircle(padX + dotR, padY, dotR, accentPaint)
         val cityX = padX + dotR * 2f + 6f * density
         val maxCityW = (if (compact) width - padX - 28f * density - cityX else width - padX - cityX).coerceAtLeast(0f)
-        val cityFit = titlePaint.breakText(cityUpper, true, maxCityW, null)
-        canvas.drawText(cityUpper, 0, cityFit, cityX, padY + 3.5f * density, titlePaint)
+        if (fitCityKey != cityUpper || fitCityMaxW != maxCityW) {
+            cachedCityFit = titlePaint.breakText(cityUpper, true, maxCityW, null)
+            fitCityKey = cityUpper
+            fitCityMaxW = maxCityW
+        }
+        canvas.drawText(cityUpper, 0, cachedCityFit, cityX, padY + 3.5f * density, titlePaint)
 
         // 2. DotFont temperature
         val raster = DotFont.rasterizeCached(temperature)
@@ -154,16 +168,15 @@ class WeatherDotsView @JvmOverloads constructor(
         val pitch = min(availableH / DotFont.ROWS, maxTempW / raster.columns.coerceAtLeast(1))
         val dotRadius = pitch * 0.36f
         val tempY0 = padY + (if (compact) 16f else 18f) * density
+        var ry = tempY0 + 0.5f * pitch
         for (row in 0 until DotFont.ROWS) {
+            val rowLit = raster.lit[row]
+            var rx = padX + 0.5f * pitch
             for (col in 0 until raster.columns) {
-                if (!raster.lit[row][col]) continue
-                canvas.drawCircle(
-                    padX + (col + 0.5f) * pitch,
-                    tempY0 + (row + 0.5f) * pitch,
-                    dotRadius,
-                    onPaint
-                )
+                if (rowLit[col]) canvas.drawCircle(rx, ry, dotRadius, onPaint)
+                rx += pitch
             }
+            ry += pitch
         }
 
         // 3. Weather graphic (scaled cleanly for compact vs wide)
@@ -184,12 +197,20 @@ class WeatherDotsView @JvmOverloads constructor(
 
         // 4. Footer: condition + high/low + optional 12h dot sparkline on wide tiles
         val footerY = height - 13f * density
-        val leftMaxW = if (!compact && hourlyTemps.size >= 4) width * 0.48f else (width - padX * 2f)
-        val condFit = titlePaint.breakText(conditionUpper, true, leftMaxW.coerceAtLeast(0f), null)
-        canvas.drawText(conditionUpper, 0, condFit, padX, footerY - 12f * density, titlePaint)
+        val leftMaxW = (if (!compact && hourlyTemps.size >= 4) width * 0.48f else (width - padX * 2f)).coerceAtLeast(0f)
+        if (fitCondKey != conditionUpper || fitCondMaxW != leftMaxW) {
+            cachedCondFit = titlePaint.breakText(conditionUpper, true, leftMaxW, null)
+            fitCondKey = conditionUpper
+            fitCondMaxW = leftMaxW
+        }
+        canvas.drawText(conditionUpper, 0, cachedCondFit, padX, footerY - 12f * density, titlePaint)
         if (highLow.isNotBlank()) {
-            val hlFit = textPaint.breakText(highLow, true, leftMaxW.coerceAtLeast(0f), null)
-            canvas.drawText(highLow, 0, hlFit, padX, footerY, textPaint)
+            if (fitHlKey != highLow || fitHlMaxW != leftMaxW) {
+                cachedHlFit = textPaint.breakText(highLow, true, leftMaxW, null)
+                fitHlKey = highLow
+                fitHlMaxW = leftMaxW
+            }
+            canvas.drawText(highLow, 0, cachedHlFit, padX, footerY, textPaint)
         }
 
         if (!compact && hourlyTemps.size >= 4) {
@@ -198,30 +219,40 @@ class WeatherDotsView @JvmOverloads constructor(
     }
 
     private fun drawSparkline(canvas: Canvas, left: Float, top: Float, right: Float, bottom: Float) {
-        val temps = hourlyTemps.take(12)
-        if (temps.size < 2 || right <= left || bottom <= top) return
-        val minT = temps.min()
-        val maxT = temps.max()
+        val count = min(hourlyTemps.size, 12)
+        if (count < 2 || right <= left || bottom <= top) return
+        var minT = Int.MAX_VALUE
+        var maxT = Int.MIN_VALUE
+        for (i in 0 until count) {
+            val v = hourlyTemps[i]
+            if (v < minT) minT = v
+            if (v > maxT) maxT = v
+        }
         val span = (maxT - minT).coerceAtLeast(1)
-        val stepX = (right - left) / (temps.size - 1).coerceAtLeast(1)
+        val stepX = (right - left) / (count - 1).coerceAtLeast(1)
         val midY = (top + bottom) * 0.5f
         val dotR = 1.75f * density
-        temps.forEachIndexed { idx, t ->
-            val cx = left + idx * stepX
-            canvas.drawCircle(cx, midY, 0.7f * density, offPaint)
+        val midDotR = 0.7f * density
+        val rainY = bottom + 4.5f * density
+        val heightSpan = bottom - top
+        var cx = left
+        for (idx in 0 until count) {
+            val t = hourlyTemps[idx]
+            canvas.drawCircle(cx, midY, midDotR, offPaint)
             val norm = (t - minT).toFloat() / span.toFloat()
-            val cy = bottom - norm * (bottom - top)
+            val cy = bottom - norm * heightSpan
             // Baseline rain probability indicator + live temperature dot
-            val rainPct = hourlyRainProbs.getOrNull(idx) ?: 0
+            val rainPct = if (idx < hourlyRainProbs.size) hourlyRainProbs[idx] else 0
             val basePaint = if (rainPct >= 25) accentPaint else offPaint
             val baseR = when {
                 rainPct >= 60 -> 1.65f * density
                 rainPct >= 25 -> 1.25f * density
                 else -> 0.9f * density
             }
-            canvas.drawCircle(cx, bottom + 4.5f * density, baseR, basePaint)
+            canvas.drawCircle(cx, rainY, baseR, basePaint)
             val paint = if (idx == 0 || t == maxT) accentPaint else onPaint
             canvas.drawCircle(cx, cy, if (idx == 0) dotR * 1.35f else dotR, paint)
+            cx += stepX
         }
     }
 
@@ -233,11 +264,12 @@ class WeatherDotsView @JvmOverloads constructor(
         val cloudy = thunder || rain || snow || c.contains("CLOUD") || c.contains("OVERCAST") || c.contains("FOG")
         if (!cloudy && isDay) {
             canvas.drawCircle(cx, cy, 8f * density, onPaint)
+            val rayDist = 18f * density
+            val rayR = 1.8f * density
             for (i in 0 until 8) {
-                val angle = Math.toRadians(i * 45.0)
-                val rx = cx + (18f * density * cos(angle)).toFloat()
-                val ry = cy + (18f * density * sin(angle)).toFloat()
-                canvas.drawCircle(rx, ry, 1.8f * density, if (i % 2 == 0) accentPaint else onPaint)
+                val rx = cx + rayDist * SUN_COS_8[i]
+                val ry = cy + rayDist * SUN_SIN_8[i]
+                canvas.drawCircle(rx, ry, rayR, if (i % 2 == 0) accentPaint else onPaint)
             }
             return
         }
@@ -277,5 +309,10 @@ class WeatherDotsView @JvmOverloads constructor(
                 canvas.drawCircle(px, py, 1.5f * density, if (col == 0) accentPaint else onPaint)
             }
         }
+    }
+
+    private companion object {
+        val SUN_COS_8 = FloatArray(8) { i -> cos(Math.toRadians(i * 45.0)).toFloat() }
+        val SUN_SIN_8 = FloatArray(8) { i -> sin(Math.toRadians(i * 45.0)).toFloat() }
     }
 }

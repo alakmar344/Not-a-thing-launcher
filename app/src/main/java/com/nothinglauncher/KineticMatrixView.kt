@@ -136,6 +136,13 @@ class KineticMatrixView @JvmOverloads constructor(
     private var snakeDownY = 0f
     private var snakeSwiped = false
 
+    private var geomW = -1
+    private var geomH = -1
+    private val cellCx = FloatArray(COLS)
+    private val cellCy = FloatArray(ROWS)
+    private val snakeDrawFlags = ByteArray(COLS * ROWS)
+    private var cachedDisplayRotation = Surface.ROTATION_0
+
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat().coerceAtLeast(8f)
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
     private val accelSensor = sensorManager?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
@@ -193,36 +200,51 @@ class KineticMatrixView @JvmOverloads constructor(
     private fun lifeAliveCount(): Int = lifeGrid.count { it }
 
     fun stepLife() {
+        stepLifeInternal()
+    }
+
+    private fun stepLifeInternal(): Int {
         var aliveCount = 0
+        var hash = 1
         for (r in 0 until ROWS) {
+            val rowOff = r * COLS
+            val rUp = ((r + ROWS - 1) % ROWS) * COLS
+            val rDown = ((r + 1) % ROWS) * COLS
             for (c in 0 until COLS) {
+                val cLeft = (c + COLS - 1) % COLS
+                val cRight = (c + 1) % COLS
                 var n = 0
-                for (dr in -1..1) {
-                    for (dc in -1..1) {
-                        if (dr == 0 && dc == 0) continue
-                        val rr = (r + dr + ROWS) % ROWS
-                        val cc = (c + dc + COLS) % COLS
-                        if (lifeGrid[rr * COLS + cc]) n++
-                    }
-                }
-                val alive = lifeGrid[r * COLS + c]
+                if (lifeGrid[rUp + cLeft]) n++
+                if (lifeGrid[rUp + c]) n++
+                if (lifeGrid[rUp + cRight]) n++
+                if (lifeGrid[rowOff + cLeft]) n++
+                if (lifeGrid[rowOff + cRight]) n++
+                if (lifeGrid[rDown + cLeft]) n++
+                if (lifeGrid[rDown + c]) n++
+                if (lifeGrid[rDown + cRight]) n++
+                val idx = rowOff + c
+                val alive = lifeGrid[idx]
                 val next = if (alive) (n == 2 || n == 3) else (n == 3)
-                nextLifeGrid[r * COLS + c] = next
+                nextLifeGrid[idx] = next
+                hash = 31 * hash + if (next) 1231 else 1237
                 if (next) aliveCount++
             }
         }
         val tmp = lifeGrid
         lifeGrid = nextLifeGrid
         nextLifeGrid = tmp
-        if (aliveCount == 0) seedLife()
+        if (aliveCount == 0) {
+            seedLife()
+            return lifeGrid.contentHashCode()
+        }
+        return hash
     }
 
     private fun advanceLifeInTicker() {
         val now = SystemClock.uptimeMillis()
         if (now < lifePausedUntilMs) return
         val beforeHash = lifeGrid.contentHashCode()
-        stepLife()
-        val afterHash = lifeGrid.contentHashCode()
+        val afterHash = stepLifeInternal()
         if (afterHash == beforeHash || afterHash == prevLifeHash2) {
             stagnantLifeTicks++
             if (stagnantLifeTicks >= 12) {
@@ -320,14 +342,18 @@ class KineticMatrixView @JvmOverloads constructor(
         }
         dragImpulseVx *= 0.65f
         dragImpulseVy *= 0.65f
-        // Soft bead-bead collision avoidance
+        // Soft bead-bead collision avoidance (squared distance avoids sqrt for non-colliding pairs).
         val minDist = 1.05f
+        val minDistSq = minDist * minDist
         for (i in 0 until BEAD_COUNT) {
+            val xi = beadX[i]
+            val yi = beadY[i]
             for (j in i + 1 until BEAD_COUNT) {
-                val dx = beadX[j] - beadX[i]
-                val dy = beadY[j] - beadY[i]
-                val dist = hypot(dx, dy)
-                if (dist > 0.001f && dist < minDist) {
+                val dx = beadX[j] - xi
+                val dy = beadY[j] - yi
+                val distSq = dx * dx + dy * dy
+                if (distSq > 0.000001f && distSq < minDistSq) {
+                    val dist = kotlin.math.sqrt(distSq)
                     val push = (minDist - dist) * 0.45f
                     val nx = dx / dist
                     val ny = dy / dist
@@ -395,8 +421,14 @@ class KineticMatrixView @JvmOverloads constructor(
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        cachedDisplayRotation = currentDisplayRotation()
         updateRunning()
         post { if (isAttachedToWindow) updateRunning() }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration?) {
+        super.onConfigurationChanged(newConfig)
+        cachedDisplayRotation = currentDisplayRotation()
     }
 
     override fun onDetachedFromWindow() {
@@ -451,11 +483,13 @@ class KineticMatrixView @JvmOverloads constructor(
         hasSensorSample = true
         val rawX = event.values[0]
         val rawY = event.values[1]
-        val (sx, sy) = when (currentDisplayRotation()) {
-            Surface.ROTATION_90 -> -rawY to -rawX
-            Surface.ROTATION_180 -> rawX to -rawY
-            Surface.ROTATION_270 -> rawY to rawX
-            else -> -rawX to rawY
+        val sx: Float
+        val sy: Float
+        when (cachedDisplayRotation) {
+            Surface.ROTATION_90 -> { sx = -rawY; sy = -rawX }
+            Surface.ROTATION_180 -> { sx = rawX; sy = -rawY }
+            Surface.ROTATION_270 -> { sx = rawY; sy = rawX }
+            else -> { sx = -rawX; sy = rawY }
         }
         accelGx = sx.coerceIn(-12f, 12f)
         accelGy = sy.coerceIn(-12f, 12f)
@@ -621,26 +655,52 @@ class KineticMatrixView @JvmOverloads constructor(
         if (w <= 0f || h <= 0f) return
         val cellW = w / COLS
         val cellH = h / ROWS
+        if (geomW != width || geomH != height) {
+            geomW = width
+            geomH = height
+            for (c in 0 until COLS) cellCx[c] = (c + 0.5f) * cellW
+            for (r in 0 until ROWS) cellCy[r] = (r + 0.5f) * cellH
+        }
         val baseR = min(cellW, cellH) * 0.24f
+        val dimR = baseR * 0.72f
+        val lifeAliveR = baseR * 1.45f
+        val foodR = baseR * 1.5f
+        val headR = baseR * 1.55f
+        val bodyR = baseR * 1.3f
+
+        if (mode == Mode.SNAKE) {
+            java.util.Arrays.fill(snakeDrawFlags, 0.toByte())
+            val fIdx = snakeFood.second * COLS + snakeFood.first
+            if (fIdx in 0 until snakeDrawFlags.size) snakeDrawFlags[fIdx] = 4.toByte()
+            val bodyCount = snakeBody.size
+            for ((idx, seg) in snakeBody.withIndex()) {
+                val ci = seg.second * COLS + seg.first
+                if (ci in 0 until snakeDrawFlags.size) {
+                    val bit = if (idx == bodyCount - 1) 2 else 1
+                    snakeDrawFlags[ci] = (snakeDrawFlags[ci].toInt() or bit).toByte()
+                }
+            }
+        }
 
         // Base off-dot lattice across all modes
         for (r in 0 until ROWS) {
-            val cy = (r + 0.5f) * cellH
+            val cy = cellCy[r]
+            val rowOff = r * COLS
             for (c in 0 until COLS) {
-                val cx = (c + 0.5f) * cellW
+                val cx = cellCx[c]
                 when (mode) {
-                    Mode.GRAVITY -> canvas.drawCircle(cx, cy, baseR * 0.72f, offPaint)
+                    Mode.GRAVITY -> canvas.drawCircle(cx, cy, dimR, offPaint)
                     Mode.LIFE -> {
-                        val alive = lifeGrid[r * COLS + c]
+                        val alive = lifeGrid[rowOff + c]
                         val isSeedAccent = alive && ((c + r) % 7 == 0)
                         val p = if (isSeedAccent) accentPaint else if (alive) onPaint else offPaint
-                        canvas.drawCircle(cx, cy, if (alive) baseR * 1.45f else baseR * 0.72f, p)
+                        canvas.drawCircle(cx, cy, if (alive) lifeAliveR else dimR, p)
                     }
                     Mode.SNAKE -> {
-                        val cell = c to r
-                        val isFood = cell == snakeFood
-                        val isHead = snakeBody.lastOrNull() == cell
-                        val isBody = !isHead && cell in snakeBody
+                        val flags = snakeDrawFlags[rowOff + c].toInt()
+                        val isFood = (flags and 4) != 0
+                        val isHead = (flags and 2) != 0
+                        val isBody = !isHead && (flags and 1) != 0
                         val p = when {
                             snakeGameOver && isHead -> accentPaint
                             isFood -> accentPaint
@@ -649,10 +709,10 @@ class KineticMatrixView @JvmOverloads constructor(
                             else -> offPaint
                         }
                         val rad = when {
-                            isFood -> baseR * 1.5f
-                            isHead -> baseR * 1.55f
-                            isBody -> baseR * 1.3f
-                            else -> baseR * 0.72f
+                            isFood -> foodR
+                            isHead -> headR
+                            isBody -> bodyR
+                            else -> dimR
                         }
                         canvas.drawCircle(cx, cy, rad, p)
                     }
@@ -662,11 +722,12 @@ class KineticMatrixView @JvmOverloads constructor(
 
         if (mode == Mode.GRAVITY) {
             val beadR = min(cellW, cellH) * 0.42f
+            val accentBeadR = beadR * 1.12f
             for (i in 0 until BEAD_COUNT) {
                 val px = beadX[i] * cellW
                 val py = beadY[i] * cellH
                 val paint = if (i < 3) accentPaint else onPaint
-                canvas.drawCircle(px, py, if (i < 3) beadR * 1.12f else beadR, paint)
+                canvas.drawCircle(px, py, if (i < 3) accentBeadR else beadR, paint)
             }
         }
     }

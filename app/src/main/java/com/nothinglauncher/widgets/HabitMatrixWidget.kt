@@ -107,8 +107,12 @@ class HabitMatrixWidget(context: Context) : NothingWidget(context) {
     }
 
     companion object {
+        private val DATE_FMT_TL = object : ThreadLocal<SimpleDateFormat>() {
+            override fun initialValue(): SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        }
+
         fun todayKey(): String =
-            SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Calendar.getInstance().time)
+            DATE_FMT_TL.get()!!.format(Calendar.getInstance().time)
 
         fun isDoneToday(prefs: NothingPrefs): Boolean =
             prefs.habitDates.contains(todayKey())
@@ -128,7 +132,7 @@ class HabitMatrixWidget(context: Context) : NothingWidget(context) {
         }
 
         fun computeStreak(dates: Set<String>): Int {
-            val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val fmt = DATE_FMT_TL.get()!!
             val cal = Calendar.getInstance()
             var streak = 0
             if (!dates.contains(fmt.format(cal.time))) {
@@ -163,27 +167,50 @@ class HabitPegboardView @JvmOverloads constructor(
     }
 
     var completedDates: Set<String> = emptySet()
-        set(value) { field = value; invalidate() }
+        set(value) {
+            if (field !== value && field != value) {
+                field = value
+                cachedForDayStamp = Long.MIN_VALUE
+            } else {
+                field = value
+            }
+            invalidate()
+        }
+
+    private val doneMask = BooleanArray(TOTAL_DAYS)
+    private val dateFmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val cal = Calendar.getInstance()
+    private var cachedForDayStamp: Long = Long.MIN_VALUE
+
+    private fun ensureMask() {
+        cal.timeInMillis = System.currentTimeMillis()
+        val stamp = cal.get(Calendar.YEAR) * 1000L + cal.get(Calendar.DAY_OF_YEAR)
+        if (stamp == cachedForDayStamp) return
+        cachedForDayStamp = stamp
+        cal.add(Calendar.DAY_OF_YEAR, -(TOTAL_DAYS - 1))
+        for (i in 0 until TOTAL_DAYS) {
+            doneMask[i] = completedDates.contains(dateFmt.format(cal.time))
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        }
+    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val cols = 7
         val rows = 4
         if (width <= 0 || height <= 0) return
+        ensureMask()
         val pitchX = width / cols.toFloat()
         val pitchY = height / rows.toFloat()
         val r = min(pitchX, pitchY) * 0.28f
-        val fmt = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val cal = Calendar.getInstance()
-        val total = cols * rows
-        cal.add(Calendar.DAY_OF_YEAR, -(total - 1))
+        val todayR = r * 1.25f
+        val offR = r * 0.8f
 
-        for (i in 0 until total) {
+        for (i in 0 until TOTAL_DAYS) {
             val row = i / cols
             val col = i % cols
-            val key = fmt.format(cal.time)
-            val isToday = i == total - 1
-            val done = completedDates.contains(key)
+            val isToday = i == TOTAL_DAYS - 1
+            val done = doneMask[i]
             val cx = (col + 0.5f) * pitchX
             val cy = (row + 0.5f) * pitchY
             val paint = when {
@@ -191,8 +218,11 @@ class HabitPegboardView @JvmOverloads constructor(
                 done -> onPaint
                 else -> offPaint
             }
-            canvas.drawCircle(cx, cy, if (isToday && done) r * 1.25f else if (done) r else r * 0.8f, paint)
-            cal.add(Calendar.DAY_OF_YEAR, 1)
+            canvas.drawCircle(cx, cy, if (isToday && done) todayR else if (done) r else offR, paint)
         }
+    }
+
+    private companion object {
+        const val TOTAL_DAYS = 28
     }
 }

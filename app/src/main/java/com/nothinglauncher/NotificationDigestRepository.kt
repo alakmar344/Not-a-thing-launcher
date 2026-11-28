@@ -41,6 +41,12 @@ object NotificationDigestRepository {
     private val mainHandler = Handler(Looper.getMainLooper())
     private val listeners = CopyOnWriteArraySet<(Snapshot) -> Unit>()
     private val stateLock = Any()
+    private val WHITESPACE_RE = Regex("[\\r\\n\\t]+")
+    private val appLabelCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun trimCaches() {
+        appLabelCache.clear()
+    }
 
     @Volatile
     private var latestSnapshot: Snapshot = Snapshot(
@@ -216,11 +222,13 @@ object NotificationDigestRepository {
             val extras = n.extras
             val title = sanitizeText(extras?.getCharSequence(Notification.EXTRA_TITLE), 120)
             val text = sanitizeText(extras?.getCharSequence(Notification.EXTRA_TEXT), 240)
-            val label = try {
+            val label = appLabelCache[pkg] ?: try {
                 pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
             } catch (_: Throwable) {
                 pkg.substringAfterLast('.')
-            }.let { sanitizeText(it, 64) }.ifEmpty { pkg.substringAfterLast('.').take(64) }
+            }.let { sanitizeText(it, 64) }
+                .ifEmpty { pkg.substringAfterLast('.').take(64) }
+                .also { if (appLabelCache.size < 256) appLabelCache[pkg] = it }
             RawNotification(
                 key = sbn.key ?: "$pkg:${sbn.id}",
                 packageName = pkg,
@@ -238,7 +246,7 @@ object NotificationDigestRepository {
     }
 
     private fun sanitizeText(cs: CharSequence?, maxLen: Int): String =
-        cs?.toString()?.replace(Regex("[\\r\\n\\t]+"), " ")?.trim()?.take(maxLen).orEmpty()
+        cs?.toString()?.replace(WHITESPACE_RE, " ")?.trim()?.take(maxLen).orEmpty()
 
     internal fun aggregateRaw(permissionGranted: Boolean, raw: List<RawNotification>): Snapshot {
         val filtered = raw.filter {

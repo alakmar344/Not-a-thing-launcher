@@ -1,8 +1,14 @@
 # Features
 
-Not a Thing Launcher v15 pairs stock **AOSP Launcher3** (`android-14.0.0_r75`) with a phone-first tactile dot-matrix operating surface that keeps every widget, sheet, drawer tab, and Desk display live-synchronized while scaling cleanly onto tablets and foldables.
+Not a Thing Launcher **v15.5** pairs stock **AOSP Launcher3** (`android-14.0.0_r75`) with a deeply optimized, low-overhead dot-matrix operating surface that keeps every widget, sheet, drawer tab, and Desk display fluid and responsive across Android 8.0 – 17 while scaling cleanly onto tablets and foldables.
 
-All workspace drag & drop, folder mechanics, and Android system widgets continue to work like stock Android. Historical v13, v12, and pre-v11 feature catalogs live under [`archive/`](archive/).
+All workspace drag & drop, folder mechanics, and Android system widgets continue to work like stock Android. Historical v15, v13, v12, and pre-v11 feature catalogs live under [`archive/`](archive/).
+
+## v15.5 Fluidity & Efficiency Across Every Android Device
+
+- **Zero-Allocation Dot Rendering & Physics:** Precomputed bezel/ring trig tables, view-size geometry caches, boolean dot/habit masks, reusable scratch `Calendar`s, quantized backdrop ripple updates, squared-distance physics culling, and byte-grid Snake rendering across `DotMatrixView`, `AnalogDotClockView`, `DotRingGaugeView`, `BatteryDotsView`, `WeatherDotsView`, `MediaDotsView`, `HabitPegboardView`, `KineticMatrixView`, `GlyphMatrixCanvasView`, and `DotGridDrawable`.
+- **Fast Icon Pipeline & Smart Memory Trimming:** `IconFactory` reuses thread-local scratch bitmaps/paints/pixel buffers (`ThreadScratch`) and static `ColorFilter`s, adapts LRU budgets to `VisualTier`, exposes `getCached()` fast-paths so Drawer rows/Recents skip Binder IPC when cached, and coordinates multi-level `onTrimMemory()` eviction across `IconFactory`, `DotFont`, `AppCategorizer`, `IconPackManager`, `NotificationDigestRepository`, and `HardwareControlRepository`.
+- **Responsive Home, Drawer, Search & `-1` Dock Space:** Zero-alloc home gesture hit-testing, ViewHolder-cached drawer list/command/category bindings with span-index & group caching, zero-alloc `CommandEngine.scoreApp` + lazy timezone index, event-driven overlay/HUD tickers that sleep when timers/recording are idle, hardware-layer slide compositing, and AOT ART compilation via `baseline-prof.txt`.
 
 ## Phone-First Experiences
 
@@ -15,7 +21,7 @@ All workspace drag & drop, folder mechanics, and Android system widgets continue
 
 - **Dual-Column Home Bento Grid:** Workspaces with 6+ columns automatically place a 2×2 studio grid (`ClockWidget` + `WeatherWidget` top, `BatteryCalendarWidget` + `DeskBriefingWidget` bottom).
 - **2-Column `-1` Dock Space:** Tablet/foldable displays show the Daily Briefing + Switchboard + Vitals + Habit Matrix check-in on the left, alongside Scratchpad + Voice Memos + Focus Timer + Now Playing Media Deck on the right (`layout-w600dp/essential_space_overlay.xml`).
-- **Studio Settings & Hub:** Settings expands into two columns featuring an inline **5-dot Hardware Accent Swatch row**, synced Icon Aesthetic controls, and a live **Studio 15** clock & seconds preview reacting instantaneously alongside section dot tinting plus direct launch pills for **Desk HUD** and **Widget Surfaces**. The Home long-press `CustomizeSheet` also includes a compact inline Accent Swatch Strip for live previewing. The Setup Hub (`Theme.NothingLauncher.Entry`) adapts cleanly across light and dark modes with `DotGridDrawable` depth, auto-highlighted active preset cards in a 2×2 Bento grid, and both **Export JSON** and **Import JSON** actions.
+- **Studio Settings & Hub:** Settings expands into two columns featuring an inline **5-dot Hardware Accent Swatch row**, synced Icon Aesthetic controls, and a live **Studio 15.5** clock & seconds preview reacting instantaneously alongside section dot tinting plus direct launch pills for **Desk HUD** and **Widget Surfaces**. The Home long-press `CustomizeSheet` also includes a compact inline Accent Swatch Strip for live previewing. The Setup Hub (`Theme.NothingLauncher.Entry`) adapts cleanly across light and dark modes with `DotGridDrawable` depth, auto-highlighted active preset cards in a 2×2 Bento grid, and both **Export JSON** and **Import JSON** actions (`not-a-thing-v15.5-setup.json`).
 - **Multi-Column Smart Drawer & Search:** Minimal List expands to 2 columns (`w580dp`+) or 3 columns (`w900dp`+), Command Search cards flow into 2 columns (`w680dp`+), and bottom sheets center cleanly at up to `540dp`.
 
 ## 4-Stage Matrix Desk HUD

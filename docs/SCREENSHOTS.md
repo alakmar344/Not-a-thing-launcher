@@ -16,7 +16,8 @@ as an artifact; `testDebugUnitTest` fails the build if a layout changes without 
 > **Host note:** On Windows hosts where Application Control blocks `libicuuc_stubdata.dll`,
 > `recordPaparazziDebug` / Paparazzi `Renderer.prepare` cannot load layoutlib native binaries
 > locally; non-Paparazzi unit and Robolectric tests (`VisualTierTest`, `LauncherRuntimeTest`,
-> `V13FeaturesTest`, `V14FeaturesTest`, `V14_1AuditFixesTest`, and `V15FeaturesTest`) still execute normally.
+> `V13FeaturesTest`, `V14FeaturesTest`, `V14_1AuditFixesTest`, `V15FeaturesTest`, and
+> `V15_5OptimizationTest`) still execute normally.
 
 ## Big-Screen Studio (`BigScreenScreensTest`, `PIXEL_C`)
 

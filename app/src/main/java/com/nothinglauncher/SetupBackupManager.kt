@@ -90,7 +90,7 @@ object SetupBackupManager {
         val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
             type = "application/json"
-            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v15-setup.json")
+            putExtra(Intent.EXTRA_TITLE, "not-a-thing-v15.5-setup.json")
         }
         try {
             @Suppress("DEPRECATION")

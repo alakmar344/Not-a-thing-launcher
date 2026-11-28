@@ -48,7 +48,11 @@ object CommandEngine {
         val action: (Context) -> Unit
     )
 
-    private val NUM_FMT = DecimalFormat("#,##0.####")
+    private val NUM_FMT_TL = object : ThreadLocal<DecimalFormat>() {
+        override fun initialValue(): DecimalFormat = DecimalFormat("#,##0.####")
+    }
+
+    private fun fmtNum(v: Double): String = NUM_FMT_TL.get()!!.format(v)
 
     fun evaluate(context: Context, rawQuery: String): List<CommandResult> {
         val q = rawQuery.trim()
@@ -301,7 +305,9 @@ object CommandEngine {
         if (low.startsWith("pass")) {
             val len = low.removePrefix("pass").trim().toIntOrNull()?.coerceIn(8, 32) ?: 16
             val chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"
-            val pw = (1..len).map { chars[Random.nextInt(chars.length)] }.joinToString("")
+            val sb = StringBuilder(len)
+            for (i in 0 until len) sb.append(chars[Random.nextInt(chars.length)])
+            val pw = sb.toString()
             return List4("KEY", pw, "${len}-char password · Tap to copy", pw)
         }
         DICE_RE.matchEntire(low)?.let { m ->
@@ -355,15 +361,28 @@ object CommandEngine {
         "dubai" to "Asia/Dubai", "singapore" to "Asia/Singapore", "sydney" to "Australia/Sydney"
     )
 
+    private val TZ_CITY_MAP: Map<String, String> by lazy {
+        val ids = TimeZone.getAvailableIDs()
+        val m = HashMap<String, String>(ids.size)
+        for (id in ids) {
+            val key = id.substringAfterLast('/').replace('_', ' ').lowercase(Locale.US)
+            m.putIfAbsent(key, id)
+        }
+        m
+    }
+
+    private val TZ_FMT_TL = object : ThreadLocal<SimpleDateFormat>() {
+        override fun initialValue(): SimpleDateFormat = SimpleDateFormat("HH:mm · EEE, MMM d", Locale.US)
+    }
+
     internal fun evalTimezone(q: String): Pair<String, String>? {
         val low = q.trim().lowercase(Locale.US)
         if (!low.startsWith("time ")) return null
         val target = low.removePrefix("time ").trim()
-        val zoneId = ZONE_ALIASES[target] ?: TimeZone.getAvailableIDs()
-            .firstOrNull { it.substringAfterLast('/').replace('_', ' ').equals(target, ignoreCase = true) }
-            ?: return null
+        val zoneId = ZONE_ALIASES[target] ?: TZ_CITY_MAP[target] ?: return null
         val tz = TimeZone.getTimeZone(zoneId)
-        val fmt = SimpleDateFormat("HH:mm · EEE, MMM d", Locale.US).apply { timeZone = tz }
+        val fmt = TZ_FMT_TL.get()!!
+        fmt.timeZone = tz
         return fmt.format(Date()) to tz.id.replace('_', ' ')
     }
 
@@ -373,6 +392,14 @@ object CommandEngine {
         """^\s*(-?\d+(?:\.\d+)?)\s*([a-zA-Z]+)\s+(?:to|in)\s+([a-zA-Z]+)\s*$""",
         RegexOption.IGNORE_CASE
     )
+    private val LENGTH_METERS = mapOf(
+        "m" to 1.0, "km" to 1000.0, "cm" to 0.01, "mm" to 0.001,
+        "mi" to 1609.344, "ft" to 0.3048, "in" to 0.0254, "yd" to 0.9144
+    )
+    private val MASS_GRAMS = mapOf(
+        "g" to 1.0, "kg" to 1000.0, "lb" to 453.59237, "lbs" to 453.59237, "oz" to 28.349523125
+    )
+    private val DATA_MB = mapOf("kb" to 1.0 / 1024.0, "mb" to 1.0, "gb" to 1024.0, "tb" to 1024.0 * 1024.0)
 
     internal fun evalConversion(q: String): Pair<String, String>? {
         val m = CONV_RE.matchEntire(q) ?: return null
@@ -382,34 +409,32 @@ object CommandEngine {
 
         if ((from == "c" || from == "celsius") && (to == "f" || to == "fahrenheit")) {
             val out = value * 9.0 / 5.0 + 32.0
-            return "${NUM_FMT.format(out)} °F" to "${NUM_FMT.format(value)} °C"
+            return "${fmtNum(out)} °F" to "${fmtNum(value)} °C"
         }
         if ((from == "f" || from == "fahrenheit") && (to == "c" || to == "celsius")) {
             val out = (value - 32.0) * 5.0 / 9.0
-            return "${NUM_FMT.format(out)} °C" to "${NUM_FMT.format(value)} °F"
+            return "${fmtNum(out)} °C" to "${fmtNum(value)} °F"
         }
 
-        val lengthMeters = mapOf(
-            "m" to 1.0, "km" to 1000.0, "cm" to 0.01, "mm" to 0.001,
-            "mi" to 1609.344, "ft" to 0.3048, "in" to 0.0254, "yd" to 0.9144
-        )
-        if (from in lengthMeters && to in lengthMeters) {
-            val out = value * lengthMeters.getValue(from) / lengthMeters.getValue(to)
-            return "${NUM_FMT.format(out)} $to" to "${NUM_FMT.format(value)} $from"
+        val lFrom = LENGTH_METERS[from]
+        val lTo = LENGTH_METERS[to]
+        if (lFrom != null && lTo != null) {
+            val out = value * lFrom / lTo
+            return "${fmtNum(out)} $to" to "${fmtNum(value)} $from"
         }
 
-        val massGrams = mapOf(
-            "g" to 1.0, "kg" to 1000.0, "lb" to 453.59237, "lbs" to 453.59237, "oz" to 28.349523125
-        )
-        if (from in massGrams && to in massGrams) {
-            val out = value * massGrams.getValue(from) / massGrams.getValue(to)
-            return "${NUM_FMT.format(out)} $to" to "${NUM_FMT.format(value)} $from"
+        val mFrom = MASS_GRAMS[from]
+        val mTo = MASS_GRAMS[to]
+        if (mFrom != null && mTo != null) {
+            val out = value * mFrom / mTo
+            return "${fmtNum(out)} $to" to "${fmtNum(value)} $from"
         }
 
-        val dataMb = mapOf("kb" to 1.0 / 1024.0, "mb" to 1.0, "gb" to 1024.0, "tb" to 1024.0 * 1024.0)
-        if (from in dataMb && to in dataMb) {
-            val out = value * dataMb.getValue(from) / dataMb.getValue(to)
-            return "${NUM_FMT.format(out)} ${to.uppercase(Locale.US)}" to "${NUM_FMT.format(value)} ${from.uppercase(Locale.US)}"
+        val dFrom = DATA_MB[from]
+        val dTo = DATA_MB[to]
+        if (dFrom != null && dTo != null) {
+            val out = value * dFrom / dTo
+            return "${fmtNum(out)} ${to.uppercase(Locale.US)}" to "${fmtNum(value)} ${from.uppercase(Locale.US)}"
         }
         return null
     }
@@ -422,7 +447,7 @@ object CommandEngine {
         PCT_OF_RE.matchEntire(q)?.let { m ->
             val pct = m.groupValues[1].toDoubleOrNull() ?: return null
             val base = m.groupValues[2].toDoubleOrNull() ?: return null
-            return NUM_FMT.format((pct / 100.0) * base)
+            return fmtNum((pct / 100.0) * base)
         }
         val clean = q.replace(" ", "")
         if (clean.all { it.isDigit() || it == '.' }) return null // plain number isn't a math expression
@@ -431,7 +456,7 @@ object CommandEngine {
             val parser = ExprParser(clean)
             val result = parser.parse()
             if (!parser.atEnd() || result.isNaN() || result.isInfinite()) null
-            else NUM_FMT.format(result)
+            else fmtNum(result)
         } catch (_: Throwable) {
             null
         }
@@ -499,48 +524,137 @@ object CommandEngine {
     // --- Fuzzy + acronym app scoring ---
 
     fun scoreApp(rawQuery: String, appTitle: String): Int {
-        val q = rawQuery.trim().lowercase(Locale.US)
-        val t = appTitle.trim().lowercase(Locale.US)
-        if (q.isEmpty() || t.isEmpty()) return 0
-        if (t == q) return 120
-        if (t.startsWith(q)) return 100
-        val words = t.split(' ', '-', '_', '.', '/').filter { it.isNotEmpty() }
-        if (words.any { it.startsWith(q) }) return 80
-        // Acronym / initials match: "yt" -> "YouTube", "ps" -> "Play Store"
-        if (q.length >= 2) {
-            val initials = words.map { it[0] }.joinToString("")
-            if (initials.startsWith(q)) return 75
-            // CamelCase initials: "YouTube" -> "yt"
-            val camelInitials = appTitle.filterIndexed { i, c -> i == 0 || c.isUpperCase() }.lowercase(Locale.US)
-            if (camelInitials.startsWith(q)) return 72
+        var qs = 0
+        var qe = rawQuery.length
+        while (qs < qe && rawQuery[qs] <= ' ') qs++
+        while (qe > qs && rawQuery[qe - 1] <= ' ') qe--
+        var ts = 0
+        var te = appTitle.length
+        while (ts < te && appTitle[ts] <= ' ') ts++
+        while (te > ts && appTitle[te - 1] <= ' ') te--
+        val qLen = qe - qs
+        val tLen = te - ts
+        if (qLen <= 0 || tLen <= 0) return 0
+
+        if (tLen >= qLen && matchesSlice(appTitle, ts, rawQuery, qs, qLen)) {
+            return if (tLen == qLen) 120 else 100
         }
-        if (t.contains(q)) return 55
-        if (q.length >= 3) {
-            for (w in words) {
-                if (w.length >= 3 && editDistance1(q, w.take(q.length + 1))) return 32
+
+        // Single zero-allocation pass over word delimiters (' ', '-', '_', '.', '/'):
+        // checks word-prefix (score 80) AND tracks word-initials match (score 75).
+        var initialPos = 0
+        var initialsFailed = qLen < 2
+        var idx = ts
+        while (idx < te) {
+            while (idx < te && isWordSep(appTitle[idx])) idx++
+            if (idx >= te) break
+            val wStart = idx
+            while (idx < te && !isWordSep(appTitle[idx])) idx++
+            val wLen = idx - wStart
+            if (wLen >= qLen && matchesSlice(appTitle, wStart, rawQuery, qs, qLen)) return 80
+            if (!initialsFailed && initialPos < qLen) {
+                if (lowerChar(appTitle[wStart]) == lowerChar(rawQuery[qs + initialPos])) {
+                    initialPos++
+                } else {
+                    initialsFailed = true
+                }
+            }
+        }
+        if (!initialsFailed && initialPos == qLen) return 75
+
+        // CamelCase initials: "YouTube" -> "yt"
+        if (qLen >= 2) {
+            var camelPos = 0
+            var camelFailed = false
+            for (i in 0 until appTitle.length) {
+                val c = appTitle[i]
+                if (i == 0 || c.isUpperCase()) {
+                    if (camelPos < qLen) {
+                        if (lowerChar(c) == lowerChar(rawQuery[qs + camelPos])) {
+                            camelPos++
+                        } else {
+                            camelFailed = true
+                            break
+                        }
+                    } else {
+                        break
+                    }
+                }
+            }
+            if (!camelFailed && camelPos == qLen) return 72
+        }
+
+        if (tLen >= qLen && containsSlice(appTitle, ts, te, rawQuery, qs, qLen)) return 55
+
+        if (qLen >= 3) {
+            idx = ts
+            while (idx < te) {
+                while (idx < te && isWordSep(appTitle[idx])) idx++
+                if (idx >= te) break
+                val wStart = idx
+                while (idx < te && !isWordSep(appTitle[idx])) idx++
+                val wLen = idx - wStart
+                if (wLen >= 3) {
+                    val cmpEnd = min(idx, wStart + qLen + 1)
+                    if (editDistance1Slice(rawQuery, qs, qe, appTitle, wStart, cmpEnd)) return 32
+                }
             }
         }
         return 0
     }
 
-    private fun editDistance1(a: String, b: String): Boolean {
-        if (kotlin.math.abs(a.length - b.length) > 1) return false
-        var i = 0
-        var j = 0
+    private fun isWordSep(c: Char): Boolean =
+        c == ' ' || c == '-' || c == '_' || c == '.' || c == '/'
+
+    private fun lowerChar(c: Char): Char =
+        if (c in 'A'..'Z') (c.code + 32).toChar() else c.lowercaseChar()
+
+    private fun matchesSlice(a: String, aStart: Int, b: String, bStart: Int, len: Int): Boolean {
+        for (i in 0 until len) {
+            if (lowerChar(a[aStart + i]) != lowerChar(b[bStart + i])) return false
+        }
+        return true
+    }
+
+    private fun containsSlice(
+        hay: String, hStart: Int, hEnd: Int,
+        needle: String, nStart: Int, nLen: Int
+    ): Boolean {
+        val last = hEnd - nLen
+        val firstChar = lowerChar(needle[nStart])
+        var i = hStart
+        while (i <= last) {
+            if (lowerChar(hay[i]) == firstChar && matchesSlice(hay, i, needle, nStart, nLen)) {
+                return true
+            }
+            i++
+        }
+        return false
+    }
+
+    private fun editDistance1Slice(
+        a: String, aStart: Int, aEnd: Int,
+        b: String, bStart: Int, bEnd: Int
+    ): Boolean {
+        val aLen = aEnd - aStart
+        val bLen = bEnd - bStart
+        if (kotlin.math.abs(aLen - bLen) > 1) return false
+        var i = aStart
+        var j = bStart
         var edits = 0
-        while (i < a.length && j < b.length) {
-            if (a[i] == b[j]) {
+        while (i < aEnd && j < bEnd) {
+            if (lowerChar(a[i]) == lowerChar(b[j])) {
                 i++; j++
             } else {
                 if (++edits > 1) return false
                 when {
-                    a.length > b.length -> i++
-                    b.length > a.length -> j++
+                    aLen > bLen -> i++
+                    bLen > aLen -> j++
                     else -> { i++; j++ }
                 }
             }
         }
-        if (i < a.length || j < b.length) edits++
+        if (i < aEnd || j < bEnd) edits++
         return edits <= 1
     }
 }

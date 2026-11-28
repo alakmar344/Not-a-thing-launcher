@@ -24,6 +24,7 @@ class DotMatrixClockView @JvmOverloads constructor(
         set(value) {
             if (field?.id != value?.id) {
                 field = value
+                cal = Calendar.getInstance(value ?: TimeZone.getDefault())
                 lastTextKey = -1
                 tick()
             }
@@ -39,6 +40,7 @@ class DotMatrixClockView @JvmOverloads constructor(
     /** Whether this clock takes part in [playPowerOn] (set from the visual tier). */
     var powerOnEnabled: Boolean = false
 
+    private var cal: Calendar = Calendar.getInstance()
     private var lastMinuteStamp = -1L
     private var lastTextKey = -1
     private var lastColonIndex = -2
@@ -56,16 +58,19 @@ class DotMatrixClockView @JvmOverloads constructor(
     }
 
     fun tick() {
-        val cal = Calendar.getInstance(timeZone ?: TimeZone.getDefault())
+        val c = cal
         val preview = previewTime
         if (preview != null) {
-            cal.set(Calendar.HOUR_OF_DAY, preview.first)
-            cal.set(Calendar.MINUTE, preview.second)
-            cal.set(Calendar.SECOND, 0)
+            c.timeInMillis = System.currentTimeMillis()
+            c.set(Calendar.HOUR_OF_DAY, preview.first)
+            c.set(Calendar.MINUTE, preview.second)
+            c.set(Calendar.SECOND, 0)
+        } else {
+            c.timeInMillis = System.currentTimeMillis()
         }
         val is24 = is24Hour()
-        val hour = cal.get(Calendar.HOUR_OF_DAY)
-        val minute = cal.get(Calendar.MINUTE)
+        val hour = c.get(Calendar.HOUR_OF_DAY)
+        val minute = c.get(Calendar.MINUTE)
         // This runs every second; the digits only change once a minute (or on a 12/24h switch).
         val key = (hour * 60 + minute) * 2 + if (is24) 1 else 0
         if (key != lastTextKey) {
@@ -77,14 +82,14 @@ class DotMatrixClockView @JvmOverloads constructor(
         val colon = text.indexOf(':')
         if (colon != lastColonIndex) {
             lastColonIndex = colon
-            accentIndices = setOf(colon)
+            accentIndices = if (colon >= 0) java.util.Collections.singleton(colon) else emptySet()
         }
-        accentVisible = !blinkColon || preview != null || cal.get(Calendar.SECOND) % 2 == 0
+        accentVisible = !blinkColon || preview != null || c.get(Calendar.SECOND) % 2 == 0
 
-        val stamp = cal.timeInMillis / 60_000L
+        val stamp = c.timeInMillis / 60_000L
         if (stamp != lastMinuteStamp) {
             lastMinuteStamp = stamp
-            onMinuteChanged?.invoke(cal)
+            onMinuteChanged?.invoke(c)
         }
     }
 

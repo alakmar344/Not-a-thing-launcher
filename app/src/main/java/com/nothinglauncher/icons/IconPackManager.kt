@@ -6,8 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Resources
 import android.graphics.drawable.Drawable
+import android.util.Xml
 import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
 import java.util.concurrent.ConcurrentHashMap
 
 /**
@@ -26,6 +26,7 @@ object IconPackManager {
     )
 
     private val componentMapCache = ConcurrentHashMap<String, Map<String, String>>()
+    private val packResCache = ConcurrentHashMap<String, Resources>()
 
     fun listInstalledPacks(context: Context): List<IconPack> {
         val pm = context.packageManager
@@ -49,12 +50,16 @@ object IconPackManager {
 
     fun clearCache() {
         componentMapCache.clear()
+        packResCache.clear()
     }
 
     fun loadIconForComponent(context: Context, packPackage: String, component: ComponentName): Drawable? {
         if (packPackage.isBlank()) return null
         return try {
-            val packRes = context.packageManager.getResourcesForApplication(packPackage)
+            val packRes = packResCache[packPackage]
+                ?: context.packageManager.getResourcesForApplication(packPackage).also {
+                    if (packResCache.size < 16) packResCache[packPackage] = it
+                }
             val map = componentMapCache.getOrPut(packPackage) { parseAppFilter(packRes, packPackage) }
             val key = "ComponentInfo{${component.packageName}/${component.className}}"
             val drawableName = map[key]
@@ -79,8 +84,7 @@ object IconPackManager {
         }
         try {
             res.assets.open("appfilter.xml").use { stream ->
-                val factory = XmlPullParserFactory.newInstance()
-                val parser = factory.newPullParser()
+                val parser = Xml.newPullParser()
                 parser.setInput(stream, "UTF-8")
                 readParser(parser, out)
             }

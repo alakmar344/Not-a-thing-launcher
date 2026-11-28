@@ -43,42 +43,84 @@ class AnalogDotClockView @JvmOverloads constructor(
         }
     }
 
+    private val cal = Calendar.getInstance()
+    private val bezelX = FloatArray(12)
+    private val bezelY = FloatArray(12)
+    private var geomW = -1
+    private var geomH = -1
+    private var geomCx = 0f
+    private var geomCy = 0f
+    private var geomRadius = 0f
+
+    private fun ensureGeometry() {
+        if (geomW == width && geomH == height) return
+        geomW = width
+        geomH = height
+        val availW = width - paddingLeft - paddingRight
+        val availH = height - paddingTop - paddingBottom
+        val size = min(availW, availH).toFloat()
+        if (size <= 0f) {
+            geomRadius = 0f
+            return
+        }
+        val cx = paddingLeft + availW / 2f
+        val cy = paddingTop + availH / 2f
+        val radius = size / 2f - 4f * density
+        geomCx = cx
+        geomCy = cy
+        geomRadius = radius
+        for (i in 0 until 12) {
+            bezelX[i] = cx + radius * COS_12[i]
+            bezelY[i] = cy + radius * SIN_12[i]
+        }
+    }
+
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val size = min(width - paddingLeft - paddingRight, height - paddingTop - paddingBottom).toFloat()
-        if (size <= 0f) return
-        val cx = paddingLeft + (width - paddingLeft - paddingRight) / 2f
-        val cy = paddingTop + (height - paddingTop - paddingBottom) / 2f
-        val radius = size / 2f - 4f * density
+        ensureGeometry()
+        val radius = geomRadius
+        if (radius <= 0f) return
+        val cx = geomCx
+        val cy = geomCy
+        val majorR = 2.2f * density
+        val minorR = 1.4f * density
 
         // 12-hour bezel markers
         for (i in 0 until 12) {
-            val a = Math.toRadians(-90.0 + i * 30.0)
-            val mx = cx + (radius * cos(a)).toFloat()
-            val my = cy + (radius * sin(a)).toFloat()
             val major = i % 3 == 0
-            canvas.drawCircle(mx, my, (if (major) 2.2f else 1.4f) * density, if (major) onPaint else offPaint)
+            canvas.drawCircle(bezelX[i], bezelY[i], if (major) majorR else minorR, if (major) onPaint else offPaint)
         }
 
-        val cal = Calendar.getInstance()
+        cal.timeInMillis = System.currentTimeMillis()
         val sec = cal.get(Calendar.SECOND)
         val min = cal.get(Calendar.MINUTE) + sec / 60f
         val hr = (cal.get(Calendar.HOUR) % 12) + min / 60f
 
-        fun drawDotHand(angleDeg: Double, lengthFraction: Float, dots: Int, dotRadiusDp: Float, paint: Paint) {
-            val rad = Math.toRadians(angleDeg - 90.0)
-            val cosA = cos(rad).toFloat()
-            val sinA = sin(rad).toFloat()
-            for (s in 1..dots) {
-                val dist = radius * lengthFraction * (s / dots.toFloat())
-                canvas.drawCircle(cx + dist * cosA, cy + dist * sinA, dotRadiusDp * density, paint)
-            }
-        }
-
-        drawDotHand(hr * 30.0, 0.54f, 4, 2.2f, onPaint)
-        drawDotHand(min * 6.0, 0.78f, 6, 1.8f, onPaint)
-        drawDotHand(sec * 6.0, 0.86f, 7, 1.25f, accentPaint)
+        drawDotHand(canvas, cx, cy, radius, cos(hr * 30.0 * DEG_TO_RAD - HALF_PI).toFloat(), sin(hr * 30.0 * DEG_TO_RAD - HALF_PI).toFloat(), 0.54f, 4, 2.2f * density, onPaint)
+        drawDotHand(canvas, cx, cy, radius, cos(min * 6.0 * DEG_TO_RAD - HALF_PI).toFloat(), sin(min * 6.0 * DEG_TO_RAD - HALF_PI).toFloat(), 0.78f, 6, 1.8f * density, onPaint)
+        drawDotHand(canvas, cx, cy, radius, COS_60[sec], SIN_60[sec], 0.86f, 7, 1.25f * density, accentPaint)
         canvas.drawCircle(cx, cy, 3f * density, accentPaint)
+    }
+
+    private fun drawDotHand(
+        canvas: Canvas, cx: Float, cy: Float, radius: Float,
+        cosA: Float, sinA: Float, lengthFraction: Float, dots: Int, dotRadiusPx: Float, paint: Paint
+    ) {
+        val step = radius * lengthFraction / dots
+        var dist = step
+        for (s in 1..dots) {
+            canvas.drawCircle(cx + dist * cosA, cy + dist * sinA, dotRadiusPx, paint)
+            dist += step
+        }
+    }
+
+    private companion object {
+        const val DEG_TO_RAD = Math.PI / 180.0
+        const val HALF_PI = Math.PI / 2.0
+        val COS_12 = FloatArray(12) { i -> cos(Math.toRadians(-90.0 + i * 30.0)).toFloat() }
+        val SIN_12 = FloatArray(12) { i -> sin(Math.toRadians(-90.0 + i * 30.0)).toFloat() }
+        val COS_60 = FloatArray(60) { i -> cos(Math.toRadians(-90.0 + i * 6.0)).toFloat() }
+        val SIN_60 = FloatArray(60) { i -> sin(Math.toRadians(-90.0 + i * 6.0)).toFloat() }
     }
 
     private fun updateRunning() {

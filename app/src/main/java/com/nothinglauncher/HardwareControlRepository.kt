@@ -16,9 +16,11 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Process
 import android.os.StatFs
+import android.os.SystemClock
 import android.provider.CalendarContract
 import android.provider.Settings
 import androidx.core.content.ContextCompat
+import java.lang.ref.WeakReference
 import java.text.DateFormat
 import java.util.Calendar
 import java.util.Date
@@ -147,7 +149,47 @@ object HardwareControlRepository {
         }
     }
 
-    fun readVitals(context: Context): SystemVitals {
+    private const val VITALS_CACHE_MS = 5_000L
+    private const val SCREEN_TIME_CACHE_MS = 45_000L
+    private const val CALENDAR_CACHE_MS = 30_000L
+
+    private val cacheLock = Any()
+    private val midnightCal = Calendar.getInstance()
+    private var vitalsCtxRef: WeakReference<Context>? = null
+    private var vitalsAtMs: Long = -1L
+    private var cachedVitals: SystemVitals? = null
+    private var screenTimeCtxRef: WeakReference<Context>? = null
+    private var screenTimeAtMs: Long = -1L
+    private var cachedScreenMins: Int? = null
+    private var calCtxRef: WeakReference<Context>? = null
+    private var calAtMs: Long = -1L
+    private var cachedCalendar: CalendarSnippet? = null
+
+    fun clearCaches() {
+        synchronized(cacheLock) {
+            vitalsCtxRef = null
+            vitalsAtMs = -1L
+            cachedVitals = null
+            screenTimeCtxRef = null
+            screenTimeAtMs = -1L
+            cachedScreenMins = null
+            calCtxRef = null
+            calAtMs = -1L
+            cachedCalendar = null
+        }
+    }
+
+    fun readVitals(context: Context, force: Boolean = false): SystemVitals {
+        val appCtx = context.applicationContext ?: context
+        val nowMs = SystemClock.elapsedRealtime()
+        if (!force) {
+            synchronized(cacheLock) {
+                val prev = cachedVitals
+                if (prev != null && vitalsCtxRef?.get() === appCtx && nowMs - vitalsAtMs in 0 until VITALS_CACHE_MS) {
+                    return prev
+                }
+            }
+        }
         var freeGb = 0f
         var totalGb = 0f
         var storagePct = 0
@@ -165,7 +207,7 @@ object HardwareControlRepository {
         var totalRam = 0f
         var ramPct = 0
         try {
-            val am = context.getSystemService(ActivityManager::class.java)
+            val am = appCtx.getSystemService(ActivityManager::class.java)
             val info = ActivityManager.MemoryInfo()
             am?.getMemoryInfo(info)
             if (info.totalMem > 0) {
@@ -177,8 +219,14 @@ object HardwareControlRepository {
             }
         } catch (_: Throwable) {}
 
-        val screenMins = readScreenTimeMinutes(context)
-        return SystemVitals(freeGb, totalGb, storagePct, availRam, totalRam, ramPct, screenMins)
+        val screenMins = readScreenTimeMinutes(appCtx, force = force)
+        val result = SystemVitals(freeGb, totalGb, storagePct, availRam, totalRam, ramPct, screenMins)
+        synchronized(cacheLock) {
+            vitalsCtxRef = WeakReference(appCtx)
+            vitalsAtMs = SystemClock.elapsedRealtime()
+            cachedVitals = result
+        }
+        return result
     }
 
     fun hasUsageAccess(context: Context): Boolean {
@@ -196,32 +244,67 @@ object HardwareControlRepository {
         }
     }
 
-    fun readScreenTimeMinutes(context: Context): Int? {
-        if (!hasUsageAccess(context)) return null
-        return try {
-            val usm = context.getSystemService(UsageStatsManager::class.java) ?: return null
-            val cal = Calendar.getInstance().apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
+    fun readScreenTimeMinutes(context: Context, force: Boolean = false): Int? {
+        if (!hasUsageAccess(context)) {
+            synchronized(cacheLock) {
+                screenTimeCtxRef = null
+                cachedScreenMins = null
             }
+            return null
+        }
+        val appCtx = context.applicationContext ?: context
+        val nowMs = SystemClock.elapsedRealtime()
+        if (!force) {
+            synchronized(cacheLock) {
+                if (screenTimeCtxRef?.get() === appCtx && nowMs - screenTimeAtMs in 0 until SCREEN_TIME_CACHE_MS) {
+                    return cachedScreenMins
+                }
+            }
+        }
+        val mins = try {
+            val usm = appCtx.getSystemService(UsageStatsManager::class.java) ?: return null
             val now = System.currentTimeMillis()
-            val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, cal.timeInMillis, now)
+            val midnightMs = synchronized(cacheLock) {
+                midnightCal.timeInMillis = now
+                midnightCal.set(Calendar.HOUR_OF_DAY, 0)
+                midnightCal.set(Calendar.MINUTE, 0)
+                midnightCal.set(Calendar.SECOND, 0)
+                midnightCal.set(Calendar.MILLISECOND, 0)
+                midnightCal.timeInMillis
+            }
+            val stats = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, midnightMs, now)
                 ?: return 0
-            val totalMs = stats.sumOf { it.totalTimeInForeground }
+            var totalMs = 0L
+            for (i in 0 until stats.size) {
+                totalMs += stats[i].totalTimeInForeground
+            }
             (totalMs / 60_000L).toInt().coerceAtLeast(0)
         } catch (_: Throwable) {
             null
         }
+        synchronized(cacheLock) {
+            screenTimeCtxRef = WeakReference(appCtx)
+            screenTimeAtMs = SystemClock.elapsedRealtime()
+            cachedScreenMins = mins
+        }
+        return mins
     }
 
     fun hasCalendarAccess(context: Context): Boolean =
         ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
-    fun queryNextCalendarEvent(context: Context): CalendarSnippet? {
+    fun queryNextCalendarEvent(context: Context, force: Boolean = false): CalendarSnippet? {
         if (!hasCalendarAccess(context)) return null
-        return try {
+        val appCtx = context.applicationContext ?: context
+        val nowMs = SystemClock.elapsedRealtime()
+        if (!force) {
+            synchronized(cacheLock) {
+                if (calCtxRef?.get() === appCtx && nowMs - calAtMs in 0 until CALENDAR_CACHE_MS) {
+                    return cachedCalendar
+                }
+            }
+        }
+        val snippet = try {
             val now = System.currentTimeMillis()
             val end = now + 48L * 3600_000L
             val uri = CalendarContract.Instances.CONTENT_URI.buildUpon().apply {
@@ -233,7 +316,8 @@ object HardwareControlRepository {
                 CalendarContract.Instances.BEGIN,
                 CalendarContract.Instances.ALL_DAY
             )
-            context.contentResolver.query(
+            var found: CalendarSnippet? = null
+            appCtx.contentResolver.query(
                 uri, projection,
                 "${CalendarContract.Instances.VISIBLE} = 1", null,
                 "${CalendarContract.Instances.BEGIN} ASC"
@@ -245,12 +329,19 @@ object HardwareControlRepository {
                     val allDay = cursor.getInt(2) == 1
                     val label = if (allDay) "ALL DAY"
                     else DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(begin))
-                    return CalendarSnippet(title, label)
+                    found = CalendarSnippet(title, label)
+                    break
                 }
             }
-            null
+            found
         } catch (_: Throwable) {
             null
         }
+        synchronized(cacheLock) {
+            calCtxRef = WeakReference(appCtx)
+            calAtMs = SystemClock.elapsedRealtime()
+            cachedCalendar = snippet
+        }
+        return snippet
     }
 }

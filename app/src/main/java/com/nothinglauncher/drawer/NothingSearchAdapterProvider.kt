@@ -96,82 +96,105 @@ class NothingSearchAdapterProvider(
         }
     }
 
+    private class CatHolder(val dot: View, val title: TextView, val count: TextView?)
+    private class CmdHolder(val badge: TextView, val title: TextView, val subtitle: TextView)
+    private class ListAppHolder(val title: TextView, val iconView: ImageView, val tag: TextView)
+
+    private val prefs by lazy(LazyThreadSafetyMode.NONE) { NothingPrefs.get(appContext) }
+
     private fun bindCategory(view: View, position: Int) {
         val item = lookupAdapterItem(view, position, false) as? NothingAllAppsContainerView.CategoryAdapterItem ?: return
+        val holder = (view.getTag(R.id.nt_view_holder_tag) as? CatHolder) ?: CatHolder(
+            view.findViewById(R.id.catDot),
+            view.findViewById(R.id.catTitle),
+            view.findViewById(R.id.catCount)
+        ).also { view.setTag(R.id.nt_view_holder_tag, it) }
         val ctx = view.context
-        AccentTheme.tintDot(view.findViewById(R.id.catDot), ctx)
-        view.findViewById<TextView>(R.id.catTitle).text = item.title
-        view.findViewById<TextView?>(R.id.catCount)?.text = item.count.toString()
+        AccentTheme.tintDot(holder.dot, ctx)
+        holder.title.text = item.title
+        holder.count?.text = item.count.toString()
     }
 
     private fun bindCommand(view: View, position: Int) {
         val item = lookupAdapterItem(view, position, true) as? NothingSearchAlgorithm.CommandAdapterItem ?: return
         val cmd = item.command
         val ctx = view.context
-        val badge = view.findViewById<TextView>(R.id.cmdBadge)
-        badge.text = cmd.badge
+        var holder = view.getTag(R.id.nt_view_holder_tag) as? CmdHolder
+        if (holder == null) {
+            holder = CmdHolder(
+                view.findViewById(R.id.cmdBadge),
+                view.findViewById(R.id.cmdTitle),
+                view.findViewById(R.id.cmdSubtitle)
+            )
+            view.setTag(R.id.nt_view_holder_tag, holder)
+            view.setOnClickListener { clicked ->
+                val active = clicked.tag as? com.nothinglauncher.search.CommandEngine.CommandResult ?: return@setOnClickListener
+                Tactile.confirm(clicked)
+                active.action(clicked.context)
+            }
+        }
+        holder.badge.text = cmd.badge
         val isAccent = cmd.kind == com.nothinglauncher.search.CommandEngine.Kind.ANSWER
-        badge.setBackgroundResource(if (isAccent) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
-        badge.setTextColor(
+        holder.badge.setBackgroundResource(if (isAccent) R.drawable.bg_pill_white else R.drawable.bg_pill_outline)
+        holder.badge.setTextColor(
             if (isAccent) ContextCompat.getColor(ctx, R.color.pill_active_text)
             else AccentTheme.accentColor(ctx)
         )
-        view.findViewById<TextView>(R.id.cmdTitle).text = cmd.title
-        view.findViewById<TextView>(R.id.cmdSubtitle).text = cmd.subtitle
+        holder.title.text = cmd.title
+        holder.subtitle.text = cmd.subtitle
         view.tag = cmd
-        view.setOnClickListener {
-            Tactile.confirm(it)
-            cmd.action(ctx)
-        }
     }
 
     private fun bindListApp(view: View, position: Int) {
         val item = lookupAdapterItem(view, position, false) ?: return
         val info: AppInfo = item.itemInfo ?: return
         val ctx = view.context
-        val prefs = NothingPrefs.get(ctx)
-        val title = view.findViewById<TextView>(R.id.listAppTitle)
-        val iconView = view.findViewById<ImageView>(R.id.listAppIcon)
-        val tag = view.findViewById<TextView>(R.id.listAppTag)
+        var holder = view.getTag(R.id.nt_view_holder_tag) as? ListAppHolder
+        if (holder == null) {
+            holder = ListAppHolder(
+                view.findViewById(R.id.listAppTitle),
+                view.findViewById(R.id.listAppIcon),
+                view.findViewById(R.id.listAppTag)
+            )
+            view.setTag(R.id.nt_view_holder_tag, holder)
+            view.setOnClickListener(mLauncher.itemOnClickListener)
+            view.setOnLongClickListener(mLauncher.allAppsItemLongClickListener)
+        }
 
         val cn = info.componentName
-        title.text = cn?.let { prefs.customAppLabels[it.flattenToString()] } ?: info.title
-        tag.text = info.sectionName
+        holder.title.text = cn?.let { prefs.customAppLabels[it.flattenToString()] } ?: info.title
+        holder.tag.text = info.sectionName
         val size = (34 * ctx.resources.displayMetrics.density).toInt()
         val bmp = info.bitmap.icon
         val pkg = cn?.packageName ?: info.targetPackage
         if (bmp != null) {
-            iconView.setImageDrawable(android.graphics.drawable.BitmapDrawable(ctx.resources, bmp))
+            holder.iconView.setImageDrawable(android.graphics.drawable.BitmapDrawable(ctx.resources, bmp))
         } else if (!pkg.isNullOrBlank()) {
             val packPkg = prefs.iconPackPackage
-            val packIcon = if (packPkg.isNotBlank() && cn != null) {
-                IconPackManager.loadIconForComponent(ctx, packPkg, cn)
+            val style = NothingIconLogic.currentStyle(ctx)
+            val night = NothingIconLogic.isNight(ctx)
+            val compKey = cn?.flattenToString() ?: pkg
+            val cacheKey = "list:$compKey:${style.name}:$packPkg:$night"
+            val cachedDrawable = IconFactory.getCached(ctx.resources, style, size, cacheKey)
+            if (cachedDrawable != null) {
+                holder.iconView.setImageDrawable(cachedDrawable)
             } else {
-                null
-            }
-            val d = packIcon ?: try { ctx.packageManager.getApplicationIcon(pkg) } catch (_: Throwable) { null }
-            if (d != null) {
-                val style = NothingIconLogic.currentStyle(ctx)
-                val night = NothingIconLogic.isNight(ctx)
-                val compKey = cn?.flattenToString() ?: pkg
-                iconView.setImageDrawable(
-                    IconFactory.render(
-                        ctx.resources,
-                        d,
-                        style,
-                        size,
-                        cacheKey = "list:$compKey:${style.name}:$packPkg:$night"
-                    )
-                )
-            } else {
-                iconView.setImageDrawable(null)
+                val packIcon = if (packPkg.isNotBlank() && cn != null) {
+                    IconPackManager.loadIconForComponent(ctx, packPkg, cn)
+                } else {
+                    null
+                }
+                val d = packIcon ?: try { ctx.packageManager.getApplicationIcon(pkg) } catch (_: Throwable) { null }
+                if (d != null) {
+                    holder.iconView.setImageDrawable(IconFactory.render(ctx.resources, d, style, size, cacheKey = cacheKey))
+                } else {
+                    holder.iconView.setImageDrawable(null)
+                }
             }
         } else {
-            iconView.setImageDrawable(null)
+            holder.iconView.setImageDrawable(null)
         }
         view.tag = info
-        view.setOnClickListener(mLauncher.itemOnClickListener)
-        view.setOnLongClickListener(mLauncher.allAppsItemLongClickListener)
     }
 
     override fun launchHighlightedItem(): Boolean {

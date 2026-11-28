@@ -52,8 +52,19 @@ class DeskHudActivity : AppCompatActivity() {
     private var shiftStep = 0
     private var lastShiftMinute = -1
     private var lastMetaMinute = -1
+    private var lastTimerSig: String? = null
     private var cachedEventStr: String? = null
     private var cachedAlarmStr: String? = null
+    private val tickCal: Calendar = Calendar.getInstance()
+    private val worldCal: Calendar = Calendar.getInstance()
+    private val worldDateFmt by lazy(LazyThreadSafetyMode.NONE) {
+        java.text.SimpleDateFormat("EEEE, d MMMM", Locale.getDefault())
+    }
+    private var glyphTimeView: TextView? = null
+    private var timerRingView: DotRingGaugeView? = null
+    private var timerModeView: TextView? = null
+    private var timerActionView: TextView? = null
+    private var glyphTimerPillView: TextView? = null
 
     private lateinit var deskRoot: View
     private lateinit var deskCanvas: View
@@ -85,7 +96,8 @@ class DeskHudActivity : AppCompatActivity() {
     private val tickRunnable = object : Runnable {
         override fun run() {
             if (!running) return
-            val now = Calendar.getInstance()
+            tickCal.timeInMillis = System.currentTimeMillis()
+            val now = tickCal
             bindTimer()
             bindClockMeta(now)
             if (prefs.deskBurnInShift) {
@@ -102,7 +114,8 @@ class DeskHudActivity : AppCompatActivity() {
                 deskCanvas.translationX = 0f
                 deskCanvas.translationY = 0f
             }
-            handler.postDelayed(this, 500L)
+            val delayMs = if (FocusTimerRepository.snapshot(this@DeskHudActivity).running) 500L else 1000L
+            handler.postDelayed(this, delayMs)
         }
     }
 
@@ -148,6 +161,11 @@ class DeskHudActivity : AppCompatActivity() {
         awakeBtn = findViewById(R.id.deskAwakeBtn)
         glyphCanvas = findViewById(R.id.deskGlyphCanvas)
         habitBtn = findViewById(R.id.deskHabitBtn)
+        glyphTimeView = findViewById(R.id.deskGlyphTime)
+        timerRingView = findViewById(R.id.deskTimerRing)
+        timerModeView = findViewById(R.id.deskTimerMode)
+        timerActionView = findViewById(R.id.deskTimerAction)
+        glyphTimerPillView = findViewById(R.id.deskGlyphTimerPill)
 
         modeButtons = mapOf(
             Mode.COCKPIT to findViewById(R.id.deskModeCockpit),
@@ -605,16 +623,16 @@ class DeskHudActivity : AppCompatActivity() {
 
         val timePat = if (DateFormat.is24HourFormat(this)) "HH:mm" else "h:mm a"
         val timeText = DateFormat.format(timePat, cal).toString()
-        findViewById<TextView?>(R.id.deskGlyphTime)?.text = timeText
+        glyphTimeView?.text = timeText
 
         val minuteKey = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE) + mode * 1440
         if (minuteKey != lastMetaMinute) {
             lastMetaMinute = minuteKey
             if (worldTz != null) {
-                val fmt = java.text.SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).apply {
-                    timeZone = worldTz
-                }
-                dateView.text = fmt.format(Calendar.getInstance(worldTz).time)
+                worldDateFmt.timeZone = worldTz
+                worldCal.timeZone = worldTz
+                worldCal.timeInMillis = cal.timeInMillis
+                dateView.text = worldDateFmt.format(worldCal.time)
             } else {
                 dateView.text = DateFormat.format(
                     DateFormat.getBestDateTimePattern(Locale.getDefault(), "EEEEdMMMM"), cal
@@ -746,8 +764,13 @@ class DeskHudActivity : AppCompatActivity() {
 
     private fun bindTimer() {
         val st = FocusTimerRepository.snapshot(this)
-        val ring = findViewById<DotRingGaugeView>(R.id.deskTimerRing)
-        ring.accentColor = AccentTheme.accentColor(this)
+        val accent = AccentTheme.accentColor(this)
+        val sig = "${st.display}|${st.running}|${st.finished}|${st.isStopwatch}|${st.durationMinutes}|$accent"
+        if (sig == lastTimerSig) return
+        lastTimerSig = sig
+
+        val ring = timerRingView ?: findViewById<DotRingGaugeView>(R.id.deskTimerRing).also { timerRingView = it }
+        ring.accentColor = accent
         ring.highlightActive = st.running
         ring.progress01 = st.progress01
         ring.centerText = st.display
@@ -759,15 +782,16 @@ class DeskHudActivity : AppCompatActivity() {
         glyphCanvas.timerProgress01 = st.progress01
         glyphCanvas.timerRunning = st.running
 
-        findViewById<TextView>(R.id.deskTimerMode).setText(
+        (timerModeView ?: findViewById<TextView>(R.id.deskTimerMode).also { timerModeView = it }).setText(
             if (st.isStopwatch) R.string.stopwatch_label else R.string.timer_label
         )
-        findViewById<TextView>(R.id.deskTimerAction).text = if (st.running || st.isStopwatch) {
-            getString(R.string.timer_reset)
-        } else {
-            "${st.durationMinutes}M"
-        }
-        findViewById<TextView?>(R.id.deskGlyphTimerPill)?.apply {
+        (timerActionView ?: findViewById<TextView>(R.id.deskTimerAction).also { timerActionView = it }).text =
+            if (st.running || st.isStopwatch) {
+                getString(R.string.timer_reset)
+            } else {
+                "${st.durationMinutes}M"
+            }
+        glyphTimerPillView?.apply {
             val prefix = if (st.running) "❚❚ " else "▶ "
             text = "$prefix${st.display}"
             setTextColor(getColor(if (st.running) R.color.text_primary else R.color.text_secondary))

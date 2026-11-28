@@ -6,6 +6,37 @@ dates.
 
 ## [Unreleased]
 
+## [15.5] — Deep Performance, Allocation, Memory, IPC & Binary Size Overhaul
+
+### Added
+- **ART Baseline Profile (`app/src/main/baseline-prof.txt`):** Added targeted startup (`NothingApplication`, `NothingLauncher`, `NothingPrefs`, `DotMatrix*`, `IconFactory`, Launcher3 core `Launcher`/`Workspace`/`CellLayout`/`LoaderTask`) and hot `onDraw`/`onMeasure` rules so ART compiles launch, draw, overlay, and scroll paths AOT across Android devices (`assets/dexopt/baseline.prof` `2,028` B -> `2,160` B; `baseline.profm` `215` B -> `275` B).
+- **Tests:** Added [`V15_5OptimizationTest.kt`](app/src/test/java/com/nothinglauncher/V15_5OptimizationTest.kt) (8 tests) verifying `NothingPrefs` cached collection hits/invalidations, `WeatherRepository.cached()` parsed snapshot reuse, bit-for-bit parity of zero-allocation `FocusSoundEngine.fillBuffer()` vs `synthesizeSample()`, all `CommandEngine.scoreApp()` fuzzy/acronym tiers, `IconFactory` cache hits + `TRIM_MEMORY_RUNNING_LOW` eviction, precomputed custom view rendering (`GRAVITY`/`LIFE`/`SNAKE`, `AnalogDotClockView`, `DotRingGaugeView`, `BatteryDotsView`, `WeatherDotsView`, `MediaDotsView`, `SecondsTickerView`, `HabitPegboardView`, `GlyphMatrixCanvasView`), and `HardwareControlRepository.readVitals()` TTL caching.
+- **v15 Docs Archive:** Preserved v15 release notes, architecture, and feature catalog under [`docs/archive/`](docs/archive/README.md) (`RELEASE_V15.md`, `ARCHITECTURE.v15.md`, `FEATURES.v15.md`).
+
+### Changed
+- **Version 15.5 Identity:** Bumped `versionName` to `"15.5"` (`app/build.gradle`), setup backup filename (`not-a-thing-v15.5-setup.json`), Setup Hub (`NOT A THING 15.5`), Preset label (`Telemetry v15.5`), and Settings **Studio 15.5** hero (`NothingSettingsActivity`, updated `V15FeaturesTest`).
+- **In-Memory Caching Across Prefs & Repositories:**
+  - `NothingPrefs`: Added `ParsedCache` snapshots for `habitDates`, `hiddenPackages`, `customAppLabels`, `recentComponents`, `quickFolderApps`, and `allWidgetSurfaces()` so repeated UI binds/draws do zero repeat JSON parsing; optimized `recordAppLaunch()` to short-circuit when already at index 0.
+  - `WeatherRepository`: Cached parsed `Weather` snapshot by raw JSON string so repeat widget/overlay/Dream binds avoid `JSONObject` allocation.
+  - `HardwareControlRepository`: Added context-scoped monotonic TTL caching (`5s` vitals, `45s` `UsageStatsManager` screen time, `30s` calendar events) and synchronized midnight `Calendar` reuse.
+  - `NotificationDigestRepository`: Hoisted precompiled `WHITESPACE_RE` and added bounded per-package app-label caching with `trimCaches()`.
+- **Icon Pipeline & Memory Coordination (`IconFactory`, `IconPackManager`, `NothingApplication`):**
+  - Eliminated per-icon temporary `Bitmap`, `Paint`, `Path`, `IntArray`, and `ColorMatrix` allocations via `ThreadLocal<ThreadScratch>` buffers, shared immutable `ColorFilter` singletons, and precomputed 13×13 `DOT_MASK_13`.
+  - Added `IconFactory.configureForTier()` (`maxMemory / 20` on `LITE` vs `maxMemory / 12` elsewhere), tiered `trimMemory(level)`, and `IconFactory.getCached()` fast-paths used by `NothingSearchAdapterProvider` and `DrawerHeader` before triggering `IconPackManager` / `PackageManager` IPC.
+  - Replaced `XmlPullParserFactory.newInstance()` with `android.util.Xml.newPullParser()` and cached pack `Resources` in `IconPackManager`; expanded `NothingApplication.onTrimMemory()` to evict `AppCategorizer`, `IconPackManager`, `NotificationDigestRepository`, and `HardwareControlRepository` caches under pressure.
+- **Zero-Allocation Custom Views, Physics & Audio (`onDraw` & DSP):**
+  - Precomputed trigonometry lookup tables and view-dimension geometry caches in `AnalogDotClockView`, `DotRingGaugeView` (plus cached `breakText` subtitle), `BatteryDotsView`, `WeatherDotsView` (plus cached `breakText` fits & allocation-free 12h sparkline), `MediaDotsView` (plus LCG step), `GlyphMatrixCanvasView` (eliminating per-frame lattice `hypot` & ring `Math.toRadians` calls), `HabitPegboardView` (28-day cached boolean mask), `DotMatrixView` (flat `BooleanArray` accent mask & single-line fast path), `DotMatrixClockView` & `SecondsTickerView` (reused `Calendar`), `DotGridDrawable` (quantized ripple updates + shared tile `Paint`), `KineticMatrixView` (`snakeDrawFlags` `ByteArray(160)` eliminating 160 `Pair` allocations/frame, cached display rotation, squared-distance collision cull before `sqrt`, unrolled toroidal Life neighbor count).
+  - Replaced per-sample `Pair<Float, Float>` boxing in `FocusSoundEngine` streaming loop with inline primitive `fillBuffer()`.
+- **UI Smoothness, Search & Touch Paths:**
+  - `NothingLauncher`: Reused `IntArray(2)`/`Rect` in `HomeGestureController.hitContains()` and cached `DrawerHeader`/`HotseatSearchPill` lookups.
+  - `EssentialSpaceOverlay`: Halted background dynamic counter tickers when neither timer nor recording is active, enabled temporary `LAYER_TYPE_HARDWARE` during open/close slide/settle transitions, and fingerprinted Notification Digest snapshots before rebuilding views.
+  - `NothingAllAppsContainerView` & `NothingSearchAdapterProvider` & `DrawerHeader`: Cached ViewHolder references via `R.id.nt_view_holder_tag`, reused click listeners, enabled `isSpanGroupIndexCacheEnabled` with proper invalidation, replaced `distinctBy`/`groupBy` `Pair` churn with `ComponentKey`/`EnumMap`, and cached `DrawerHeader` visible count & recents signature.
+  - `CommandEngine` & `NothingSearchAlgorithm`: Replaced thread-unsafe `DecimalFormat` with `ThreadLocal`, cached timezone lookup map & `SimpleDateFormat`, moved unit conversion tables to static maps, rewrote `scoreApp()` as zero-allocation character scanning, and used bounded top-K insertion in `NothingSearchAlgorithm`.
+  - Cached reflection `Field` lookups in `NothingWidget` and `DrawerSearchBox`, and cached `SimpleDateFormat`/`Calendar` + view refs + timer signature checks in `DeskHudActivity` and `NothingDreamService`.
+- **Release R8, Resource Shrinking & Packaging (`app/build.gradle`, `app/proguard-rules.pro`):**
+  - Enabled `shrinkResources true` and obfuscated internal `com.nothinglauncher.**` helpers while preserving every `NothingWidget`, `NothingIconLogic`, `ResourceBasedOverride`, and `AppsSearchContainerLayout.mSearchBarController` contract; stripped release `Log.v`/`d`/`i` calls and excluded non-runtime `.proto`, `kotlin_builtins`, `DebugProbesKt.bin`, and `kotlin-tooling-metadata.json` metadata.
+  - Measured release output vs v15: `app-release.apk` reduced `5,099,967` B -> `5,013,847` B (`-86,120` B), `com` DEX payload reduced `1,412,066` B -> `1,296,949` B (`-115,117` B), `classes.dex` reduced `3,476,516` B -> `3,438,332` B, raw `res/` reduced `1,594,107` B -> `1,529,928` B; all 13 custom widgets, `NothingIconLogic`, `mSearchBarController`, and 0 undesugared methods verified on shipped DEX via `dexdump`.
+
 ## [15] — Work-Tab Isolation, Live Cross-Surface Sync, World Clock & Studio UX Polish
 
 ### Added

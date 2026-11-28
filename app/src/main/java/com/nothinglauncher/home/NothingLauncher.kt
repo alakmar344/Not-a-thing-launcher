@@ -83,6 +83,8 @@ class NothingLauncher : Launcher() {
     private var appliedDrawerMode: NothingPrefs.DrawerLayoutMode? = null
     private var drawerProgress = 0f
     private var isResumedState = false
+    private var cachedDrawerHeaderRef: java.lang.ref.WeakReference<DrawerHeader>? = null
+    private var cachedSearchPillRef: java.lang.ref.WeakReference<HotseatSearchPill>? = null
 
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
@@ -383,12 +385,28 @@ class NothingLauncher : Launcher() {
 
     private fun refreshDrawerHeader() {
         val av = appsView ?: return
-        findFirstView(av, DrawerHeader::class.java)?.refresh()
+        val cached = cachedDrawerHeaderRef?.get()
+        val header = if (cached != null && cached.isAttachedToWindow) {
+            cached
+        } else {
+            findFirstView(av, DrawerHeader::class.java)?.also {
+                cachedDrawerHeaderRef = java.lang.ref.WeakReference(it)
+            }
+        }
+        header?.refresh()
     }
 
     private fun refreshSearchPillVisibility() {
         val hs = hotseat ?: return
-        findFirstView(hs, HotseatSearchPill::class.java)?.refreshVisibility()
+        val cached = cachedSearchPillRef?.get()
+        val pill = if (cached != null && cached.isAttachedToWindow) {
+            cached
+        } else {
+            findFirstView(hs, HotseatSearchPill::class.java)?.also {
+                cachedSearchPillRef = java.lang.ref.WeakReference(it)
+            }
+        }
+        pill?.refreshVisibility()
     }
 
     private fun applyHomeLabelsVisibility() {
@@ -657,11 +675,14 @@ class NothingLauncher : Launcher() {
             return false
         }
 
+        private val tmpLoc = IntArray(2)
+        private val tmpRect = Rect()
+
         private fun hitContains(v: View, rawX: Int, rawY: Int): Boolean {
             if (!v.isVisible) return false
-            val loc = IntArray(2)
-            v.getLocationOnScreen(loc)
-            return Rect(loc[0], loc[1], loc[0] + v.width, loc[1] + v.height).contains(rawX, rawY)
+            v.getLocationOnScreen(tmpLoc)
+            tmpRect.set(tmpLoc[0], tmpLoc[1], tmpLoc[0] + v.width, tmpLoc[1] + v.height)
+            return tmpRect.contains(rawX, rawY)
         }
     }
 

@@ -123,36 +123,69 @@ class DrawerHeader @JvmOverloads constructor(
         chip.setText(resId)
     }
 
+    private var lastRecentsSig: String? = null
+    private var lastVisibleCount: Int = -1
+    private val drawerCountView: TextView? by lazy(LazyThreadSafetyMode.NONE) { findViewById(R.id.drawerCount) }
+    private val recentsScrollView: View? by lazy(LazyThreadSafetyMode.NONE) { findViewById(R.id.drawerRecentsScroll) }
+    private val recentsRowView: LinearLayout? by lazy(LazyThreadSafetyMode.NONE) { findViewById(R.id.drawerRecentsRow) }
+
     private fun updateCount() {
         val apps = store?.apps ?: return
         val hidden = NothingPrefs.get(context).hiddenPackages
-        val visible = apps.count { it.componentName?.packageName !in hidden }
-        findViewById<TextView>(R.id.drawerCount).text = String.format(Locale.US, "%03d", visible)
+        var visible = 0
+        for (i in apps.indices) {
+            val pkg = apps[i].componentName?.packageName
+            if (pkg == null || pkg !in hidden) visible++
+        }
+        if (visible == lastVisibleCount) return
+        lastVisibleCount = visible
+        drawerCountView?.text = String.format(Locale.US, "%03d", visible)
     }
 
     private fun bindRecents() {
-        val scroll = findViewById<View>(R.id.drawerRecentsScroll) ?: return
-        val row = findViewById<LinearLayout>(R.id.drawerRecentsRow) ?: return
+        val scroll = recentsScrollView ?: return
+        val row = recentsRowView ?: return
         val prefs = NothingPrefs.get(context)
         if (!prefs.showDrawerRecents) {
+            lastRecentsSig = "OFF"
             scroll.isVisible = false
             return
         }
         val hidden = prefs.hiddenPackages
-        val recent = prefs.recentComponents
-            .mapNotNull { ComponentName.unflattenFromString(it) }
-            .filter { it.packageName !in hidden }
-            .take(5)
+        val rawRecent = prefs.recentComponents
+        val recent = ArrayList<ComponentName>(5)
+        for (i in rawRecent.indices) {
+            val cn = ComponentName.unflattenFromString(rawRecent[i]) ?: continue
+            if (cn.packageName !in hidden) {
+                recent += cn
+                if (recent.size == 5) break
+            }
+        }
         if (recent.isEmpty()) {
+            lastRecentsSig = "EMPTY"
             scroll.isVisible = false
             return
         }
-        row.removeAllViews()
-        val d = resources.displayMetrics.density
-        val iconPx = (24 * d).toInt()
         val style = NothingIconLogic.currentStyle(context)
         val packPkg = prefs.iconPackPackage
         val night = NothingIconLogic.isNight(context)
+        val customLabels = prefs.customAppLabels
+        val sig = buildString(128) {
+            append(style.ordinal).append('|').append(packPkg).append('|').append(night).append('|')
+            for (cn in recent) {
+                val flat = cn.flattenToString()
+                append(flat).append('=').append(customLabels[flat] ?: "").append(';')
+            }
+        }
+        if (sig == lastRecentsSig && row.childCount > 0) {
+            scroll.isVisible = true
+            return
+        }
+        lastRecentsSig = sig
+
+        row.removeAllViews()
+        val d = resources.displayMetrics.density
+        val iconPx = (24 * d).toInt()
         val la = try { context.getSystemService(LauncherApps::class.java) } catch (_: Throwable) { null }
 
         for (cn in recent) {
@@ -169,21 +202,20 @@ class DrawerHeader @JvmOverloads constructor(
                 isClickable = true
                 isFocusable = true
             }
+            val compFlat = cn.flattenToString()
+            val cacheKey = "recent:$compFlat:${style.name}:$packPkg:$night"
             val iv = ImageView(context).apply {
-                val raw = (if (packPkg.isNotBlank()) IconPackManager.loadIconForComponent(context, packPkg, cn) else null)
-                    ?: info.getBadgedIcon(0)
+                val cached = IconFactory.getCached(resources, style, iconPx, cacheKey)
                 setImageDrawable(
-                    IconFactory.render(
-                        resources,
-                        raw,
-                        style,
-                        iconPx,
-                        cacheKey = "recent:${cn.flattenToString()}:${style.name}:$packPkg:$night"
-                    )
+                    cached ?: run {
+                        val raw = (if (packPkg.isNotBlank()) IconPackManager.loadIconForComponent(context, packPkg, cn) else null)
+                            ?: info.getBadgedIcon(0)
+                        IconFactory.render(resources, raw, style, iconPx, cacheKey = cacheKey)
+                    }
                 )
             }
             val tv = TextView(context).apply {
-                text = prefs.customAppLabels[cn.flattenToString()] ?: info.label
+                text = customLabels[compFlat] ?: info.label
                 textSize = 11f
                 maxLines = 1
                 setTextColor(context.getColor(R.color.text_primary))
@@ -194,7 +226,7 @@ class DrawerHeader @JvmOverloads constructor(
             Tactile.press(pill, 0.96f)
             pill.setOnClickListener {
                 Tactile.tick(it)
-                prefs.recordAppLaunch(cn.flattenToString())
+                prefs.recordAppLaunch(compFlat)
                 val intent = Intent(Intent.ACTION_MAIN)
                     .addCategory(Intent.CATEGORY_LAUNCHER)
                     .setComponent(cn)
