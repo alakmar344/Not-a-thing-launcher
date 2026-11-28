@@ -89,13 +89,29 @@ class EssentialSpaceOverlay(
         override fun run() {
             if (!tickerRunning || progress <= 0f) return
             refreshDynamicCounters()
-            handler.postDelayed(this, 500L)
+            if (shouldKeepTicking()) {
+                handler.postDelayed(this, if (VoiceMemoRepository.isRecording) 500L else 1000L)
+            } else {
+                tickerRunning = false
+            }
         }
     }
 
+    private fun shouldKeepTicking(): Boolean =
+        VoiceMemoRepository.isRecording || FocusTimerRepository.snapshot(launcher).running
+
+    private var hardwareLayerActive = false
+    private var lastDigestSig: String? = null
+    private val cal = Calendar.getInstance()
+    private val memoListener: () -> Unit = {
+        bindMemoRow()
+        if (progress > 0f && VoiceMemoRepository.isRecording) startTickers()
+    }
+    private val timerListener: () -> Unit = {
+        refreshDynamicCounters()
+        if (progress > 0f && shouldKeepTicking()) startTickers()
+    }
     private val torchListener: (Boolean) -> Unit = { bindHardwarePills() }
-    private val memoListener: () -> Unit = { bindMemoRow() }
-    private val timerListener: () -> Unit = { refreshDynamicCounters() }
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { bindBriefing() }
     private val mediaListener: (MediaSessionRepository.State) -> Unit = { bindMedia(it) }
     private val digestListener: (NotificationDigestRepository.Snapshot) -> Unit = { bindDigest(it) }
@@ -115,9 +131,18 @@ class EssentialSpaceOverlay(
         stopTickers()
         unregisterListeners()
         settleAnimator?.cancel()
+        setOverlayHardwareLayer(false)
         launcher.workspace?.setLauncherOverlay(null)
         rootView?.let { v -> (v.parent as? ViewGroup)?.removeView(v) }
         rootView = null
+        lastDigestSig = null
+    }
+
+    private fun setOverlayHardwareLayer(enabled: Boolean) {
+        if (hardwareLayerActive == enabled) return
+        hardwareLayerActive = enabled
+        val type = if (enabled) View.LAYER_TYPE_HARDWARE else View.LAYER_TYPE_NONE
+        rootView?.setLayerType(type, null)
     }
 
     override fun setOverlayCallbacks(callbacks: LauncherOverlayCallbacks?) {
@@ -553,6 +578,7 @@ class EssentialSpaceOverlay(
                 ?: launcher.resources.displayMetrics.widthPixels
             ).coerceAtLeast(1)
         if (clamped <= 0f) {
+            setOverlayHardwareLayer(false)
             view.visibility = View.GONE
             view.translationX = if (isRtl) w.toFloat() else -w.toFloat()
             launcher.workspace?.apply { scaleX = 1f; scaleY = 1f; alpha = 1f }
@@ -562,6 +588,7 @@ class EssentialSpaceOverlay(
             return
         }
 
+        setOverlayHardwareLayer(clamped < 1f)
         if (view.visibility != View.VISIBLE) {
             view.visibility = View.VISIBLE
             bindAll()
@@ -582,6 +609,10 @@ class EssentialSpaceOverlay(
     }
 
     private fun startTickers() {
+        if (!shouldKeepTicking()) {
+            refreshDynamicCounters()
+            return
+        }
         if (tickerRunning) return
         tickerRunning = true
         handler.post(tickRunnable)
@@ -637,7 +668,7 @@ class EssentialSpaceOverlay(
 
     private fun bindBriefing() {
         val view = rootView ?: return
-        val cal = Calendar.getInstance()
+        cal.timeInMillis = System.currentTimeMillis()
         val hour = cal.get(Calendar.HOUR_OF_DAY)
         val greeting = when {
             hour < 12 -> launcher.getString(R.string.greeting_morning)
@@ -837,10 +868,25 @@ class EssentialSpaceOverlay(
         view.findViewById<View?>(R.id.spaceDigestDot)?.let { AccentTheme.tintDot(it, launcher) }
         val countView = view.findViewById<TextView?>(R.id.spaceDigestCount)
         val container = view.findViewById<LinearLayout?>(R.id.spaceDigestContainer) ?: return
-        container.removeAllViews()
 
         val prefs = NothingPrefs.get(launcher)
         val accent = AccentTheme.accentColor(launcher)
+        val sig = buildString(128) {
+            append(snap.permissionGranted).append('|')
+                .append(snap.totalCount).append('|')
+                .append(snap.priorityCount).append('|')
+                .append(prefs.focusMode).append('|')
+                .append(accent).append('|')
+            for (i in 0 until snap.entries.size) {
+                val e = snap.entries[i]
+                append(e.key).append(':').append(e.postTime).append(':').append(e.countInPkg)
+                    .append(':').append(e.title).append(';')
+            }
+        }
+        if (sig == lastDigestSig && container.childCount > 0) return
+        lastDigestSig = sig
+        container.removeAllViews()
+
         val d = launcher.resources.displayMetrics.density
 
         if (!snap.permissionGranted) {

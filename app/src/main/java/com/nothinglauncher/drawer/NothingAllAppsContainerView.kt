@@ -11,8 +11,11 @@ import com.android.launcher3.allapps.BaseAllAppsAdapter
 import com.android.launcher3.allapps.LauncherAllAppsContainerView
 import com.android.launcher3.allapps.search.AllAppsSearchUiDelegate
 import com.android.launcher3.allapps.search.SearchAdapterProvider
+import com.android.launcher3.model.data.AppInfo
+import com.android.launcher3.util.ComponentKey
 import com.nothinglauncher.BigScreenUi
 import com.nothinglauncher.NothingPrefs
+import java.util.EnumMap
 import java.util.Locale
 import java.util.function.Predicate
 
@@ -40,6 +43,7 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
             other is CategoryAdapterItem && other.title == title && other.count == count
     }
 
+    private val prefs: NothingPrefs by lazy(LazyThreadSafetyMode.NONE) { NothingPrefs.get(context) }
     private var mainAppsList: AlphabeticalAppsList<Launcher>? = null
     private var workAppsList: AlphabeticalAppsList<Launcher>? = null
     private var searchAppsList: AlphabeticalAppsList<Launcher>? = null
@@ -108,7 +112,7 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
             override fun getItemViewType(position: Int): Int {
                 val base = super.getItemViewType(position)
                 if (base == VIEW_TYPE_ICON && !isSearchAdapter && !isSearching &&
-                    NothingPrefs.get(context).drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST
+                    prefs.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST
                 ) {
                     return NothingSearchAdapterProvider.VIEW_TYPE_LIST_APP
                 }
@@ -116,9 +120,12 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
             }
         }
         val baseSizer = adapter.layoutManager.spanSizeLookup
+        val searchCmdCols = BigScreenUi.searchCommandColumns(context).coerceAtLeast(1)
+        val drawerListCols = BigScreenUi.drawerListColumns(context).coerceAtLeast(1)
         adapter.layoutManager.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
             init {
                 isSpanIndexCacheEnabled = true
+                isSpanGroupIndexCacheEnabled = true
             }
 
             override fun getSpanSize(position: Int): Int {
@@ -131,15 +138,13 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
                     if ((isSearchAdapter || isSearching) &&
                         item.viewType == NothingSearchAdapterProvider.VIEW_TYPE_COMMAND
                     ) {
-                        val cols = BigScreenUi.searchCommandColumns(context).coerceAtLeast(1)
-                        return (adapter.layoutManager.spanCount / cols).coerceAtLeast(1)
+                        return (adapter.layoutManager.spanCount / searchCmdCols).coerceAtLeast(1)
                     }
                     if (!isSearchAdapter && !isSearching &&
                         item.viewType == BaseAllAppsAdapter.VIEW_TYPE_ICON &&
-                        NothingPrefs.get(context).drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST
+                        prefs.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.LIST
                     ) {
-                        val listCols = BigScreenUi.drawerListColumns(context).coerceAtLeast(1)
-                        return (adapter.layoutManager.spanCount / listCols).coerceAtLeast(1)
+                        return (adapter.layoutManager.spanCount / drawerListCols).coerceAtLeast(1)
                     }
                 }
                 return baseSizer.getSpanSize(position)
@@ -204,9 +209,17 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
     }
 
     fun refreshDrawerLayoutMode() {
+        mainAdapter?.layoutManager?.spanSizeLookup?.apply {
+            invalidateSpanIndexCache()
+            invalidateSpanGroupIndexCache()
+        }
+        workAdapter?.layoutManager?.spanSizeLookup?.apply {
+            invalidateSpanIndexCache()
+            invalidateSpanGroupIndexCache()
+        }
         mainAppsList?.updateAdapterItems()
         workAppsList?.updateAdapterItems()
-        if (NothingPrefs.get(context).drawerLayoutMode == NothingPrefs.DrawerLayoutMode.CATEGORIES) {
+        if (prefs.drawerLayoutMode == NothingPrefs.DrawerLayoutMode.CATEGORIES) {
             applyCategoriesIfNeeded(forceRebuild = true)
         } else {
             applyingCategories = true
@@ -218,7 +231,7 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
 
     private fun applyCategoriesIfNeeded(forceRebuild: Boolean = false) {
         if (isSearching) return
-        if (NothingPrefs.get(context).drawerLayoutMode != NothingPrefs.DrawerLayoutMode.CATEGORIES) return
+        if (prefs.drawerLayoutMode != NothingPrefs.DrawerLayoutMode.CATEGORIES) return
         applyCategoriesToList(mainAppsList, mainAdapter, forceRebuild)
         applyCategoriesToList(workAppsList, workAdapter, forceRebuild)
     }
@@ -230,35 +243,53 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
     ) {
         if (list == null || adapter == null) return
         val items = list.adapterItems
-        if (!forceRebuild && items.any { it is CategoryAdapterItem }) return
-        val apps = items.mapNotNull { it.itemInfo }.distinctBy { it.componentName to it.user }
-        if (apps.isEmpty()) return
+        if (!forceRebuild) {
+            for (i in 0 until items.size) {
+                if (items[i] is CategoryAdapterItem) return
+            }
+        }
+        val seen = HashSet<ComponentKey>(items.size)
+        val grouped = EnumMap<AppCategorizer.Bucket, ArrayList<AppInfo>>(AppCategorizer.Bucket::class.java)
+        var totalApps = 0
+        for (i in 0 until items.size) {
+            val info = items[i].itemInfo ?: continue
+            val key = ComponentKey(info.componentName, info.user)
+            if (!seen.add(key)) continue
+            val bucket = AppCategorizer.bucketFor(context, info)
+            grouped.getOrPut(bucket) { ArrayList() }.add(info)
+            totalApps++
+        }
+        if (totalApps == 0) return
 
-        val grouped = apps.groupBy { AppCategorizer.bucketFor(context, it) }
-        val rebuilt = ArrayList<BaseAllAppsAdapter.AdapterItem>(apps.size + grouped.size)
+        val rebuilt = ArrayList<BaseAllAppsAdapter.AdapterItem>(totalApps + grouped.size)
         val sections = ArrayList<AlphabeticalAppsList.FastScrollSectionInfo>(grouped.size)
         val cols = mActivityContext.deviceProfile.numShownAllAppsColumns.coerceAtLeast(1)
+        val locale = Locale.getDefault()
+        val titleComparator = Comparator<AppInfo> { a, b ->
+            val ta = a.title?.toString()?.lowercase(locale).orEmpty()
+            val tb = b.title?.toString()?.lowercase(locale).orEmpty()
+            ta.compareTo(tb)
+        }
         var rowIndex = 0
-        AppCategorizer.Bucket.entries.forEach { bucket ->
-            val bucketApps = grouped[bucket].orEmpty()
-                .sortedBy { it.title?.toString()?.lowercase(Locale.getDefault()).orEmpty() }
-            if (bucketApps.isEmpty()) return@forEach
+        for (bucket in AppCategorizer.Bucket.entries) {
+            val bucketApps = grouped[bucket] ?: continue
+            if (bucketApps.isEmpty()) continue
+            bucketApps.sortWith(titleComparator)
             val bucketTitle = context.getString(bucket.titleRes)
             val headerPos = rebuilt.size
             sections += AlphabeticalAppsList.FastScrollSectionInfo(
-                bucketTitle.take(3).uppercase(Locale.getDefault()),
+                bucketTitle.take(3).uppercase(locale),
                 headerPos
             )
-            val header = CategoryAdapterItem(
+            rebuilt += CategoryAdapterItem(
                 key = bucket.name,
                 title = bucketTitle,
                 count = bucketApps.size
             ).apply {
                 this.rowIndex = rowIndex++
             }
-            rebuilt += header
-            bucketApps.forEachIndexed { idx, appInfo ->
-                val item = BaseAllAppsAdapter.AdapterItem.asApp(appInfo)
+            for (idx in 0 until bucketApps.size) {
+                val item = BaseAllAppsAdapter.AdapterItem.asApp(bucketApps[idx])
                 item.rowIndex = rowIndex + idx / cols
                 item.rowAppIndex = idx % cols
                 rebuilt += item
@@ -271,6 +302,10 @@ class NothingAllAppsContainerView @JvmOverloads constructor(
         items.addAll(rebuilt)
         list.fastScrollerSections.clear()
         list.fastScrollerSections.addAll(sections)
+        adapter.layoutManager.spanSizeLookup.apply {
+            invalidateSpanIndexCache()
+            invalidateSpanGroupIndexCache()
+        }
         adapter.notifyDataSetChanged()
         applyingCategories = false
     }

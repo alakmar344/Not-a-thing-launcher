@@ -36,6 +36,22 @@ class NothingDreamService : DreamService() {
     private var cachedWeather: WeatherRepository.Weather? = null
     private var cachedBatteryIntent: Intent? = null
     private var receiverRegistered = false
+    private val tickCal: Calendar = Calendar.getInstance()
+    private val worldCal: Calendar = Calendar.getInstance()
+    private val worldDateFmt by lazy(LazyThreadSafetyMode.NONE) {
+        java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault())
+    }
+    private var dreamCanvasView: View? = null
+    private var dreamAccentDotView: View? = null
+    private var dreamDigitalView: DotMatrixClockView? = null
+    private var dreamAnalogView: AnalogDotClockView? = null
+    private var dreamWordView: DotMatrixView? = null
+    private var dreamSecondsView: SecondsTickerView? = null
+    private var dreamFacePillView: TextView? = null
+    private var dreamDateView: TextView? = null
+    private var dreamBatteryPillView: TextView? = null
+    private var dreamWeatherTextView: TextView? = null
+    private var dreamDigestTextView: TextView? = null
 
     private val weatherListener: (WeatherRepository.Weather?) -> Unit = { weather ->
         cachedWeather = weather
@@ -59,14 +75,15 @@ class NothingDreamService : DreamService() {
     private val tick = object : Runnable {
         override fun run() {
             if (!attached) return
-            val now = Calendar.getInstance()
+            tickCal.timeInMillis = System.currentTimeMillis()
+            val now = tickCal
             bindClock(now)
             val minute = now.get(Calendar.HOUR_OF_DAY) * 60 + now.get(Calendar.MINUTE)
             if (minute != lastTelemetryMinute) {
                 lastTelemetryMinute = minute
                 bindTelemetry()
             }
-            val canvas = findViewById<View?>(R.id.dreamCanvas)
+            val canvas = dreamCanvasView
             if (canvas != null && prefs.deskBurnInShift) {
                 if (minute != lastShiftMinute) {
                     lastShiftMinute = minute
@@ -80,7 +97,7 @@ class NothingDreamService : DreamService() {
                 canvas.translationX = 0f
                 canvas.translationY = 0f
             }
-            handler.postDelayed(this, 1000L)
+            handler.postDelayed(this, 1000L - System.currentTimeMillis() % 1000L)
         }
     }
 
@@ -94,10 +111,23 @@ class NothingDreamService : DreamService() {
         val root = LayoutInflater.from(themed).inflate(R.layout.dream_nothing_standby, null)
         setContentView(root)
 
+        dreamCanvasView = root.findViewById(R.id.dreamCanvas)
+        dreamAccentDotView = root.findViewById(R.id.dreamAccentDot)
+        dreamDigitalView = root.findViewById(R.id.dreamClock)
+        dreamAnalogView = root.findViewById(R.id.dreamClockAnalog)
+        dreamWordView = root.findViewById(R.id.dreamClockWord)
+        dreamSecondsView = root.findViewById(R.id.dreamSeconds)
+        dreamFacePillView = root.findViewById(R.id.dreamFacePill)
+        dreamDateView = root.findViewById(R.id.dreamDate)
+        dreamBatteryPillView = root.findViewById(R.id.dreamBatteryPill)
+        dreamWeatherTextView = root.findViewById(R.id.dreamWeatherText)
+        dreamDigestTextView = root.findViewById(R.id.dreamDigestText)
+
         val cycleFace = View.OnClickListener {
             Tactile.tick(it)
             prefs.clockFaceMode = (prefs.clockFaceMode + 1) % 4
-            bindClock(Calendar.getInstance())
+            tickCal.timeInMillis = System.currentTimeMillis()
+            bindClock(tickCal)
         }
         root.findViewById<View>(R.id.dreamFacePill).setOnClickListener(cycleFace)
         root.findViewById<View>(R.id.dreamClock).setOnClickListener(cycleFace)
@@ -151,18 +181,17 @@ class NothingDreamService : DreamService() {
     }
 
     private fun bindClock(cal: Calendar) {
-        val root = findViewById<View?>(R.id.dreamRoot) ?: return
+        val digital = dreamDigitalView ?: return
+        val analog = dreamAnalogView ?: return
+        val word = dreamWordView ?: return
+        val seconds = dreamSecondsView ?: return
+        val facePill = dreamFacePillView ?: return
+        val date = dreamDateView ?: return
         val accent = AccentTheme.accentColor(this)
-        findViewById<View?>(R.id.dreamAccentDot)?.let { AccentTheme.tintDot(it, this) }
-        val digital = root.findViewById<DotMatrixClockView>(R.id.dreamClock)
-        val analog = root.findViewById<AnalogDotClockView>(R.id.dreamClockAnalog)
-        val word = root.findViewById<DotMatrixView>(R.id.dreamClockWord)
-        val seconds = root.findViewById<SecondsTickerView>(R.id.dreamSeconds)
+        dreamAccentDotView?.let { AccentTheme.tintDot(it, this) }
         val fx = com.nothinglauncher.perf.VisualTier.effects(this)
         digital.glow = digital.glow && fx.dotGlow
         word.glow = word.glow && fx.dotGlow
-        val facePill = root.findViewById<TextView>(R.id.dreamFacePill)
-        val date = root.findViewById<TextView>(R.id.dreamDate)
 
         digital.accentColor = accent
         analog.accentColor = accent
@@ -178,10 +207,12 @@ class NothingDreamService : DreamService() {
         seconds.isVisible = mode == 0 && prefs.showSeconds
 
         if (worldTz != null) {
-            val fmt = java.text.SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).apply {
-                timeZone = worldTz
-            }
-            date.text = fmt.format(Calendar.getInstance(worldTz).time).uppercase(Locale.getDefault())
+            val fmt = worldDateFmt
+            fmt.timeZone = worldTz
+            val wCal = worldCal
+            wCal.timeZone = worldTz
+            wCal.timeInMillis = cal.timeInMillis
+            date.text = fmt.format(wCal.time).uppercase(Locale.getDefault())
         } else {
             date.text = DateFormat.format("EEEE, MMM d", cal).toString().uppercase(Locale.getDefault())
         }
@@ -208,7 +239,7 @@ class NothingDreamService : DreamService() {
     }
 
     private fun bindBattery(batIntent: Intent?) {
-        val batTv = findViewById<TextView?>(R.id.dreamBatteryPill) ?: return
+        val batTv = dreamBatteryPillView ?: return
         val resolved = batIntent ?: cachedBatteryIntent ?: try {
             registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))?.also {
                 cachedBatteryIntent = it
@@ -225,7 +256,7 @@ class NothingDreamService : DreamService() {
     }
 
     private fun bindTelemetry() {
-        findViewById<TextView?>(R.id.dreamBatteryPill) ?: return
+        if (dreamBatteryPillView == null) return
         bindBattery(null)
 
         val weather = cachedWeather ?: WeatherRepository.cached(prefs).also { cachedWeather = it }
@@ -239,12 +270,12 @@ class NothingDreamService : DreamService() {
             "♫ ${media.title}"
         } else null
         val wStr = weather?.let { "${it.temperature}° ${it.city.uppercase(Locale.getDefault())}" }
-        findViewById<TextView?>(R.id.dreamWeatherText)?.text =
+        dreamWeatherTextView?.text =
             listOfNotNull(mediaStr ?: wStr, alarmStr).joinToString("   •   ")
                 .ifEmpty { getString(R.string.nt_desk_shift_note) }
 
         val digest = NotificationDigestRepository.current(this)
-        findViewById<TextView?>(R.id.dreamDigestText)?.text = when {
+        dreamDigestTextView?.text = when {
             !digest.permissionGranted -> getString(R.string.nt_desk_title)
             digest.totalCount == 0 -> getString(R.string.nt_digest_empty)
             prefs.focusMode -> getString(R.string.nt_digest_shielded, digest.totalCount)

@@ -63,6 +63,15 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
 
     private companion object {
         const val MAX_SPAN = 12
+        val PROVIDER_INFO_FIELD: java.lang.reflect.Field? by lazy {
+            try {
+                AppWidgetProviderInfo::class.java.getDeclaredField("providerInfo").apply {
+                    isAccessible = true
+                }
+            } catch (_: Throwable) {
+                null
+            }
+        }
     }
 
     final override fun onViewCreated(parent: AppWidgetHostView) {
@@ -87,17 +96,18 @@ abstract class NothingWidget(protected val appContext: Context) : CustomWidgetPl
             LauncherAppWidgetProviderInfo.CLS_CUSTOM_WIDGET_PREFIX + javaClass.name
         )
         try {
-            val field = AppWidgetProviderInfo::class.java.getDeclaredField("providerInfo")
-            field.isAccessible = true
-            val current = field.get(info) as? ActivityInfo
-            field.set(
-                info,
-                (current?.let(::ActivityInfo) ?: ActivityInfo()).apply {
-                    packageName = context.packageName
-                    name = javaClass.name
-                    applicationInfo = context.applicationInfo
-                }
-            )
+            val field = PROVIDER_INFO_FIELD
+            if (field != null) {
+                val current = field.get(info) as? ActivityInfo
+                field.set(
+                    info,
+                    (current?.let(::ActivityInfo) ?: ActivityInfo()).apply {
+                        packageName = context.packageName
+                        name = javaClass.name
+                        applicationInfo = context.applicationInfo
+                    }
+                )
+            }
         } catch (_: Throwable) {
             // Optional platform field on some SDK/test environments.
         }

@@ -22,12 +22,22 @@ class DrawerSearchBox @JvmOverloads constructor(
         // Swap stock DefaultAppSearchAlgorithm for NothingSearchAlgorithm using AllAppsSearchBarController's
         // existing text watcher, IME editor listener, and callback wiring.
         try {
-            val field = AppsSearchContainerLayout::class.java.getDeclaredField("mSearchBarController")
-            field.isAccessible = true
-            val controller = field.get(this) as? com.android.launcher3.allapps.search.AllAppsSearchBarController
+            val controller = SEARCH_CONTROLLER_FIELD?.get(this) as? com.android.launcher3.allapps.search.AllAppsSearchBarController
             controller?.initialize(NothingSearchAlgorithm(context), this, com.android.launcher3.views.ActivityContext.lookupContext(context), this)
         } catch (_: Throwable) {
             // Graceful fallback to stock search algorithm if field signature ever changes.
+        }
+    }
+
+    private companion object {
+        val SEARCH_CONTROLLER_FIELD: java.lang.reflect.Field? by lazy {
+            try {
+                AppsSearchContainerLayout::class.java.getDeclaredField("mSearchBarController").apply {
+                    isAccessible = true
+                }
+            } catch (_: Throwable) {
+                null
+            }
         }
     }
 

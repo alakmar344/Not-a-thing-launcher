@@ -2,4 +2,5 @@
 <resources>
     <item type="id" name="nt_spring_x" />
     <item type="id" name="nt_spring_y" />
+    <item type="id" name="nt_view_holder_tag" />
 </resources>
