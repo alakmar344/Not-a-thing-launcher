@@ -28,7 +28,6 @@ import java.util.TimeZone
 import java.util.UUID
 import kotlin.math.min
 import kotlin.math.pow
-import kotlin.random.Random
 
 /**
  * 100% offline Command Bar engine + fuzzy/acronym app matcher.
@@ -105,7 +104,7 @@ object CommandEngine {
                 title = title,
                 subtitle = sub,
                 copyValue = copy
-            ) { ctx -> copyToClipboard(ctx, copy) }
+            ) { ctx -> copyToClipboard(ctx, copy, sensitive = (badge == "KEY")) }
         }
 
         evalQuickAction(context, q)?.let { out += it }
@@ -125,11 +124,22 @@ object CommandEngine {
         return out
     }
 
-    private fun copyToClipboard(context: Context, text: String) {
+    private fun copyToClipboard(context: Context, text: String, sensitive: Boolean = false) {
         try {
             val cm = context.getSystemService(ClipboardManager::class.java)
-            cm?.setPrimaryClip(ClipData.newPlainText("Launcher Command", text))
-            Toast.makeText(context, context.getString(R.string.copied_fmt, text), Toast.LENGTH_SHORT).show()
+            val clip = ClipData.newPlainText("Launcher Command", text)
+            if (sensitive && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                clip.description.extras = android.os.PersistableBundle().apply {
+                    putBoolean(android.content.ClipDescription.EXTRA_IS_SENSITIVE, true)
+                }
+            }
+            cm?.setPrimaryClip(clip)
+            val toastText = if (sensitive) {
+                context.getString(R.string.nt_password_copied)
+            } else {
+                context.getString(R.string.copied_fmt, text)
+            }
+            Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
         } catch (_: Throwable) {}
     }
 
@@ -292,6 +302,8 @@ object CommandEngine {
         return null
     }
 
+    private val secureRng = java.security.SecureRandom()
+
     internal fun evalUtility(q: String): List4? {
         val low = q.trim().lowercase(Locale.US)
         if (low == "uuid") {
@@ -299,21 +311,37 @@ object CommandEngine {
             return List4("DEV", u, "Random UUID · Tap to copy", u)
         }
         if (low == "flip" || low == "flip coin" || low == "coin") {
-            val side = if (Random.nextBoolean()) "HEADS" else "TAILS"
+            val side = if (secureRng.nextBoolean()) "HEADS" else "TAILS"
             return List4("RNG", side, "Coin flip · Tap to copy", side)
         }
         if (low.startsWith("pass")) {
             val len = low.removePrefix("pass").trim().toIntOrNull()?.coerceIn(8, 32) ?: 16
-            val chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%"
-            val sb = StringBuilder(len)
-            for (i in 0 until len) sb.append(chars[Random.nextInt(chars.length)])
-            val pw = sb.toString()
+            val upper = "ABCDEFGHJKLMNPQRSTUVWXYZ"
+            val lower = "abcdefghijkmnopqrstuvwxyz"
+            val digits = "23456789"
+            val symbols = "!@#$%"
+            val all = upper + lower + digits + symbols
+            val buf = CharArray(len)
+            buf[0] = upper[secureRng.nextInt(upper.length)]
+            buf[1] = lower[secureRng.nextInt(lower.length)]
+            buf[2] = digits[secureRng.nextInt(digits.length)]
+            buf[3] = symbols[secureRng.nextInt(symbols.length)]
+            for (i in 4 until len) buf[i] = all[secureRng.nextInt(all.length)]
+            // Fisher-Yates shuffle using CSPRNG so required classes aren't pinned to indexes 0..3.
+            for (i in len - 1 downTo 1) {
+                val j = secureRng.nextInt(i + 1)
+                val tmp = buf[i]
+                buf[i] = buf[j]
+                buf[j] = tmp
+            }
+            val pw = String(buf)
+            java.util.Arrays.fill(buf, '\u0000')
             return List4("KEY", pw, "${len}-char password · Tap to copy", pw)
         }
         DICE_RE.matchEntire(low)?.let { m ->
             val count = (m.groupValues[1].toIntOrNull() ?: 1).coerceIn(1, 10)
             val sides = (m.groupValues[2].toIntOrNull() ?: 6).coerceIn(2, 1000)
-            val rolls = List(count) { Random.nextInt(1, sides + 1) }
+            val rolls = List(count) { secureRng.nextInt(sides) + 1 }
             val sum = rolls.sum()
             val detail = if (count == 1) "d$sides · Tap to copy" else "${rolls.joinToString(" + ")} (${count}d$sides)"
             return List4("RNG", sum.toString(), detail, sum.toString())

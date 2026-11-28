@@ -93,7 +93,8 @@ class NothingIconLogic(@Suppress("UNUSED_PARAMETER") context: Context) : Launche
         /** Re-renders every cached icon (light/dark switch, icon style, icon pack, or custom rename). */
         fun refreshAll(context: Context) {
             IconFactory.clearCache()
-            val app = LauncherAppState.getInstance(context)
+            val app = LauncherAppState.getInstanceNoCreate() ?: return
+            if (app.context !== context.applicationContext) return
             val idp = app.invariantDeviceProfile
             app.iconCache.updateIconParams(idp.fillResIconDpi, idp.iconBitmapSize)
             app.model.forceReload()

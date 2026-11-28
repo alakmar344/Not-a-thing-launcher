@@ -233,6 +233,15 @@ class NothingPrefs private constructor(context: Context) {
             val encoded = encodeStringSet(snapshot)
             cacheHiddenPkgs = ParsedCache(encoded, snapshot)
             putStr(K_HIDDEN_PACKAGES, encoded)
+            if (snapshot.isNotEmpty()) {
+                val filteredRecent = recentComponents.filter { it.substringBefore('/') !in snapshot }
+                if (filteredRecent != recentComponents) recentComponents = filteredRecent
+                val filteredFolder = quickFolderApps.filter { it.substringBefore('/') !in snapshot }
+                if (filteredFolder != quickFolderApps) quickFolderApps = filteredFolder
+                if (maxAppComponent.isNotBlank() && maxAppComponent.substringBefore('/') in snapshot) {
+                    maxAppComponent = ""
+                }
+            }
         }
 
     var customAppLabels: Map<String, String>
@@ -269,6 +278,8 @@ class NothingPrefs private constructor(context: Context) {
 
     fun recordAppLaunch(componentFlat: String) {
         if (componentFlat.isBlank()) return
+        val pkg = componentFlat.substringBefore('/')
+        if (pkg.isNotEmpty() && pkg in hiddenPackages) return
         val current = recentComponents
         if (current.firstOrNull() == componentFlat) return
         val next = ArrayList<String>(8)
@@ -379,7 +390,26 @@ class NothingPrefs private constructor(context: Context) {
         return parsed
     }
 
-    fun exportToJson(): String = JSONObject().apply {
+    enum class ImportStatus {
+        SUCCESS,
+        INVALID_FORMAT,
+        PASSPHRASE_REQUIRED,
+        WRONG_PASSPHRASE
+    }
+
+    @JvmOverloads
+    fun exportToJson(vaultPassphrase: CharArray? = null): String = JSONObject().apply {
+        val hidden = hiddenPackages
+        val visibleLabels = if (hidden.isEmpty()) {
+            customAppLabels
+        } else {
+            customAppLabels.filterKeys { it.substringBefore('/') !in hidden }
+        }
+        val safeMaxComp = maxAppComponent
+            .takeIf { it.isNotBlank() && it.substringBefore('/') !in hidden }
+            .orEmpty()
+        val safeFolderApps = quickFolderApps.filter { it.substringBefore('/') !in hidden }
+
         put("version", 15)
         put("background", background.name)
         put("visualQuality", visualQuality.name)
@@ -403,24 +433,64 @@ class NothingPrefs private constructor(context: Context) {
         put("pinchAction", pinchAction.name)
         put("habitTitle", habitTitle)
         put("habitDates", JSONArray(habitDates.toList()))
-        put("hiddenPackages", JSONArray(hiddenPackages.toList()))
-        put("customAppLabels", JSONObject(customAppLabels))
-        put("maxAppComponent", maxAppComponent)
+        // Security: never emit cleartext hiddenPackages in JSON exports.
+        put("customAppLabels", JSONObject(visibleLabels))
+        put("maxAppComponent", safeMaxComp)
         put("quickFolderTitle", quickFolderTitle)
-        put("quickFolderApps", JSONArray(quickFolderApps))
+        put("quickFolderApps", JSONArray(safeFolderApps))
         put("widgetSurfaces", JSONObject(allWidgetSurfaces()))
         put("deskKeepAwake", deskKeepAwake)
         put("deskBurnInShift", deskBurnInShift)
         put("deskMode", deskMode)
         put("kineticMode", kineticMode)
         put("soundscapePreset", soundscapePreset)
+        if (vaultPassphrase != null && vaultPassphrase.isNotEmpty()) {
+            val hiddenLabels = customAppLabels.filterKeys { it.substringBefore('/') in hidden }
+            put(
+                "encryptedVault",
+                com.nothinglauncher.security.BackupCrypto.encryptVault(
+                    com.nothinglauncher.security.BackupCrypto.VaultPayload(hidden, hiddenLabels),
+                    vaultPassphrase
+                )
+            )
+        }
     }.toString(2)
 
-    fun importFromJson(raw: String): Boolean {
-        if (raw.length > MAX_IMPORT_JSON_CHARS) return false
+    @JvmOverloads
+    fun importFromJson(
+        raw: String,
+        vaultPassphrase: CharArray? = null,
+        allowLegacyPlaintextVault: Boolean = false
+    ): Boolean = importBackup(raw, vaultPassphrase, allowLegacyPlaintextVault) == ImportStatus.SUCCESS
+
+    /**
+     * Validates schema and decrypts any `"encryptedVault"` payload BEFORE mutating any preference,
+     * failing closed on invalid JSON, bad schema version, or missing/wrong passphrase.
+     */
+    fun importBackup(
+        raw: String,
+        vaultPassphrase: CharArray? = null,
+        allowLegacyPlaintextVault: Boolean = false
+    ): ImportStatus {
+        if (raw.length > MAX_IMPORT_JSON_CHARS) return ImportStatus.INVALID_FORMAT
         return try {
             val o = JSONObject(raw)
-            if (!o.has("version")) return false
+            val schemaVersion = o.optInt("version", -1)
+            if (schemaVersion !in 1..1000) return ImportStatus.INVALID_FORMAT
+
+            val encryptedVault = o.optJSONObject("encryptedVault")
+            val decryptedVault = if (encryptedVault != null) {
+                val pass = vaultPassphrase
+                if (pass == null || pass.isEmpty()) {
+                    return ImportStatus.PASSPHRASE_REQUIRED
+                }
+                com.nothinglauncher.security.BackupCrypto.decryptVault(encryptedVault, pass)
+                    ?: return ImportStatus.WRONG_PASSPHRASE
+            } else {
+                null
+            }
+
+            // Apply all validated settings atomically only after schema & vault crypto pass.
             o.optString("background").takeIf { it.isNotEmpty() }?.let { n ->
                 Background.entries.firstOrNull { it.name == n }?.let { background = it }
             }
@@ -434,7 +504,8 @@ class NothingPrefs private constructor(context: Context) {
                 IconStyle.entries.firstOrNull { it.name == n }?.let { iconStyle = it }
             }
             if (o.has("iconPackPackage")) {
-                iconPackPackage = o.optString("iconPackPackage", "").trim().take(256)
+                val pkg = o.optString("iconPackPackage", "").trim().take(256)
+                if (pkg.isEmpty() || PACKAGE_REGEX.matches(pkg)) iconPackPackage = pkg
             }
             if (o.has("showSeconds")) showSeconds = o.optBoolean("showSeconds", showSeconds)
             if (o.has("hideHomeLabels")) hideHomeLabels = o.optBoolean("hideHomeLabels", hideHomeLabels)
@@ -469,26 +540,52 @@ class NothingPrefs private constructor(context: Context) {
                     .mapNotNull { arr.optString(it).trim().takeIf { s -> HABIT_DATE_REGEX.matches(s) } }
                     .toSet()
             }
-            o.optJSONArray("hiddenPackages")?.let { arr ->
-                val cap = arr.length().coerceAtMost(500)
-                hiddenPackages = (0 until cap)
-                    .mapNotNull { arr.optString(it).trim().takeIf { s -> PACKAGE_REGEX.matches(s) } }
-                    .toSet()
+
+            if (decryptedVault != null) {
+                hiddenPackages = decryptedVault.hiddenPackages
+            } else if (allowLegacyPlaintextVault) {
+                o.optJSONArray("hiddenPackages")?.let { arr ->
+                    val cap = arr.length().coerceAtMost(500)
+                    hiddenPackages = (0 until cap)
+                        .mapNotNull { arr.optString(it).trim().takeIf { s -> PACKAGE_REGEX.matches(s) } }
+                        .toSet()
+                }
             }
+
+            val currentHidden = hiddenPackages
             o.optJSONObject("customAppLabels")?.let { obj ->
-                val m = LinkedHashMap<String, String>()
+                val preservedHiddenLabels = if (decryptedVault == null) {
+                    customAppLabels.filterKeys { it.substringBefore('/') in currentHidden }
+                } else {
+                    emptyMap()
+                }
+                val m = LinkedHashMap<String, String>(preservedHiddenLabels)
                 val keys = obj.keys()
                 while (keys.hasNext() && m.size < 500) {
                     val k = keys.next()
-                    if (k.length <= 256) {
+                    val pkg = k.substringBefore('/')
+                    if (k.length <= 256 && PACKAGE_REGEX.matches(pkg) && pkg !in currentHidden) {
                         val v = obj.optString(k, "").trim().take(64)
                         if (v.isNotBlank()) m[k] = v
                     }
                 }
+                if (decryptedVault != null && decryptedVault.hiddenLabels.isNotEmpty()) {
+                    m.putAll(decryptedVault.hiddenLabels)
+                }
                 customAppLabels = m
+            } ?: run {
+                if (decryptedVault != null && decryptedVault.hiddenLabels.isNotEmpty()) {
+                    customAppLabels = customAppLabels + decryptedVault.hiddenLabels
+                }
             }
+
             if (o.has("maxAppComponent")) {
-                maxAppComponent = o.optString("maxAppComponent", "").trim().take(256)
+                val rawComp = o.optString("maxAppComponent", "").trim().take(256)
+                maxAppComponent = if (rawComp.isNotEmpty() && rawComp.substringBefore('/') !in currentHidden) {
+                    rawComp
+                } else {
+                    ""
+                }
             }
             if (o.has("quickFolderTitle")) {
                 quickFolderTitle = o.optString("quickFolderTitle", "ESSENTIALS").trim().take(32)
@@ -497,6 +594,7 @@ class NothingPrefs private constructor(context: Context) {
                 val cap = arr.length().coerceAtMost(24)
                 quickFolderApps = (0 until cap)
                     .mapNotNull { arr.optString(it).trim().take(256).takeIf(String::isNotBlank) }
+                    .filter { it.substringBefore('/') !in currentHidden }
             }
             o.optJSONObject("widgetSurfaces")?.let { obj ->
                 val m = LinkedHashMap<String, String>()
@@ -517,9 +615,9 @@ class NothingPrefs private constructor(context: Context) {
             if (o.has("deskMode")) deskMode = o.optInt("deskMode", deskMode).coerceIn(0, 3)
             if (o.has("kineticMode")) kineticMode = o.optInt("kineticMode", kineticMode).coerceIn(0, 2)
             if (o.has("soundscapePreset")) soundscapePreset = o.optInt("soundscapePreset", soundscapePreset).coerceIn(1, 3)
-            true
+            ImportStatus.SUCCESS
         } catch (_: Exception) {
-            false
+            ImportStatus.INVALID_FORMAT
         }
     }
 

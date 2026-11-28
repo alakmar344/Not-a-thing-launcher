@@ -35,13 +35,26 @@
         </intent>
     </queries>
 
+    <!-- Restrict Launcher3 content provider permissions to same-signature callers only. -->
+    <permission
+        android:name="${applicationId}.permission.READ_SETTINGS"
+        android:protectionLevel="signature"
+        tools:replace="android:protectionLevel" />
+    <permission
+        android:name="${applicationId}.permission.WRITE_SETTINGS"
+        android:protectionLevel="signature"
+        tools:replace="android:protectionLevel" />
+
     <application
         android:name="com.nothinglauncher.NothingApplication"
+        android:allowBackup="false"
+        android:fullBackupContent="@xml/nt_backup_rules"
+        android:dataExtractionRules="@xml/nt_data_extraction_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/derived_app_name"
         android:theme="@style/AppTheme"
-        tools:replace="android:name,android:icon,android:label">
+        tools:replace="android:name,android:icon,android:label,android:fullBackupContent">
 
         <activity
             android:name="com.nothinglauncher.home.NothingLauncher"
@@ -129,6 +142,7 @@
 
         <activity
             android:name="com.nothinglauncher.drawer.VaultAuthActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:excludeFromRecents="true"
             android:exported="false"
             android:noHistory="true"
@@ -160,6 +174,15 @@
                 android:name="android.service.dream"
                 android:resource="@xml/nothing_dream_info" />
         </service>
+
+        <!-- Remove secondary-display Launcher3 activity (it uses stock AllApps and bypasses Hidden Vault)
+             and disable unused test harness provider. -->
+        <activity
+            android:name="com.android.launcher3.secondarydisplay.SecondaryDisplayLauncher"
+            tools:node="remove" />
+        <provider
+            android:name="com.android.launcher3.testing.TestInformationProvider"
+            tools:node="remove" />
 
     </application>
 </manifest>

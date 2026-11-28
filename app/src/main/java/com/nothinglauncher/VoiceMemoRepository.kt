@@ -8,8 +8,9 @@ import android.media.MediaRecorder
 import android.os.Build
 import androidx.core.content.ContextCompat
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.util.concurrent.CopyOnWriteArraySet
 
@@ -22,10 +23,13 @@ object VoiceMemoRepository {
 
     data class Memo(val file: File, val name: String, val createdAtMs: Long, val label: String)
 
-    private var recorder: MediaRecorder? = null
-    private var recordingFile: File? = null
-    private var player: MediaPlayer? = null
-    private var playingPath: String? = null
+    private val lock = Any()
+    private val memoFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d · HH:mm", Locale.US)
+
+    @Volatile private var recorder: MediaRecorder? = null
+    @Volatile private var recordingFile: File? = null
+    @Volatile private var player: MediaPlayer? = null
+    @Volatile private var playingPath: String? = null
     private val listeners = CopyOnWriteArraySet<() -> Unit>()
 
     val isRecording: Boolean get() = recorder != null
@@ -42,41 +46,55 @@ object VoiceMemoRepository {
 
     fun listMemos(context: Context): List<Memo> {
         val files = memoDir(context).listFiles { f -> f.isFile && f.name.endsWith(".m4a") } ?: return emptyList()
-        val fmt = SimpleDateFormat("MMM d · HH:mm", Locale.getDefault())
+        val zone = ZoneId.systemDefault()
+        val fmt = memoFormatter.withLocale(Locale.getDefault())
         return files.sortedByDescending { it.lastModified() }.map { f ->
-            Memo(f, f.nameWithoutExtension, f.lastModified(), fmt.format(Date(f.lastModified())).uppercase(Locale.getDefault()))
+            val ts = f.lastModified()
+            val lbl = fmt.format(Instant.ofEpochMilli(ts).atZone(zone)).uppercase(Locale.getDefault())
+            Memo(f, f.nameWithoutExtension, ts, lbl)
         }
     }
 
     fun startRecording(context: Context): Boolean {
         if (!hasRecordPermission(context)) return false
-        stopPlayback()
-        stopRecording()
-        val file = File(memoDir(context), "MEMO_${System.currentTimeMillis()}.m4a")
-        return try {
-            @Suppress("DEPRECATION")
-            val r = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
-            r.setAudioSource(MediaRecorder.AudioSource.MIC)
-            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            r.setAudioEncodingBitRate(64_000)
-            r.setAudioSamplingRate(22_050)
-            r.setOutputFile(file.absolutePath)
-            r.prepare()
-            r.start()
-            recorder = r
-            recordingFile = file
-            notifyListeners()
-            true
-        } catch (_: Throwable) {
-            try { file.delete() } catch (_: Throwable) {}
-            recorder = null
-            recordingFile = null
-            false
+        synchronized(lock) {
+            stopPlaybackLocked()
+            stopRecordingLocked()
+            val file = File(memoDir(context), "MEMO_${System.currentTimeMillis()}.m4a")
+            var r: MediaRecorder? = null
+            val started = try {
+                @Suppress("DEPRECATION")
+                r = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) MediaRecorder(context) else MediaRecorder()
+                r.setAudioSource(MediaRecorder.AudioSource.MIC)
+                r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                r.setAudioEncodingBitRate(64_000)
+                r.setAudioSamplingRate(22_050)
+                r.setOutputFile(file.absolutePath)
+                r.prepare()
+                r.start()
+                recorder = r
+                recordingFile = file
+                true
+            } catch (_: Throwable) {
+                try { r?.release() } catch (_: Throwable) {}
+                try { file.delete() } catch (_: Throwable) {}
+                recorder = null
+                recordingFile = null
+                false
+            }
+            if (started) notifyListeners()
+            return started
         }
     }
 
     fun stopRecording(): File? {
+        val out = synchronized(lock) { stopRecordingLocked() }
+        notifyListeners()
+        return out
+    }
+
+    private fun stopRecordingLocked(): File? {
         val r = recorder ?: return null
         val file = recordingFile
         recorder = null
@@ -88,7 +106,6 @@ object VoiceMemoRepository {
         } finally {
             try { r.release() } catch (_: Throwable) {}
         }
-        notifyListeners()
         return file?.takeIf { it.exists() && it.length() > 0 }
     }
 
@@ -103,48 +120,70 @@ object VoiceMemoRepository {
     }
 
     fun togglePlayback(memo: Memo): Boolean {
-        if (playingPath == memo.file.absolutePath) {
-            stopPlayback()
-            return false
+        val playing = synchronized(lock) {
+            if (playingPath == memo.file.absolutePath) {
+                stopPlaybackLocked()
+                false
+            } else {
+                stopRecordingLocked()
+                stopPlaybackLocked()
+                var p: MediaPlayer? = null
+                try {
+                    p = MediaPlayer()
+                    p.setDataSource(memo.file.absolutePath)
+                    p.setOnCompletionListener { stopPlayback() }
+                    p.prepare()
+                    p.start()
+                    player = p
+                    playingPath = memo.file.absolutePath
+                    true
+                } catch (_: Throwable) {
+                    try { p?.release() } catch (_: Throwable) {}
+                    stopPlaybackLocked()
+                    false
+                }
+            }
         }
-        stopRecording()
-        stopPlayback()
-        return try {
-            val p = MediaPlayer()
-            p.setDataSource(memo.file.absolutePath)
-            p.setOnCompletionListener { stopPlayback() }
-            p.prepare()
-            p.start()
-            player = p
-            playingPath = memo.file.absolutePath
-            notifyListeners()
-            true
-        } catch (_: Throwable) {
-            stopPlayback()
-            false
-        }
+        notifyListeners()
+        return playing
     }
 
     fun deleteMemo(memo: Memo) {
-        if (playingPath == memo.file.absolutePath) stopPlayback()
-        try { memo.file.delete() } catch (_: Throwable) {}
+        synchronized(lock) {
+            if (playingPath == memo.file.absolutePath) stopPlaybackLocked()
+            val name = memo.file.name
+            if (memo.file.parentFile?.name == "voice_memos" &&
+                name.endsWith(".m4a") &&
+                !name.contains("..")
+            ) {
+                try { memo.file.delete() } catch (_: Throwable) {}
+            }
+        }
         notifyListeners()
     }
 
     fun stopPlayback() {
+        val changed = synchronized(lock) { stopPlaybackLocked() }
+        if (changed) notifyListeners()
+    }
+
+    private fun stopPlaybackLocked(): Boolean {
         val p = player ?: run {
             playingPath = null
-            return
+            return false
         }
         player = null
         playingPath = null
         try { p.stop() } catch (_: Throwable) {}
         try { p.release() } catch (_: Throwable) {}
-        notifyListeners()
+        return true
     }
 
     fun releaseAll() {
-        stopRecording()
-        stopPlayback()
+        synchronized(lock) {
+            stopRecordingLocked()
+            stopPlaybackLocked()
+        }
+        notifyListeners()
     }
 }

@@ -163,9 +163,15 @@ object MediaSessionRepository {
     }
 
     private fun attachBestController(sessions: List<MediaController>) {
-        val best = sessions.firstOrNull {
+        val hiddenPkgs = appContext?.let { NothingPrefs.get(it).hiddenPackages } ?: emptySet()
+        val visibleSessions = if (hiddenPkgs.isEmpty()) {
+            sessions
+        } else {
+            sessions.filter { it.packageName !in hiddenPkgs }
+        }
+        val best = visibleSessions.firstOrNull {
             it.playbackState?.state == PlaybackState.STATE_PLAYING
-        } ?: sessions.firstOrNull()
+        } ?: visibleSessions.firstOrNull()
         val previous = controller
         if (previous?.sessionToken == best?.sessionToken) {
             publish()
@@ -228,11 +234,14 @@ object MediaSessionRepository {
     }
 
     private fun publish() {
+        val ctx = appContext
+        val hiddenPkgs = ctx?.let { NothingPrefs.get(it).hiddenPackages } ?: emptySet()
         val c = controller
-        if (c == null) {
+        if (c == null || c.packageName in hiddenPkgs) {
+            if (c != null) detachController()
             lastArtKey = ""
             lastHalftone = null
-            update(State(permissionGranted = hasNotificationAccess(appContext ?: return)))
+            update(State(permissionGranted = hasNotificationAccess(ctx ?: return)))
             return
         }
         val metadata = try { c.metadata } catch (_: Exception) { null }

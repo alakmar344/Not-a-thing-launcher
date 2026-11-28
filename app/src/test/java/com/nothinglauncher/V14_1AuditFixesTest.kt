@@ -111,12 +111,17 @@ class V14_1AuditFixesTest {
             put("hiddenPackages", JSONArray(listOf("com.example.valid", "../evil path", "bad pkg")))
         }.toString()
 
+        // Unprivileged default import must ignore cleartext hiddenPackages.
         assertTrue(prefs.importFromJson(payload))
         assertEquals(originalZone, prefs.worldClockZoneId)
         assertEquals(80, prefs.weatherCity.length)
         assertEquals(3, prefs.deskMode)
         assertEquals(0, prefs.kineticMode)
         assertEquals(setOf("2026-11-27", "2026-11-26"), prefs.habitDates)
+        assertEquals(emptySet<String>(), prefs.hiddenPackages)
+
+        // Explicit legacy import still validates & filters malformed package names.
+        assertTrue(prefs.importFromJson(payload, allowLegacyPlaintextVault = true))
         assertEquals(setOf("com.example.valid"), prefs.hiddenPackages)
 
         val validZonePayload = JSONObject().apply {
