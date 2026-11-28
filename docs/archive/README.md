@@ -1,10 +1,9 @@
 # Archived docs
 
-Historical documentation for the **pre-v11.0 launcher**: a fully bespoke Kotlin home screen
-(its own `MainActivity`, `HomeFragment`, `CellLayout` grid, drag controller, procedural
-dot-matrix elements, etc). That launcher was rebuilt from scratch on stock **AOSP Launcher3**
-in v11.0 (see the root [`CHANGELOG.md`](../../CHANGELOG.md)); none of the classes or UI
-described in these files exist in the current codebase.
+Archived documentation for earlier builds of Not a Thing Launcher.
+The oldest files below capture the **pre-v11.0 bespoke launcher** (its own `MainActivity`,
+`HomeFragment`, `CellLayout` grid, drag controller, etc., rebuilt on stock **AOSP Launcher3** in v11.0),
+followed by release snapshots from v12, v13, v14.x, and **v15** before the v15.5 performance overhaul.
 
 Kept for historical reference only — do not use these to understand or modify the current
 launcher. Start at the root [`README.md`](../../README.md), [`../ARCHITECTURE.md`](../ARCHITECTURE.md),
@@ -26,3 +25,6 @@ and [`../FEATURES.md`](../FEATURES.md) instead.
 | `RELEASE_V13.md` | Release notes, v13 (Essential Space, Command Search, 11 widgets) |
 | `ARCHITECTURE.v13.md` | Architecture reference as of v13 |
 | `FEATURES.v13.md` | Feature catalog as of v13 |
+| `RELEASE_V15.md` | Release notes & baseline metrics for v15 |
+| `ARCHITECTURE.v15.md` | Architecture snapshot as of v15 |
+| `FEATURES.v15.md` | Feature catalog snapshot as of v15 |

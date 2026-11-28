@@ -2,7 +2,7 @@
 
 Not a Thing is a **design, telemetry, and productivity layer on top of stock AOSP Launcher3**, not a launcher written from scratch. Upstream Launcher3 (vendored unmodified under `third_party/aosp/launcher3`) owns the workspace database, drag & drop, folders, widget hosting, and loader lifecycle; this repo's product code lives under `app/src/main/java/com/nothinglauncher/` and resource overrides under `app/src/main/res/`.
 
-For project directories and build tasks, see the [root README](../README.md#project-layout) and [`third_party/aosp/README.md`](../third_party/aosp/README.md). Archived pre-v11.0, v12, and v13 notes live under [`archive/`](archive/).
+For project directories and build tasks, see the [root README](../README.md#project-layout) and [`third_party/aosp/README.md`](../third_party/aosp/README.md). Archived pre-v11.0, v12, v13, and v15 notes live under [`archive/`](archive/).
 
 ## 1. How the layer attaches to Launcher3
 
@@ -29,9 +29,9 @@ Launcher3 exposes explicit derivative extension points so Not a Thing avoids for
 
 ## 3. Preferences, Repositories & Widget Surfaces
 
-- [`NothingPrefs`](../app/src/main/java/com/nothinglauncher/NothingPrefs.kt) stores all configuration with bounded/validated `importFromJson()` (size limits, IANA timezone ID verification, regex-filtered package/habit sets, enum/range clamping), plus an in-memory fallback for headless tests.
+- [`NothingPrefs`](../app/src/main/java/com/nothinglauncher/NothingPrefs.kt) stores all configuration with bounded/validated `importFromJson()` (size limits, IANA timezone ID verification, regex-filtered package/habit sets, enum/range clamping), in-memory `ParsedCache` snapshots for JSON-backed collections (zero repeat JSON parsing on UI binds/draws), plus an in-memory fallback for headless tests.
 - [`SetupBackupManager`](../app/src/main/java/com/nothinglauncher/SetupBackupManager.kt) serializes/deserializes `.json` setup backups (`MAX_BACKUP_BYTES` 512 KB read cap) via Storage Access Framework and provides 4 presets (`TELEMETRY`, `MONOLITH`, `COMMAND`, `STUDIO`). [`LauncherEntryActivity`](../app/src/main/java/com/nothinglauncher/LauncherEntryActivity.kt) renders presets as a 2-column Bento grid on tablets with active-preset highlighting.
-- Shared zero-idle repositories & audio engine synchronize Home widgets, Dock Space, StandBy Dream, and Desk HUD without background services: `WeatherRepository` (HTTPS-only bounded fetch, lock-synchronized callback queue, forecast-timezone hourly index matching), `MediaSessionRepository`, `NotificationDigestRepository` (synchronized state with immediate cleanup when Notification Access is revoked + field length bounds), `FocusSoundEngine` (session-generation guarded stereo `AudioTrack` synth: `BROWN`, `RAIN`, `GAMMA_40HZ`), `HardwareControlRepository` (main-Looper `TorchCallback`), `FocusTimerRepository`, and `VoiceMemoRepository`.
+- Shared zero-idle repositories & audio engine synchronize Home widgets, Dock Space, StandBy Dream, and Desk HUD without background services: `WeatherRepository` (HTTPS-only bounded fetch, parsed snapshot cache, lock-synchronized callback queue, forecast-timezone hourly index matching), `MediaSessionRepository`, `NotificationDigestRepository` (synchronized state with immediate cleanup when Notification Access is revoked, precompiled sanitizer regex, and bounded package-label cache), `FocusSoundEngine` (allocation-free `fillBuffer` stereo `AudioTrack` synth: `BROWN`, `RAIN`, `GAMMA_40HZ`), `HardwareControlRepository` (main-Looper `TorchCallback` plus TTL-cached vitals, screen-time, and next calendar queries), `FocusTimerRepository`, and `VoiceMemoRepository`.
 
 ## 4. Dot-Matrix Widgets (13 Elements)
 
@@ -57,15 +57,15 @@ All 13 widgets extend [`NothingWidget`](../app/src/main/java/com/nothinglauncher
 
 ## 5. Command Search, Smart Drawer Categories & Hidden Vault
 
-- [`CommandEngine`](../app/src/main/java/com/nothinglauncher/search/CommandEngine.kt) evaluates recursive-descent math + `%`, unit & temperature conversions, city timezone lookups, hex/named color inspection (`evalColor`), offline utilities (`uuid`, `dice`, `coin`, palette info via `evalUtility`), quick actions (`timer`, `note`, `preset`, toggles, `desk`), optional `READ_CONTACTS` filtering, web search, and acronym/fuzzy app matching.
-- [`NothingAllAppsContainerView`](../app/src/main/java/com/nothinglauncher/drawer/NothingAllAppsContainerView.kt) tracks Personal (`MAIN`), Work (`WORK`), and `SEARCH` adapters separately, extends `HiddenVault` filtering and `CATEGORIES` grouping (`AppCategorizer`) across both tabs, cycles `GRID` ↔ multi-column `LIST` ↔ `CATEGORIES`, renders 2-column Command Cards on wide screens via [`NothingSearchAdapterProvider`](../app/src/main/java/com/nothinglauncher/drawer/NothingSearchAdapterProvider.kt) with theme/pack/style-scoped `IconFactory` caching, and pairs with [`DrawerHeader`](../app/src/main/java/com/nothinglauncher/drawer/DrawerHeader.kt).
+- [`CommandEngine`](../app/src/main/java/com/nothinglauncher/search/CommandEngine.kt) evaluates recursive-descent math + `%`, unit & temperature conversions, indexed city timezone lookups, hex/named color inspection (`evalColor`), offline utilities (`uuid`, `dice`, `coin`, palette info via `evalUtility`), quick actions (`timer`, `note`, `preset`, toggles, `desk`), optional `READ_CONTACTS` filtering, web search, and zero-allocation acronym/fuzzy app matching.
+- [`NothingAllAppsContainerView`](../app/src/main/java/com/nothinglauncher/drawer/NothingAllAppsContainerView.kt) tracks Personal (`MAIN`), Work (`WORK`), and `SEARCH` adapters separately, extends `HiddenVault` filtering and `CATEGORIES` grouping (`AppCategorizer` with cached per-package buckets) across both tabs, cycles `GRID` ↔ multi-column `LIST` ↔ `CATEGORIES` with cached `SpanSizeLookup` indices, renders ViewHolder-cached rows and 2-column Command Cards via [`NothingSearchAdapterProvider`](../app/src/main/java/com/nothinglauncher/drawer/NothingSearchAdapterProvider.kt) with `IconFactory.getCached()` fast-path hits before Binder IPC, and pairs with signature-cached [`DrawerHeader`](../app/src/main/java/com/nothinglauncher/drawer/DrawerHeader.kt).
 
-## 6. Visual Tiers, Tactile Physics, Icons & Accents
+## 6. Visual Tiers, Tactile Physics, Performance & Accents
 
-- [`VisualTier`](../app/src/main/java/com/nothinglauncher/perf/VisualTier.kt) classifies devices into `LITE` / `BALANCED` / `RICH` (with `ApplicationExitInfo` pressure fallback and trim eviction). `GlyphMatrixCanvasView`, `KineticMatrixView`, `SecondsTickerView`, `MediaDotsView`, and `BatteryDotsView` gate animation and sensors strictly on visibility and `VisualTier.motionAllowed`.
+- [`VisualTier`](../app/src/main/java/com/nothinglauncher/perf/VisualTier.kt) classifies devices into `LITE` / `BALANCED` / `RICH` (with `ApplicationExitInfo` pressure fallback and tier-sized cache trimming in [`NothingApplication`](../app/src/main/java/com/nothinglauncher/NothingApplication.kt)). [`IconFactory`](../app/src/main/java/com/nothinglauncher/IconFactory.kt) reuses thread-local scratch bitmaps, pixel probes, `Paint`s, and immutable `ColorFilter`s; `DotMatrixView`, `AnalogDotClockView`, `SecondsTickerView`, `DotRingGaugeView`, `BatteryDotsView`, `WeatherDotsView`, `MediaDotsView`, `HabitPegboardView`, `KineticMatrixView`, and `GlyphMatrixCanvasView` precompute trig tables, view geometry, and accent/habit masks outside `onDraw`; and [`EssentialSpaceOverlay`](../app/src/main/java/com/nothinglauncher/space/EssentialSpaceOverlay.kt) uses hardware layers during slide/settle, diffs Notification Digest trees, and halts dynamic counter tickers when idle.
 - [`Tactile`](../app/src/main/java/com/nothinglauncher/Tactile.kt), [`TactileAudio`](../app/src/main/java/com/nothinglauncher/TactileAudio.kt), [`NothingIconLogic`](../app/src/main/java/com/nothinglauncher/icons/NothingIconLogic.kt), [`IconPackManager`](../app/src/main/java/com/nothinglauncher/icons/IconPackManager.kt), and [`AccentTheme`](../app/src/main/java/com/nothinglauncher/AccentTheme.kt) complete the tactile visual system.
 
-## 7. Build Pipeline & R8 Reflection Contract
+## 7. Build Pipeline, Baseline Profile & R8 Reflection Contract
 
 ```
 third_party/aosp/launcher3/   <- vendored, unmodified AOSP sources
@@ -74,7 +74,8 @@ third_party/aosp/launcher3/   <- vendored, unmodified AOSP sources
    :launcher3, :iconloader, :animationlib   <- compiles AOSP sources + config & src_ui_overrides
          |
          v
-       :app   <- com.nothinglauncher: v15 UI, StandBy Dream, Desk HUD, 13 widgets, overlay, search, vault, settings
+       :app   <- com.nothinglauncher: v15.5 UI, ART baseline-prof.txt, shrinkResources, StandBy Dream, Desk HUD, 13 widgets
 ```
 
-All 13 `NothingWidget` subclasses in `R.array.custom_widget_providers`, `NothingIconLogic`, and `AppsSearchContainerLayout.mSearchBarController` are preserved through R8 via `app/proguard-rules.pro` and `launcher3/consumer-rules.pro`, verified after every `assembleRelease` by `tools/verify_release_reflection.py`.
+- Release builds enable R8 code shrinking and internal helper obfuscation, `shrinkResources true`, debug/verbose/info log stripping, packaging exclusions for non-runtime `.proto`/`kotlin_builtins`/`DebugProbesKt.bin` metadata, and [`app/src/main/baseline-prof.txt`](../app/src/main/baseline-prof.txt) for AOT ART startup/scroll/draw compilation across Android 8–17.
+- All 13 `NothingWidget` subclasses in `R.array.custom_widget_providers`, `NothingIconLogic`, and `AppsSearchContainerLayout.mSearchBarController` are preserved through R8 via `app/proguard-rules.pro` and `launcher3/consumer-rules.pro`, verified after every `assembleRelease` by `tools/verify_release_reflection.py`.
